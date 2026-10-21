@@ -1,4 +1,4 @@
-window = {
+﻿window = {
 	name = "ingame_pausemenu"
 	parentanchor = center
 	movable = no
@@ -45,6 +45,7 @@ window = {
 		position_y = 10
 	}
 
+
 		############################################################
 		### START ALL CRUSADER CONFLICTS EDITS TO frontend_ingame.gui ###
 		############################################################
@@ -69,7 +70,7 @@ window = {
 		############################################################
 		###   END ALL CRUSADER CONFLICTS EDITS TO frontend_ingame.gui ###
 		############################################################
-		############################################################		
+		############################################################
 
 	widget = {
 		size = { 100% 100% }
@@ -404,7 +405,7 @@ window = {
 
 	using = Animation_ShowHide_Quick
 	using = Background_Full_Dim
-	
+
 	state = {
 		name = _show
 		on_finish = "[GetVariableSystem.Set('pause_submenu', 'load')]"
@@ -461,6 +462,11 @@ window = {
 		blockoverride "layout_widget"
 		{
 			visible = "[Not(LoadIngameWindow.HasSelectedSavegame)]"
+		}
+
+		blockoverride "button_delete_all_saves"
+		{
+			onclick = "[LoadIngameWindow.OnDeleteAll]"
 		}
 	}
 }

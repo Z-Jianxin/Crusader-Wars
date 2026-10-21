@@ -1,0 +1,41 @@
+﻿cc_stat_probe_collect = {
+    effect = {
+        remove_character_modifier = cc_stat_probe_boost
+        scriptedtests_recalculate_character_modifier = yes
+        force_character_skill_recalculation = yes
+        set_variable = { name = ccstat_snapshot_serial value = 1 }
+        remove_variable = cc_stat_probe_regiment
+        every_maa_regiment = {
+            root = {
+                if = {
+                    limit = { NOT = { has_variable = cc_stat_probe_regiment } }
+                    set_variable = { name = cc_stat_probe_regiment value = prev }
+                }
+            }
+        }
+        debug_log = "CCPROBE|collected"
+    }
+}
+
+cc_stat_probe_boost = {
+    effect = {
+        var:cc_stat_probe_regiment.regiment_owner = {
+            add_character_modifier = { modifier = cc_stat_probe_boost days = 1 }
+            scriptedtests_recalculate_character_modifier = yes
+            force_character_skill_recalculation = yes
+            if = { limit = { has_character_modifier = cc_stat_probe_boost } debug_log = "CCPROBE|modifier_present" }
+        }
+        debug_log = "CCPROBE|boost_applied"
+    }
+}
+
+cc_stat_probe_cleanup = {
+    effect = {
+        var:cc_stat_probe_regiment.regiment_owner = {
+            remove_character_modifier = cc_stat_probe_boost
+            scriptedtests_recalculate_character_modifier = yes
+            force_character_skill_recalculation = yes
+        }
+        debug_log = "CCPROBE|boost_removed"
+    }
+}

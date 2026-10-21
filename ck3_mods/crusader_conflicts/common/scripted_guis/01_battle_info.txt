@@ -1,4 +1,4 @@
-clear_log = {
+﻿clear_log = {
     effect = {
         debug_log = "CRUSADERCONFLICTS"
     }
@@ -78,7 +78,7 @@ combat_data = {
 
 ids_string_variable = {
     effect = {
-        debug_log_scope = yes
+        debug_log_scopes = yes
         set_variable = {name = id_var value = scope:ids_string_variable}
     }
 }

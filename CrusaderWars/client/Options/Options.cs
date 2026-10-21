@@ -429,6 +429,7 @@ namespace CrusaderWars
                 var OptInPreReleases_Value = GetOptionValue(xmlDoc, "OptInPreReleases", "False");
                 var SelectedCustomMapper_Value = GetOptionValue(xmlDoc, "SelectedCustomMapper", "");
                 var CombineKnights_Value = GetOptionValue(xmlDoc, "CombineKnights", "Disabled");
+                var StatFidelityMode_Value = GetOptionValue(xmlDoc, "StatFidelityMode", "Disabled");
                 var LinuxSetupCompleted_Value = GetOptionValue(xmlDoc, "LinuxSetupCompleted", "False");
                 var LevyMinSize_Value = GetOptionValue(xmlDoc, "LevyMinSize", "10");
 
@@ -473,6 +474,7 @@ namespace CrusaderWars
                 ModOptions.optionsValuesCollection.Add("OptInPreReleases", OptInPreReleases_Value); // Add new option
                 ModOptions.optionsValuesCollection.Add("SelectedCustomMapper", SelectedCustomMapper_Value);
                 ModOptions.optionsValuesCollection.Add("CombineKnights", CombineKnights_Value);
+                ModOptions.optionsValuesCollection.Add("StatFidelityMode", StatFidelityMode_Value);
                 ModOptions.optionsValuesCollection.Add("LinuxSetupCompleted", LinuxSetupCompleted_Value);
                 ModOptions.optionsValuesCollection.Add("LevyMinSize", LevyMinSize_Value);
                 ModOptions.SelectedCustomMapper = SelectedCustomMapper_Value;
@@ -547,6 +549,7 @@ namespace CrusaderWars
                 AddDefaultOption(xmlDoc, root, "OptInPreReleases", "False");
                 AddDefaultOption(xmlDoc, root, "SelectedCustomMapper", string.Empty);
                 AddDefaultOption(xmlDoc, root, "CombineKnights", "Disabled");
+                AddDefaultOption(xmlDoc, root, "StatFidelityMode", "Disabled");
                 AddDefaultOption(xmlDoc, root, "LinuxSetupCompleted", "False");
                 AddDefaultOption(xmlDoc, root, "LevyMinSize", "10");
 
@@ -656,6 +659,7 @@ namespace CrusaderWars
                 var LevyMinSize_TextBox = Units_Tab.Controls.Find("OptionSelection_LevyMinSize", true).FirstOrDefault() as TextBox;
                 if (BattleScale_ComboBox != null) BattleScale_ComboBox.SelectedItem = ModOptions.optionsValuesCollection["BattleScale"];
                 if (AutoScaleUnits_ComboBox != null) AutoScaleUnits_ComboBox.SelectedItem = ModOptions.optionsValuesCollection["AutoScaleUnits"];
+                Units_Tab.SetStatFidelityMode(ModOptions.optionsValuesCollection.GetValueOrDefault("StatFidelityMode", "Disabled"));
                 if (LevyMinSize_TextBox != null) LevyMinSize_TextBox.Text = ModOptions.optionsValuesCollection["LevyMinSize"];
 
                 // Temporarily disable event handlers in CandK_Tab to prevent validation logic from firing
@@ -931,6 +935,16 @@ namespace CrusaderWars
                 }
 
                 var LinuxSetupCompleted_Node = xmlDoc.SelectSingleNode("//Option [@name='LinuxSetupCompleted']");
+                var StatFidelityMode_Node = xmlDoc.SelectSingleNode("//Option [@name='StatFidelityMode']") as XmlElement;
+                if (StatFidelityMode_Node == null)
+                {
+                    StatFidelityMode_Node = xmlDoc.CreateElement("Option");
+                    StatFidelityMode_Node.SetAttribute("name", "StatFidelityMode");
+                    xmlDoc.DocumentElement?.AppendChild(StatFidelityMode_Node);
+                }
+                StatFidelityMode_Node.InnerText = Units_Tab.GetStatFidelityMode();
+                ModOptions.optionsValuesCollection["StatFidelityMode"] = StatFidelityMode_Node.InnerText;
+
                 if (LinuxSetupCompleted_Node != null && ModOptions.optionsValuesCollection.ContainsKey("LinuxSetupCompleted"))
                 {
                     LinuxSetupCompleted_Node.InnerText = ModOptions.optionsValuesCollection["LinuxSetupCompleted"];

@@ -1,27 +1,93 @@
-################################################################################################
-# Crusader Conflicts Accolade Adjustments (added bonuses for Attila Total War Battles) by flogi
-################################################################################################
+﻿# Native local constants used by the rebased definitions.
+@lifestyle_bonus_tier_1_value = 0.15
+@lifestyle_bonus_tier_2_value = 0.25
+@lifestyle_bonus_tier_3_value = 0.35
+@knight_effectiveness_tier_1_value = 0.4
+@knight_effectiveness_tier_2_value = 0.8
+@has_relevant_maa_weight_up_value = 500
+@respected_culture_for_maa_type_value = 100
+@disinterested_culture_for_maa_type_value = -100
+@number_maa_regiments_increment_1 = 1
+@number_maa_regiments_increment_2 = 2
+@number_maa_regiments_increment_3 = 3
+@number_maa_regiments_increment_4 = 4
+@accolade_maa_maint_1 = -0.1
+@accolade_maa_maint_2 = -0.15
+@accolade_maa_maint_3 = -0.2
+@accolade_maa_maint_4 = -0.25
+@accolade_maa_damage_1 = 0.1
+@accolade_maa_damage_3 = 0.3
+@accolade_maa_damage_4 = 0.4
+@accolade_maa_damage_5 = 0.5
+@accolade_maa_damage_6 = 0.6
+@accolade_maa_toughness_1 = 0.1
+@accolade_maa_toughness_2 = 0.2
+@accolade_maa_toughness_3 = 0.3
+@accolade_maa_toughness_4 = 0.4
+@accolade_maa_toughness_6 = 0.6
+@accolade_maa_screen_1 = 0.1
+@accolade_maa_screen_2 = 0.2
+@accolade_maa_screen_3 = 0.3
+@accolade_maa_screen_5 = 0.5
+@accolade_maa_pursuit_1 = 0.1
+@accolade_maa_pursuit_2 = 0.2
+@accolade_maa_pursuit_3 = 0.3
+@accolade_maa_pursuit_4 = 0.4
+@skirmisher_attr_winter_movement_speed_1 = 0.1
+@skirmisher_attr_winter_movement_speed_2 = 0.15
+@skirmisher_attr_winter_movement_speed_3 = 0.20
+@outrider_attr_movement_speed_1 = 0.05
+@outrider_attr_movement_speed_2 = 0.10
+@outrider_attr_movement_speed_3 = 0.15
+@besieger_attr_siege_weapon_max_size_1 = 1
+@besieger_attr_siege_weapon_max_size_2 = 2
+@besieger_attr_siege_weapon_max_size_3 = 4
+@besieger_attr_siege_phase_time_1 = -0.1
+@besieger_attr_siege_phase_time_2 = -0.15
+@besieger_attr_siege_phase_time_3 = -0.2
+@besieger_attr_siege_mortal_loss_1 = 0.1
+@besieger_attr_siege_mortal_loss_2 = 0.15
+@besieger_attr_siege_mortal_loss_3 = 0.2
+@elephantry_attr_eleph_maint_1 = -0.2
+@elephantry_attr_eleph_maint_2 = -0.35
+@elephantry_attr_eleph_maint_3 = -0.5
+@elephantry_attr_eleph_damage_2 = 0.2
+@elephantry_attr_eleph_damage_3 = 0.2
+@elephantry_attr_eleph_tough_3 = 0.2
+@accolade_trait_additive_plus_1_value = 250
+@accolade_trait_additive_plus_2_value = 150
+@accolade_trait_additive_plus_3_value = 50
+@accolade_trait_additive_minus_1_value = -50
+@accolade_trait_additive_minus_2_value = -150
+@accolade_trait_additive_minus_3_value = -250
+@dread_base_bonus_tier_3_value = 20
+@tourney_participant_xp_mult_bonus_tier_1_value = 0.1
+@tourney_participant_xp_mult_bonus_tier_2_value = 0.2
+@tourney_participant_xp_mult_bonus_tier_3_value = 0.3
+@intrigue_scheme_phase_duration_bonus_tier_1_value = -5
+@intrigue_scheme_phase_duration_bonus_tier_2_value = -10
+@intrigue_scheme_phase_duration_bonus_tier_3_value = -15
+@knight_effectiveness_per_dread_tier_2_value = 0.003
+@knight_effectiveness_per_dread_tier_3_value = 0.005
 
-# only changes the parts that absolutely need to be changed for compatibility reasons
-
-################################################
-# Marauder
-################################################
+# Current CK3 1.20.1.2 / Steam build 26046173 definitions.
+# Preserve native effects and add only Crusader Conflicts parameter labels.
+# Native ranks 1/2/3 replace the former paired glory thresholds.
 
 marauder_attribute = {
 	adjective = accolade_marauding
 	noun = accolade_marauder
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_aggressive_red.dds"
+	portrait_pose = "throne_room_one_handed_passive_2"
 	#grouping accolades
 	accolade_categories = { common personality villainous martial intrigue dreadful disliked army_bonus amoral forceful aggressive militant }
 
 	#founding and successor requirements
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait = sadistic
-			has_trait = callous
-			has_trait = vengeful
-		}
+	squire_perfect_fit = {
+		marauder_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		marauder_attribute_acceptable_trigger = yes
 	}
 	weight = {
 		value = accolade_uninteresting_base_value
@@ -86,13 +152,13 @@ marauder_attribute = {
 							OR = {
 								has_cultural_tradition = tradition_ruling_caste
 								has_cultural_tradition = tradition_eye_for_an_eye
-								has_cultural_pillar = ethos_bellicose 
+								has_cultural_pillar = ethos_bellicose
 							}
 						}
-						faith = {
+						rite = {
 							OR = {
-								trait_is_virtue = vengeful
-								has_doctrine = tenet_pursuit_of_power
+								trait_is_virtue_rite = vengeful
+								rite_has_tenet = tenet_pursuit_of_power
 							}
 						}
 					}
@@ -165,10 +231,10 @@ marauder_attribute = {
 						culture = {
 							has_cultural_tradition = tradition_charitable
 						}
-						faith = {
+						rite = {
 							OR = {
-								has_doctrine = tenet_pacifism
-								has_doctrine = tenet_dharmic_pacifism
+								rite_has_tenet = tenet_pacifism
+								rite_has_tenet = tenet_dharmic_pacifism
 							}
 						}
 					}
@@ -177,98 +243,63 @@ marauder_attribute = {
 			multiply = 0
 		}
 	}
-	
-	
+
+	#accolade ranks from Glory XP
 	ranks = {
 		# glory_requirement =  { modifiers and unlocks }
-		100 = { # rank 1
+		1 = {
+			accolade_parameters = {
+				cc_accolade_marauder_1
+			}
+ # rank 1
 			liege_modifier = {
 				monthly_prestige_gain_per_dread_mult = 0.001
 			}
 			knight_army_modifier = {
 				uncontrolled_province_advantage = 2
 			}
-			accolade_parameters = {
-				cc_accolade_marauder_1
-			}
 		}
-		300 = { # rank 2
-			liege_modifier = {
-				monthly_prestige_gain_per_dread_mult = 0.001
-			}
-			knight_army_modifier = {
-				uncontrolled_province_advantage = 2
-			}
+		2 = {
 			accolade_parameters = {
-				cc_accolade_marauder_1
+				cc_accolade_marauder_2
 			}
-		}
-		600 = { # rank 3
+ # Rank 2
 			liege_modifier = {
 				monthly_prestige_gain_per_dread_mult = 0.002
 			}
 			knight_army_modifier = {
 				uncontrolled_province_advantage = 3
 			}
-			accolade_parameters = {
-				cc_accolade_marauder_2
-			}
 		}
-		1000 = { # rank 4
-			liege_modifier = {
-				monthly_prestige_gain_per_dread_mult = 0.002
-			}
-			knight_army_modifier = {
-				uncontrolled_province_advantage = 3
-			}
+		3 = {
 			accolade_parameters = {
-				cc_accolade_marauder_2
+				cc_accolade_marauder_3
 			}
-		}
-			
-		1500 = { # rank 5
+ # Rank 3
 			knight_army_modifier = {
 				uncontrolled_province_advantage = 5
 			}
 			liege_modifier = {
 				monthly_prestige_gain_per_dread_mult = 0.003
-			}
-			accolade_parameters = {
-				cc_accolade_marauder_3
-			}
-		}
-		2100 = { # rank 6
-			knight_army_modifier = {
-				uncontrolled_province_advantage = 5
-			}
-			liege_modifier = {
-				monthly_prestige_gain_per_dread_mult = 0.003
-			}
-			accolade_parameters = {
-				cc_accolade_marauder_3
 			}
 		}
 	}
 }
 
-################################################
-# Charmer
-################################################
-
 charmer_attribute = {
-	
 	adjective = accolade_charming
 	noun = accolade_charmer
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_courtly_purple.dds"
+	portrait_pose = "flirtation_left"
 	#grouping accolades
 	accolade_categories = { common personality unscrupulous social diplomacy intrigue personal_schemer disliked courtly subtle }
 
 	#founding and successor requirements
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait = lustful
-			has_trait = seducer
-		}
+	squire_perfect_fit = {
+		charmer_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		charmer_attribute_acceptable_trigger = yes
 	}
 	weight = {
 		value = accolade_uninteresting_base_value
@@ -309,12 +340,12 @@ charmer_attribute = {
 		if = {
 			limit = {
 				scope:owner ?= {
-					faith = {
+					rite = {
 						OR = {
-							has_doctrine = tenet_hedonistic
-							has_doctrine = tenet_carnal_exaltation
-							has_doctrine = tenet_polyamory
-							has_doctrine = tenet_natural_primitivism
+							rite_has_tenet = tenet_hedonistic
+							rite_has_tenet = tenet_carnal_exaltation
+							rite_has_tenet = tenet_polyamory
+							rite_has_tenet = tenet_natural_primitivism
 						}
 					}
 				}
@@ -343,12 +374,12 @@ charmer_attribute = {
 		}
 		if = {
 			limit = {
-				faith = {
+				rite = {
 					OR = {
-						has_doctrine = tenet_hedonistic
-						has_doctrine = tenet_carnal_exaltation
-						has_doctrine = tenet_polyamory
-						has_doctrine = tenet_natural_primitivism
+						rite_has_tenet = tenet_hedonistic
+						rite_has_tenet = tenet_carnal_exaltation
+						rite_has_tenet = tenet_polyamory
+						rite_has_tenet = tenet_natural_primitivism
 					}
 				}
 			}
@@ -406,91 +437,56 @@ charmer_attribute = {
 			multiply = 0
 		}
 	}
-	
+
+	#accolade ranks from Glory XP
 	ranks = {
 		# glory_requirement =  { modifiers and unlocks }
-		100 = { # rank 1
+		1 = { # rank 1
 			liege_modifier = {
-				seduce_scheme_power_add = 10
+				seduce_scheme_phase_duration_add = minor_scheme_phase_duration_bonus_value
 			}
 			accolade_parameters = {
-				accolade_court_seduction_vulnerability
 				cc_accolade_charmer_1
+				accolade_court_seduction_vulnerability
 			}
 		}
-		300 = { # rank 2
+		2 = { # Rank 2
 			liege_modifier = {
-				seduce_scheme_power_add = 10
+				seduce_scheme_phase_duration_add = medium_scheme_phase_duration_bonus_value
 			}
 			accolade_parameters = {
-				accolade_court_seduction_vulnerability
-				cc_accolade_charmer_1
-			}
-		}
-		600 = { # rank 3
-			liege_modifier = {
-				seduce_scheme_power_add = 20
-			}
-			accolade_parameters = {
+				cc_accolade_charmer_2
 				accolade_court_seduction_vulnerability
 				accolade_party_fertility
-				cc_accolade_charmer_2
 			}
 		}
-		1000 = { # rank 4
+		3 = { # Rank 3
 			liege_modifier = {
-				seduce_scheme_power_add = 20
+				seduce_scheme_phase_duration_add = major_scheme_phase_duration_bonus_value
 			}
 			accolade_parameters = {
-				accolade_court_seduction_vulnerability
-				accolade_party_fertility
-				cc_accolade_charmer_2
-			}
-		}
-		1500 = { # rank 5
-			liege_modifier = {
-				seduce_scheme_power_add = 30
-			}
-			accolade_parameters = {
+				cc_accolade_charmer_3
 				accolade_court_seduction_vulnerability
 				accolade_party_fertility_high
-				cc_accolade_charmer_3
-			}
-		}
-		2100 = { # rank 6
-			liege_modifier = {
-				seduce_scheme_power_add = 30
-			}
-			accolade_parameters = {
-				accolade_court_seduction_vulnerability
-				accolade_party_fertility_high
-				cc_accolade_charmer_3
 			}
 		}
 	}
 }
 
-################################################
-# Thug
-################################################
-
 thug_attribute = {
-	
 	adjective = accolade_thuggish
 	noun = accolade_thug
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_forceful_red.dds"
+	portrait_pose = "threatening"
 	#grouping accolades
 	accolade_categories = { common personality unscrupulous prowess hostile_schemer activities dreadful disliked amoral forceful aggressive champion }
 
 	#founding and successor requirements
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait = wrathful
-			has_trait = arbitrary
-			has_trait = impatient
-			has_trait = arrogant
-			has_trait = reaver
-		}
+	squire_perfect_fit = {
+		thug_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		thug_attribute_acceptable_trigger = yes
 	}
 	weight = {
 		value = accolade_uninteresting_base_value
@@ -585,8 +581,8 @@ thug_attribute = {
 						}
 					}
 					scope:owner ?= {
-						faith = {
-							has_doctrine = tenet_legalism
+						rite = {
+							rite_has_tenet = tenet_legalism
 						}
 					}
 				}
@@ -671,85 +667,54 @@ thug_attribute = {
 			multiply = 0
 		}
 	}
-	
+
+	#accolade ranks from Glory XP
 	ranks = {
 		# glory_requirement =  { modifiers and unlocks }
-		100 = { # rank 1
-			liege_modifier = {
-				dread_per_tyranny_add = 0.2
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_thug_1
 			}
-		}
-		300 = { # rank 2
+ # rank 1
 			liege_modifier = {
 				dread_per_tyranny_add = 0.2
 			}
-			accolade_parameters = {
-				cc_accolade_thug_1
-			}
 		}
-		600 = { # rank 3
+		2 = { # Rank 2
 			liege_modifier = {
 				dread_per_tyranny_add = 0.4
 			}
 			accolade_parameters = {
-				accolade_imprisonment_chance
 				cc_accolade_thug_2
+				accolade_imprisonment_chance
 			}
 		}
-		1000 = { # rank 4
-			liege_modifier = {
-				dread_per_tyranny_add = 0.4
-			}
-			accolade_parameters = {
-				accolade_imprisonment_chance
-				cc_accolade_thug_2
-			}
-		}
-		1500 = { # rank 5
+		3 = { # Rank 3
 			liege_modifier = {
 				dread_per_tyranny_add = 0.8
 			}
 			accolade_parameters = {
-				accolade_imprisonment_chance_high
 				cc_accolade_thug_3
-			}
-		}
-		2100 = { # rank 6
-			liege_modifier = {
-				dread_per_tyranny_add = 0.8
-			}
-			accolade_parameters = {
 				accolade_imprisonment_chance_high
-				cc_accolade_thug_3
 			}
 		}
 	}
 }
 
-################################################
-# Disciplinarian
-################################################
-
 disciplinarian_attribute = {
-
 	adjective = accolade_disciplined
 	noun = accolade_disciplinarian
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_ethical_red.dds"
+	portrait_pose = "map_dismissal"
 	#grouping accolades
 	accolade_categories = { common personality righteous stewardship martial army_bonus causes_stress ethical forceful militant leader }
 
 	#founding and successor requirements
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait = stubborn
-			has_trait = diligent
-			has_trait = temperate
-			has_trait = organizer
-			has_trait = overseer
-		}
+	squire_perfect_fit = {
+		disciplinarian_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		disciplinarian_attribute_acceptable_trigger = yes
 	}
 	weight = {
 		value = accolade_uninteresting_base_value
@@ -817,8 +782,8 @@ disciplinarian_attribute = {
 		if = {
 			limit = {
 				scope:owner ?= {
-					faith = {
-						has_doctrine = tenet_natural_primitivism
+					rite = {
+						rite_has_tenet = tenet_natural_primitivism
 					}
 				}
 			}
@@ -826,8 +791,8 @@ disciplinarian_attribute = {
 		}
 		if = {
 			limit = {
-				faith = {
-					has_doctrine = tenet_natural_primitivism
+				rite = {
+					rite_has_tenet = tenet_natural_primitivism
 				}
 			}
 			add = -25
@@ -870,96 +835,65 @@ disciplinarian_attribute = {
 			multiply = 0
 		}
 	}
-	
+
+	#accolade ranks from Glory XP
 	ranks = {
 		# glory_requirement =  { modifiers and unlocks }
-		100 = { # rank 1
-			liege_modifier = {
-				levy_reinforcement_rate = 0.1
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_disciplinarian_1
 			}
-		}
-		300 = { # rank 2
+ # rank 1
 			liege_modifier = {
 				levy_reinforcement_rate = 0.1
-			}
-			accolade_parameters = {
-				cc_accolade_disciplinarian_1
+				vassal_herd_contribution_mult = 0.02
 			}
 		}
-		600 = { # rank 3
+		2 = {
+			accolade_parameters = {
+				cc_accolade_disciplinarian_2
+			}
+ # Rank 2
 			liege_modifier = {
 				levy_reinforcement_rate = 0.2
 				levy_maintenance = -0.1
+				vassal_herd_contribution_mult = 0.05
 			}
 			knight_army_modifier = {
 				hostile_county_attrition = -0.4
 			}
-			accolade_parameters = {
-				cc_accolade_disciplinarian_2
-			}
 		}
-		1000 = { # rank 4
-			liege_modifier = {
-				levy_reinforcement_rate = 0.2
-				levy_maintenance = -0.1
-			}
-			knight_army_modifier = {
-				hostile_county_attrition = -0.4
-			}
-			accolade_parameters = {
-				cc_accolade_disciplinarian_2
-			}
-		}
-		1500 = { # rank 5
-			liege_modifier = {
-				levy_reinforcement_rate = 0.3
-				levy_maintenance = -0.2
-			}
-			knight_army_modifier = {
-				hostile_county_attrition = -0.8
-			}
+		3 = {
 			accolade_parameters = {
 				cc_accolade_disciplinarian_3
 			}
-		}
-		2100 = { # rank 6
+ # Rank 3
 			liege_modifier = {
 				levy_reinforcement_rate = 0.3
 				levy_maintenance = -0.2
+				vassal_herd_contribution_mult = 0.1
 			}
 			knight_army_modifier = {
 				hostile_county_attrition = -0.8
-			}
-			accolade_parameters = {
-				cc_accolade_disciplinarian_3
 			}
 		}
 	}
 }
 
-################################################
-# Fanatic
-################################################
-
 fanatic_attribute = {
-	
 	adjective = accolade_fanatical
 	noun = accolade_fanatic
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_ethical_blue.dds"
+	portrait_pose = "wedding_priest"
 	#grouping accolades
 	accolade_categories = { common personality righteous learning army_bonus disliked militant ethical forceful aggressive }
 
 	#founding and successor requirements
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		exists = liege
-		faith = liege.faith
-		OR = {
-			has_trait = zealous
-			has_trait = holy_warrior
-		}
+	squire_perfect_fit = {
+		fanatic_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		fanatic_attribute_acceptable_trigger = yes
 	}
 	weight = {
 		value = accolade_uninteresting_base_value
@@ -1029,8 +963,8 @@ fanatic_attribute = {
 		if = {
 			limit = {
 				scope:owner ?= {
-					faith = {
-						has_doctrine = doctrine_pluralism_fundamentalist
+					rite = {
+						rite_has_doctrine = doctrine_pluralism_fundamentalist
 					}
 				}
 			}
@@ -1039,12 +973,12 @@ fanatic_attribute = {
 		if = {
 			limit = {
 				scope:owner ?= {
-					faith = {
+					rite = {
 						OR = {
-							has_doctrine = tenet_pursuit_of_power
-							has_doctrine = tenet_unrelenting_faith
-							has_doctrine = tenet_struggle_submission
-							has_doctrine = tenet_warmonger
+							rite_has_tenet = tenet_pursuit_of_power
+							rite_has_tenet = tenet_unrelenting_faith
+							rite_has_tenet = tenet_struggle_submission
+							rite_has_tenet = tenet_warmonger
 						}
 					}
 				}
@@ -1054,10 +988,10 @@ fanatic_attribute = {
 		if = {
 			limit = {
 				scope:owner ?= {
-					faith = {
+					rite = {
 						OR = {
-							has_doctrine = tenet_pacifism
-							has_doctrine = tenet_dharmic_pacifism	
+							rite_has_tenet = tenet_pacifism
+							rite_has_tenet = tenet_dharmic_pacifism
 						}
 					}
 				}
@@ -1155,8 +1089,8 @@ fanatic_attribute = {
 				scope:owner ?= {
 					OR = {
 						has_trait = cynical
-						faith = {
-							has_doctrine = doctrine_pluralism_pluralistic
+						rite = {
+							rite_has_doctrine = doctrine_pluralism_pluralistic
 						}
 					}
 				}
@@ -1164,87 +1098,54 @@ fanatic_attribute = {
 			multiply = 0
 		}
 	}
-	
+
 	#accolade ranks from Glory XP
 	ranks = {
 		# glory_requirement =  { modifiers and unlocks }
-		100 = { # rank 1
-			liege_modifier = {
-				zealot_opinion = 10
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_fanatic_1
 			}
-		}
-		300 = { # rank 2
+ # rank 1
 			liege_modifier = {
 				zealot_opinion = 10
 			}
-			accolade_parameters = {
-				cc_accolade_fanatic_1
-			}
 		}
-		600 = { # rank 3
+		2 = { # Rank 2
 			liege_modifier = {
 				zealot_opinion = 15
 			}
 			accolade_parameters = {
-				acclaimed_knight_piety_from_battle
 				cc_accolade_fanatic_2
+				acclaimed_knight_piety_from_battle
 			}
 		}
-		1000 = { # rank 4
-			liege_modifier = {
-				zealot_opinion = 15
-			}
-			#knight_army_modifier = {
-			#	tolerance_advantage_mod = 6
-			#}
-			accolade_parameters = {
-				acclaimed_knight_piety_from_battle
-				cc_accolade_fanatic_2
-			}
-		}
-		1500 = { # rank 5
+		3 = { # Rank 3
 			liege_modifier = {
 				zealot_opinion = 25
 			}
 			accolade_parameters = {
-				acclaimed_knight_piety_from_battle_high
 				cc_accolade_fanatic_3
-			}
-		}
-		2100 = { # rank 6
-			liege_modifier = {
-				zealot_opinion = 25
-			}
-			accolade_parameters = {
 				acclaimed_knight_piety_from_battle_high
-				cc_accolade_fanatic_3
 			}
 		}
 	}
 }
 
-################################################
-# Valiant
-################################################
-
 valiant_attribute = {
-	
 	adjective = accolade_valiant
 	noun = accolade_valiant
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_forceful_blue.dds"
+	portrait_pose = "celebrate_sword"
 	#grouping accolades
 	accolade_categories = { common personality righteous prowess army_bonus army_penalty militant forceful aggressive militant champion }
 
 	#founding and successor requirements
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait = brave
-			has_trait = berserker
-			has_trait = reckless
-		}
+	squire_perfect_fit = {
+		valiant_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		valiant_attribute_acceptable_trigger = yes
 	}
 	weight = {
 		value = accolade_uninteresting_base_value
@@ -1339,6 +1240,7 @@ valiant_attribute = {
 						has_cultural_tradition = tradition_modest
 						has_cultural_tradition = tradition_forbearing
 						has_cultural_tradition = tradition_byzantine_succession
+						has_cultural_tradition = tradition_ep3_palace_politics
 					}
 				}
 			}
@@ -1394,93 +1296,60 @@ valiant_attribute = {
 			multiply = accolade_opinion_multiplier_value
 		}
 	}
-	
+
+	#accolade ranks from Glory XP
 	ranks = {
 		# glory_requirement =  { modifiers and unlocks }
-		100 = { # rank 1
-			knight_army_modifier = {
-				army_damage_mult = 0.1
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_valiant_1
 			}
-		}
-		300 = { # rank 2
+ # rank 1
 			knight_army_modifier = {
 				army_damage_mult = 0.1
 			}
-			accolade_parameters = {
-				cc_accolade_valiant_1
-			}
 		}
-		600 = { # rank 3
+		2 = {
+			accolade_parameters = {
+				cc_accolade_valiant_2
+			}
+ # Rank 2
 			knight_army_modifier = {
 				army_damage_mult = 0.2
 			}
 			liege_modifier = {
 				glory_hound_opinion = 15
 			}
-			accolade_parameters = {
-				cc_accolade_valiant_2
-			}
 		}
-		1000 = { # rank 4
-			knight_army_modifier = {
-				army_damage_mult = 0.2
-			}
-			liege_modifier = {
-				glory_hound_opinion = 15
-			}
+		3 = {
 			accolade_parameters = {
-				cc_accolade_valiant_2
+				cc_accolade_valiant_3
 			}
-		}
-		1500 = { # rank 5
+ # Rank 3
 			knight_army_modifier = {
 				army_damage_mult = 0.3
 			}
 			liege_modifier = {
 				glory_hound_opinion = 25
-			}
-			accolade_parameters = {
-				cc_accolade_valiant_3
-			}
-		}
-		2100 = { # rank 6
-			knight_army_modifier = {
-				army_damage_mult = 0.3
-			}
-			liege_modifier = {
-				glory_hound_opinion = 25
-			}
-			accolade_parameters = {
-				cc_accolade_valiant_3
 			}
 		}
 	}
 }
 
-################################################
-# Stalwart
-################################################
-
 stalwart_attribute = {
-    
-	adjective = accolade_stalwart
+    adjective = accolade_stalwart
     noun = accolade_stalwart
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_defensive_blue.dds"
+	portrait_pose = "war_defender"
     #grouping accolades
     accolade_categories = { common personality righteous army_bonus ethical forceful defensive leader benevolent }
     #founding and successor requirements
-    potential = {
-        prowess >= accolade_prowess_requirement_value
-        OR = {
-            has_trait = honest
-            has_trait = just
-            has_trait = patient
-            has_trait = unyielding_defender
-            has_trait = loyal
-        }
+    squire_perfect_fit = {
+		stalwart_attribute_trigger = yes
     }
+	squire_acceptable_fit = {
+		stalwart_attribute_acceptable_trigger = yes
+	}
     weight = {
         value = accolade_uninteresting_base_value
         if = {
@@ -1614,93 +1483,59 @@ stalwart_attribute = {
             multiply = accolade_opinion_multiplier_value
         }
     }
-	
+    #accolade ranks from Glory XP
     ranks = {
         # glory_requirement =  { modifiers and unlocks }
-        100 = { # rank 1
+        1 = {
+			accolade_parameters = {
+				cc_accolade_stalwart_1
+			}
+ # rank 1
            liege_modifier = {
                 character_travel_safety = 5
             }
-			accolade_parameters = {
-				cc_accolade_stalwart_1
-			}
         }
-        300 = { # rank 2
-            liege_modifier = {
-                character_travel_safety = 5
-            }
+        2 = {
 			accolade_parameters = {
-				cc_accolade_stalwart_1
+				cc_accolade_stalwart_2
 			}
-        }
-        600 = { # rank 3
+ # Rank 2
             knight_army_modifier = {
                 army_toughness_mult = 0.1
             }
             liege_modifier = {
                 character_travel_safety = 10
             }
-			accolade_parameters = {
-				cc_accolade_stalwart_2
-			}
         }
-        1000 = { # rank 4
-            knight_army_modifier = {
-                army_toughness_mult = 0.1
-            }
-            liege_modifier = {
-                character_travel_safety = 10
-            }
+        3 = {
 			accolade_parameters = {
-				cc_accolade_stalwart_2
+				cc_accolade_stalwart_3
 			}
-        }
-        1500 = { # rank 5
+ # Rank 3
             knight_army_modifier = {
                 army_toughness_mult = 0.15
             }
             liege_modifier = {
                 character_travel_safety = 15
             }
-			accolade_parameters = {
-				cc_accolade_stalwart_3
-			}
-        }
-        2100 = { # rank 6
-            knight_army_modifier = {
-                army_toughness_mult = 0.15
-            }
-            liege_modifier = {
-                character_travel_safety = 15
-            }
-			accolade_parameters = {
-				cc_accolade_stalwart_3
-			}
         }
     }
 }
 
-################################################
-# Scoundrel
-################################################
-
 scoundrel_attribute = {
-   
-   adjective = accolade_scoundrel
+    adjective = accolade_scoundrel
     noun = accolade_scoundrel
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_amoral_red.dds"
+	portrait_pose = "hunting_knife_start"
     #grouping accolades
     accolade_categories = { common personality amoral martial intrigue army_bonus subtle unscrupulous }
     #founding and successor requirements
-    potential = {
-        prowess >= accolade_prowess_requirement_value
-        OR = {
-            has_trait = ambitious
-            has_trait = gregarious
-            has_trait = greedy
-            has_trait = deceitful
-            has_trait = adventurer
-        }
+    squire_perfect_fit = {
+		scoundrel_attribute_trigger = yes
     }
+	squire_acceptable_fit = {
+		scoundrel_attribute_acceptable_trigger = yes
+	}
     weight = {
         value = accolade_uninteresting_base_value
         if = {
@@ -1758,6 +1593,7 @@ scoundrel_attribute = {
                             has_cultural_tradition = tradition_swords_for_hire
                             has_cultural_tradition = tradition_life_is_just_a_joke
                             has_cultural_tradition = tradition_practiced_pirates
+                            has_cultural_tradition = tradition_ep3_audacious_cadets
                         }
                     }
                 }
@@ -1774,6 +1610,7 @@ scoundrel_attribute = {
                         has_cultural_tradition = tradition_fp1_coastal_warriors
                         has_cultural_tradition = tradition_fp2_state_ransoming
                         has_cultural_tradition = tradition_practiced_pirates
+                        has_cultural_tradition = tradition_ep3_audacious_cadets
                     }
                 }
             }
@@ -1844,86 +1681,55 @@ scoundrel_attribute = {
             multiply = accolade_opinion_multiplier_value
         }
     }
-   
+    #accolade ranks from Glory XP
     ranks = {
         # glory_requirement =  { modifiers and unlocks }
-        100 = { # rank 1
+        1 = {
+			accolade_parameters = {
+				cc_accolade_scoundrel_1
+			}
+ # rank 1
             liege_modifier = {
                mercenary_hire_cost_mult = -0.1
             }
-			accolade_parameters = {
-				cc_accolade_scoundrel_1
-			}
         }
-        300 = { # rank 2
-            liege_modifier = {
-                mercenary_hire_cost_mult = -0.1
-            }
+        2 = {
 			accolade_parameters = {
-				cc_accolade_scoundrel_1
+				cc_accolade_scoundrel_2
 			}
-        }
-        600 = { # rank 3
+ # Rank 2
             liege_modifier = {
                 martial_per_stress_level = 2
                 mercenary_hire_cost_mult = -0.2
             }
-			accolade_parameters = {
-				cc_accolade_scoundrel_2
-			}
         }
-        1000 = { # rank 4
-            liege_modifier = {
-                martial_per_stress_level = 2
-                mercenary_hire_cost_mult = -0.2
-            }
+        3 = {
 			accolade_parameters = {
-				cc_accolade_scoundrel_2
+				cc_accolade_scoundrel_3
 			}
-        }
-        1500 = { # rank 5
+ # Rank 3
             liege_modifier = {
                 martial_per_stress_level = 5
                 mercenary_hire_cost_mult = -0.3
             }
-			accolade_parameters = {
-				cc_accolade_scoundrel_3
-			}
-        }
-        2100 = { # rank 6
-            liege_modifier = {
-                martial_per_stress_level = 5
-                mercenary_hire_cost_mult = -0.3
-            }
-			accolade_parameters = {
-				cc_accolade_scoundrel_3
-			}
         }
     }
 }
 
-
-
-################################################
-# Idealist
-################################################
-
 idealist_attribute = {
-
 	adjective = accolade_idealistic
 	noun = accolade_idealist
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_leadership_green.dds"
+	portrait_pose = "personality_compassionate"
 	#grouping accolades
 	accolade_categories = { common personality benevolent social diplomacy vassal_manager foreign_relations courtly ethical defensive leader }
 
 	#founding and successor requirements
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait = compassionate
-			has_trait = forgiving
-			has_trait = trusting
-			has_trait = generous
-		}
+	squire_perfect_fit = {
+		idealist_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		idealist_attribute_acceptable_trigger = yes
 	}
 	weight = {
 		value = accolade_uninteresting_base_value
@@ -1976,11 +1782,11 @@ idealist_attribute = {
 		if = {
 			limit = {
 				scope:owner ?= {
-					faith = {
+					rite = {
 						OR = {
-							has_doctrine = tenet_pacifism
-							has_doctrine = tenet_dharmic_pacifism
-							has_doctrine = tenet_natural_primitivism
+							rite_has_tenet = tenet_pacifism
+							rite_has_tenet = tenet_dharmic_pacifism
+							rite_has_tenet = tenet_natural_primitivism
 						}
 					}
 				}
@@ -1989,11 +1795,11 @@ idealist_attribute = {
 		}
 		if = {
 			limit = {
-				faith = {
+				rite = {
 					OR = {
-						has_doctrine = tenet_pacifism
-						has_doctrine = tenet_dharmic_pacifism
-						has_doctrine = tenet_natural_primitivism
+						rite_has_tenet = tenet_pacifism
+						rite_has_tenet = tenet_dharmic_pacifism
+						rite_has_tenet = tenet_natural_primitivism
 					}
 				}
 			}
@@ -2034,8 +1840,8 @@ idealist_attribute = {
 							has_cultural_tradition = tradition_eye_for_an_eye
 						}
 					}
-					faith = {
-						has_doctrine = tenet_pursuit_of_power
+					rite = {
+						rite_has_tenet = tenet_pursuit_of_power
 					}
 				}
 			}
@@ -2075,8 +1881,8 @@ idealist_attribute = {
 						culture = {
 							has_cultural_tradition = tradition_eye_for_an_eye
 						}
-						faith = {
-							has_doctrine = tenet_pursuit_of_power
+						rite = {
+							rite_has_tenet = tenet_pursuit_of_power
 						}
 					}
 				}
@@ -2085,89 +1891,59 @@ idealist_attribute = {
 		}
 	}
 
+	#accolade ranks from Glory XP
 	ranks = {
 		# glory_requirement =  { modifiers and unlocks }
-		100 = { # rank 1
+		1 = {
+			accolade_parameters = {
+				cc_accolade_idealist_1
+			}
+ # rank 1
 			liege_modifier = {
 				courtly_opinion = 5
 				minority_opinion = 3
 				barons_and_minor_landholders_opinion = 3
 			}
-			accolade_parameters = {
-				cc_accolade_idealist_1
-				}
 		}
-		300 = { # rank 2
-			liege_modifier = {
-				courtly_opinion = 5
-				minority_opinion = 3
-				barons_and_minor_landholders_opinion = 3
+		2 = {
+			accolade_parameters = {
+				cc_accolade_idealist_2
 			}
-			accolade_parameters = {
-				cc_accolade_idealist_1
-				}
-		}
-		600 = { # rank 3
+ # Rank 2
 			liege_modifier = {
 				courtly_opinion = 8
 				minority_opinion = 6
 				barons_and_minor_landholders_opinion = 6
 			}
-			accolade_parameters = {
-				cc_accolade_idealist_2
-				}
 		}
-		1000 = { # rank 4
-			liege_modifier = {
-				courtly_opinion = 8
-				minority_opinion = 6
-				barons_and_minor_landholders_opinion = 6
-			}
-			accolade_parameters = {
-				cc_accolade_idealist_2
-				}
-		}
-		1500 = { # rank 5
+		3 = { # Rank 3
 			liege_modifier = {
 				courtly_opinion = 10
 				minority_opinion = 10
 				barons_and_minor_landholders_opinion = 10
 			}
 			accolade_parameters = {
-				accolade_champions_white_peace
 				cc_accolade_idealist_3
-			}
-			
-		}
-		2100 = { # rank 6
-			liege_modifier = {
-				courtly_opinion = 10
-				minority_opinion = 10
-				barons_and_minor_landholders_opinion = 10
-			}
-			accolade_parameters = {
 				accolade_champions_white_peace
-				cc_accolade_idealist_3
 			}
 		}
 	}
 }
 
-# Politicker
 politicker_attribute = {
-	
 	adjective = accolade_politicking
 	noun = accolade_politicker
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_courtly_blue.dds"
+	portrait_pose = "map_love"
 	accolade_categories = { skilled skill social personality diplomacy vassal_manager courtly subtle }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			diplomacy >= @skill_accolade_qualifying_value
-			has_trait = diplomat
-		}
+	squire_perfect_fit = {
+		politicker_attribute_trigger = yes
 	}
-	
+	squire_acceptable_fit = {
+		politicker_attribute_acceptable_trigger = yes
+	}
+
 	weight = {
 		# These are less interesting, so we weight them down for the AI.
 		value = accolade_standard_base_value
@@ -2256,58 +2032,35 @@ politicker_attribute = {
 			multiply = accolade_opinion_multiplier_value
 		}
 	}
-	
+
 	ranks = {
 		# Rank 1
-		100 = {
+		1 = {
+			accolade_parameters = {
+				cc_accolade_politicker_1
+			}
+
 			liege_modifier = {
 				courtly_opinion = 3
 				barons_and_minor_landholders_opinion = 3
 				minority_opinion = 5
-			}
-			accolade_parameters = {
-				cc_accolade_politicker_1
 			}
 		}
 		# Rank 2
-		300 = {
+		2 = {
 			liege_modifier = {
-				courtly_opinion = 3
-				barons_and_minor_landholders_opinion = 3
-				minority_opinion = 5
+				courtly_opinion = 6
+				barons_and_minor_landholders_opinion = 6
+				minority_opinion = 8
+				diplomacy = 1
 			}
 			accolade_parameters = {
-				cc_accolade_politicker_1
+				cc_accolade_politicker_2
+				accolade_influences_regency
 			}
 		}
 		# Rank 3
-		600 = {
-			liege_modifier = {
-				courtly_opinion = 6
-				barons_and_minor_landholders_opinion = 6
-				minority_opinion = 8
-				diplomacy = 1
-			}
-			accolade_parameters = {
-				accolade_influences_regency
-				cc_accolade_politicker_2
-			}
-		}
-		# Rank 4
-		1000 = {
-			liege_modifier = {
-				courtly_opinion = 6
-				barons_and_minor_landholders_opinion = 6
-				minority_opinion = 8
-				diplomacy = 1
-			}
-			accolade_parameters = {
-				accolade_influences_regency
-				cc_accolade_politicker_2
-			}
-		}
-		# Rank 5
-		1500 = {
+		3 = {
 			liege_modifier = {
 				courtly_opinion = 10
 				barons_and_minor_landholders_opinion = 10
@@ -2315,43 +2068,28 @@ politicker_attribute = {
 				diplomacy = 2
 			}
 			accolade_parameters = {
+				cc_accolade_politicker_3
 				accolade_tour_end_bonus
 				accolade_influences_regency_high
-				cc_accolade_politicker_3
-			}
-		}
-		# Rank 6
-		2100 = {
-			liege_modifier = {
-				courtly_opinion = 10
-				barons_and_minor_landholders_opinion = 10
-				minority_opinion = 10
-				diplomacy = 2
-			}
-			accolade_parameters = {
-				accolade_tour_end_bonus
-				accolade_influences_regency_high
-				cc_accolade_politicker_3
 			}
 		}
 	}
 }
 
-# Tactician
 tactician_attribute = {
-
 	adjective = accolade_strategic
 	noun = accolade_tactician
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_militant_blue.dds"
+	portrait_pose = "marshal"
 	accolade_categories = { skilled skill warlike leader subtle martial }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait = strategist
-			martial >= @skill_accolade_qualifying_value
-		}
+	squire_perfect_fit = {
+		tactician_attribute_trigger = yes
 	}
-	
+	squire_acceptable_fit = {
+		tactician_attribute_acceptable_trigger = yes
+	}
+
 	weight = {
 		# These are less interesting, so we weight them down for the AI.
 		value = accolade_standard_base_value
@@ -2435,61 +2173,29 @@ tactician_attribute = {
 
 	ranks = {
 		# Rank 1
-		100 = {
-			liege_modifier = { monthly_martial_lifestyle_xp_gain_mult = @lifestyle_bonus_tier_1_value }
+		1 = {
 			accolade_parameters = {
 				cc_accolade_tactician_1
 			}
+
+			liege_modifier = { monthly_martial_lifestyle_xp_gain_mult = @lifestyle_bonus_tier_1_value }
 		}
 		# Rank 2
-		300 = {
-			liege_modifier = { monthly_martial_lifestyle_xp_gain_mult = @lifestyle_bonus_tier_1_value }
+		2 = {
 			accolade_parameters = {
-				cc_accolade_tactician_1
+				cc_accolade_tactician_2
+			}
+
+			liege_modifier = {
+				monthly_martial_lifestyle_xp_gain_mult = @lifestyle_bonus_tier_2_value
+				martial = 1
+			}
+			knight_army_modifier = {
+				counter_efficiency = @lifestyle_bonus_tier_2_value
 			}
 		}
 		# Rank 3
-		600 = {
-			liege_modifier = { 
-				monthly_martial_lifestyle_xp_gain_mult = @lifestyle_bonus_tier_2_value
-				martial = 1
-			}
-			knight_army_modifier = {
-				counter_efficiency = @lifestyle_bonus_tier_2_value
-			}
-			accolade_parameters = {
-				cc_accolade_tactician_2
-			}
-		}
-		# Rank 4
-		1000 = {
-			liege_modifier = { 
-				monthly_martial_lifestyle_xp_gain_mult = @lifestyle_bonus_tier_2_value
-				martial = 1
-			}
-			knight_army_modifier = {
-				counter_efficiency = @lifestyle_bonus_tier_2_value
-			}
-			accolade_parameters = {
-				cc_accolade_tactician_2
-			}
-		}
-		# Rank 5
-		1500 = {
-			liege_modifier = { 
-				monthly_martial_lifestyle_xp_gain_mult = @lifestyle_bonus_tier_3_value
-				martial = 2
-			}
-			knight_army_modifier = {
-				counter_efficiency = @lifestyle_bonus_tier_3_value
-			}
-			accolade_parameters = {
-				accolade_organize_army_bonus
-				cc_accolade_tactician_3
-			}
-		}
-		# Rank 6
-		2100 = {
+		3 = {
 			liege_modifier = {
 				monthly_martial_lifestyle_xp_gain_mult = @lifestyle_bonus_tier_3_value
 				martial = 2
@@ -2498,28 +2204,27 @@ tactician_attribute = {
 				counter_efficiency = @lifestyle_bonus_tier_3_value
 			}
 			accolade_parameters = {
-				accolade_organize_army_bonus
 				cc_accolade_tactician_3
+				accolade_organize_army_bonus
 			}
 		}
 	}
 }
 
-# Reeve
 reeve_attribute = {
-	
 	adjective = accolade_calculating
 	noun = accolade_reeve
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_subtle_green.dds"
+	portrait_pose = "war_over_win"
 	accolade_categories = { skilled skill subtle courtly leader stewardship }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait = administrator
-			stewardship >= @skill_accolade_qualifying_value
-		}
+	squire_perfect_fit = {
+		reeve_attribute_trigger = yes
 	}
-	
+	squire_acceptable_fit = {
+		reeve_attribute_acceptable_trigger = yes
+	}
+
 	weight = {
 		# These are less interesting, so we weight them down for the AI.
 		value = accolade_standard_base_value
@@ -2590,90 +2295,56 @@ reeve_attribute = {
 			multiply = accolade_opinion_multiplier_value
 		}
 	}
-	
+
 	ranks = {
 		# Rank 1
-		100 = {
-			liege_modifier = {
-				parochial_opinion = 10
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_reeve_1
+			}
+
+			liege_modifier = {
+				parochial_opinion = 10
 			}
 		}
 		# Rank 2
-		300 = {
+		2 = {
 			liege_modifier = {
-				parochial_opinion = 10
+				parochial_opinion = 15
+				stewardship = 1
 			}
 			accolade_parameters = {
-				cc_accolade_reeve_1
-			}
+				cc_accolade_reeve_2 accolade_development_growth_on_tournament_completion_low }
 		}
 		# Rank 3
-		600 = {
-			liege_modifier = {
-				parochial_opinion = 15
-				stewardship = 1
-			}
-			accolade_parameters = { 
-			accolade_development_growth_on_tournament_completion_low 
-			cc_accolade_reeve_2
-			}
-		}
-		# Rank 4
-		1000 = {
-			liege_modifier = {
-				parochial_opinion = 15
-				stewardship = 1
-			}
-			accolade_parameters = { 
-			accolade_development_growth_on_tournament_completion_low 
-			cc_accolade_reeve_2
-			}
-		}
-		# Rank 5
-		1500 = {
+		3 = {
 			liege_modifier = {
 				parochial_opinion = 25
 				stewardship = 2
 			}
 			accolade_parameters = {
+				cc_accolade_reeve_3
 				accolade_development_growth_on_tournament_completion_high
 				accolade_increase_control_bonus
-				cc_accolade_reeve_3
-			}
-		}
-		# Rank 6
-		2100 = {
-			liege_modifier = {
-				parochial_opinion = 25
-				stewardship = 2
-			}
-			accolade_parameters = {
-				accolade_development_growth_on_tournament_completion_high
-				accolade_increase_control_bonus
-				cc_accolade_reeve_3
 			}
 		}
 	}
 }
 
-# Manipulator
 manipulator_attribute = {
-	
 	adjective = accolade_manipulative
 	noun = accolade_manipulator
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_amoral_purple.dds"
+	portrait_pose = "spymaster"
 	accolade_categories = { skilled skill subtle courtly aggressive amoral intrigue }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			intrigue >= @skill_accolade_qualifying_value
-			has_trait = schemer
-		}
+	squire_perfect_fit = {
+		manipulator_attribute_trigger = yes
 	}
-	
+	squire_acceptable_fit = {
+		manipulator_attribute_acceptable_trigger = yes
+	}
+
 	weight = {
 		# These are less interesting, so we weight them down for the AI.
 		value = accolade_standard_base_value
@@ -2755,90 +2426,60 @@ manipulator_attribute = {
 			multiply = accolade_opinion_multiplier_value
 		}
 	}
-	
+
 	ranks = {
 		# Rank 1
-		100 = {
-			liege_modifier = {
-				intrigue_scheme_power = @intrigue_scheme_power_bonus_tier_1_value
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_manipulator_1
+			}
+
+			liege_modifier = {
+				intrigue_scheme_phase_duration = @intrigue_scheme_phase_duration_bonus_tier_1_value
 			}
 		}
 		# Rank 2
-		300 = {
-			liege_modifier = {
-				intrigue_scheme_power = @intrigue_scheme_power_bonus_tier_1_value
-			}
+		2 = {
 			accolade_parameters = {
-				cc_accolade_manipulator_1
+				cc_accolade_manipulator_2
+			}
+
+			liege_modifier = {
+				intrigue_scheme_phase_duration = @intrigue_scheme_phase_duration_bonus_tier_2_value
+				knight_effectiveness_per_dread = @knight_effectiveness_per_dread_tier_2_value
+				intrigue = 1
 			}
 		}
 		# Rank 3
-		600 = {
-			liege_modifier = {
-				intrigue_scheme_power = @intrigue_scheme_power_bonus_tier_2_value
-				knight_effectiveness_per_dread = @knight_effectiveness_per_dread_tier_2_value
-				intrigue = 1
-			}
-			accolade_parameters = {
-				cc_accolade_manipulator_2
-			}
-		}
-		# Rank 4
-		1000 = {
-			liege_modifier = {
-				intrigue_scheme_power = @intrigue_scheme_power_bonus_tier_2_value
-				knight_effectiveness_per_dread = @knight_effectiveness_per_dread_tier_2_value
-				intrigue = 1
-			}
-			accolade_parameters = {
-				cc_accolade_manipulator_2
-			}
-		}
-		# Rank 5
-		1500 = {
-			liege_modifier = {
-				intrigue_scheme_power = @intrigue_scheme_power_bonus_tier_3_value
-				knight_effectiveness_per_dread = @knight_effectiveness_per_dread_tier_3_value
-				dread_baseline_add = @dread_base_bonus_tier_3_value
-				intrigue = 2
-			}
+		3 = {
 			accolade_parameters = {
 				cc_accolade_manipulator_3
 			}
-		}
-		# Rank 6
-		2100 = {
+
 			liege_modifier = {
-				intrigue_scheme_power = @intrigue_scheme_power_bonus_tier_3_value
+				intrigue_scheme_phase_duration = @intrigue_scheme_phase_duration_bonus_tier_3_value
 				knight_effectiveness_per_dread = @knight_effectiveness_per_dread_tier_3_value
 				dread_baseline_add = @dread_base_bonus_tier_3_value
 				intrigue = 2
-			}
-			accolade_parameters = {
-				cc_accolade_manipulator_3
 			}
 		}
 	}
 }
 
-# Mentor
 mentor_attribute = {
-	
 	adjective = accolade_sagely
 	noun = accolade_mentor
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_leadership_blue.dds"
+	portrait_pose = "personality_rational"
 	accolade_categories = { skilled skill subtle courtly ethical leader learning }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			learning >= @skill_accolade_qualifying_value
-			has_trait = whole_of_body
-		}
+	squire_perfect_fit = {
+		mentor_attribute_trigger = yes
 	}
-	
+	squire_acceptable_fit = {
+		mentor_attribute_acceptable_trigger = yes
+	}
+
 	weight = {
 		# These are less interesting, so we weight them down for the AI.
 		value = accolade_standard_base_value
@@ -2937,110 +2578,59 @@ mentor_attribute = {
 			multiply = accolade_opinion_multiplier_value
 		}
 	}
-	
+
 	ranks = {
 		# Rank 1
-		100 = {
-			liege_modifier = {
-				knight_limit = 1
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_mentor_1
+			}
+
+			liege_modifier = {
+				knight_limit = 1
 			}
 		}
 		# Rank 2
-		300 = {
+		2 = {
 			liege_modifier = {
 				knight_limit = 1
+				learning = 1
 			}
 			accolade_parameters = {
-				cc_accolade_mentor_1
+				cc_accolade_mentor_2
+				accolade_train_commanders_bonus
+				accolade_wise_educator
 			}
 		}
 		# Rank 3
-		600 = {
-			liege_modifier = {
-				knight_limit = 1
-				learning = 1
-			}
-			accolade_parameters = {
-				accolade_train_commanders_bonus
-				accolade_wise_educator
-				cc_accolade_mentor_2
-			}
-		}
-		# Rank 4
-		1000 = {
-			liege_modifier = {
-				knight_limit = 1
-				learning = 1
-			}
-			accolade_parameters = {
-				accolade_train_commanders_bonus
-				accolade_wise_educator
-				cc_accolade_mentor_2
-			}
-		}
-		# Rank 5
-		1500 = {
+		3 = {
 			liege_modifier = {
 				knight_limit = 2
 				learning = 2
 			}
 			accolade_parameters = {
+				cc_accolade_mentor_3
 				accolade_train_commanders_bonus_high
 				accolade_wise_educator_high
-				cc_accolade_mentor_3
-			}
-		}
-		# Rank 6
-		2100 = {
-			liege_modifier = {
-				knight_limit = 2
-				learning = 2
-			}
-			accolade_parameters = {
-				accolade_train_commanders_bonus_high
-				accolade_wise_educator_high
-				cc_accolade_mentor_3
 			}
 		}
 	}
 }
 
-# Contender
 contender_attribute = {
-	
 	adjective = accolade_fearsome
 	noun = accolade_contender
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_aggressive_blue.dds"
+	portrait_pose = "menacing_wooden_sword"
 	accolade_categories = { skilled skill champion forceful warlike prowess }
 
-	potential = {
-		OR = {
-			prowess >= 20
-			has_trait_xp = {
-				trait = tourney_participant
-				track = bow
-				value >= 50
-			}
-			has_trait_xp = {
-				trait = tourney_participant
-				track = horse
-				value >= 50
-			}
-			has_trait_xp = {
-				trait = tourney_participant
-				track = foot
-				value >= 50
-			}
-			has_trait_xp = {
-				trait = tourney_participant
-				track = wit
-				value >= 50
-			}
-		}
+	squire_perfect_fit = {
+		contender_attribute_trigger = yes
 	}
-	
+	squire_acceptable_fit = {
+		contender_attribute_acceptable_trigger = yes
+	}
+
 	weight = {
 		# These are less interesting, so we weight them down for the AI.
 		value = accolade_standard_base_value
@@ -3131,105 +2721,61 @@ contender_attribute = {
 			multiply = accolade_opinion_multiplier_value
 		}
 	}
-	
+
 	ranks = {
 		# Rank 1
-		100 = {
+		1 = {
 			accolade_parameters = {
+				cc_accolade_contender_1
 				accolade_tournament_xp_gain_contender_only_low
 			}
 			liege_modifier = {
 				tourney_participant_xp_gain_mult = @tourney_participant_xp_mult_bonus_tier_1_value
-			}
-			accolade_parameters = {
-				cc_accolade_contender_1
+				belligerent_opinion = 3
 			}
 		}
 		# Rank 2
-		300 = {
+		2 = {
 			accolade_parameters = {
-				accolade_tournament_xp_gain_contender_only_low
+				cc_accolade_contender_2
+				accolade_tournament_xp_gain_contender_only
+				accolade_tournament_xp_gain_all_knights
 			}
 			liege_modifier = {
-				tourney_participant_xp_gain_mult = @tourney_participant_xp_mult_bonus_tier_1_value
-			}
-			accolade_parameters = {
-				cc_accolade_contender_1
+				tourney_participant_xp_gain_mult = @tourney_participant_xp_mult_bonus_tier_2_value
+				belligerent_opinion = 6
 			}
 		}
 		# Rank 3
-		600 = {
-			accolade_parameters = {
-				accolade_tournament_xp_gain_contender_only
-				accolade_tournament_xp_gain_all_knights
-			}
-			liege_modifier = {
-				tourney_participant_xp_gain_mult = @tourney_participant_xp_mult_bonus_tier_2_value
-			}
-			accolade_parameters = {
-				cc_accolade_contender_2
-			}
-		}
-		# Rank 4
-		1000 = {
-			accolade_parameters = {
-				accolade_tournament_xp_gain_contender_only
-				accolade_tournament_xp_gain_all_knights
-			}
-			liege_modifier = {
-				tourney_participant_xp_gain_mult = @tourney_participant_xp_mult_bonus_tier_2_value
-			}
-			accolade_parameters = {
-				cc_accolade_contender_2
-			}
-
-		}
-		# Rank 5
-		1500 = {
+		3 = {
 			liege_modifier = {
 				monthly_prestige_gain_per_knight_mult = 0.02
 				tourney_participant_xp_gain_mult = @tourney_participant_xp_mult_bonus_tier_3_value
+				belligerent_opinion = 10
 			}
 			accolade_parameters = {
+				cc_accolade_contender_3
 				accolade_tournament_xp_gain_contender_only_high
 				accolade_tournament_xp_gain_all_knights_high
-				cc_accolade_contender_3
-			}
-		}
-		# Rank 6
-		2100 = {
-			liege_modifier = {
-				monthly_prestige_gain_per_knight_mult = 0.02
-				tourney_participant_xp_gain_mult = @tourney_participant_xp_mult_bonus_tier_3_value
-			}
-			accolade_parameters = {
-				accolade_tournament_xp_gain_contender_only_high
-				accolade_tournament_xp_gain_all_knights_high
-				cc_accolade_contender_3
 			}
 		}
 	}
 }
 
-# Huntsmaster
 huntsmaster_attribute = {
-	
 	adjective = "accolade_hunt_leading"
 	noun = "accolade_huntsmaster"
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_ranged_fighter_green.dds"
+	portrait_pose = "hunting_falcon"
 	accolade_categories = { eminent rare_traits prowess ranged_fighter activities hunting educator logistics subtle courtly leader equestrian }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		has_trait = lifestyle_hunter
-		scope:owner ?= {
-			culture = {
-				NOT = {
-					has_cultural_tradition = tradition_vegetarianism
-				}
-			}
-		}
+	squire_perfect_fit = {
+		huntsmaster_attribute_trigger = yes
 	}
-	
+	squire_acceptable_fit = {
+		huntsmaster_attribute_acceptable_trigger = yes
+	}
+
 	weight = {
 		# Should be a pretty common pick if you've bothered to unlock the legacy
 		value = accolade_fascinating_base_value
@@ -3310,91 +2856,54 @@ huntsmaster_attribute = {
 			}
 		}
 	}
-	
 	ranks = {
 		# Rank 1
-		100 = {
+		1 = {
 			liege_modifier = {
 				trait_track_hunter_xp_gain_mult = @lifestyle_bonus_tier_1_value
 			}
-			accolade_parameters = { 
-			acclaimed_knight_trains_hunting 
-			cc_accolade_huntsmaster_1
-			}
+			accolade_parameters = {
+				cc_accolade_huntsmaster_1 acclaimed_knight_trains_hunting }
 		}
 		# Rank 2
-		300 = {
+		2 = {
 			liege_modifier = {
-				trait_track_hunter_xp_gain_mult = @lifestyle_bonus_tier_1_value
+				trait_track_hunter_xp_gain_mult = @lifestyle_bonus_tier_2_value
 			}
-			accolade_parameters = { 
-			acclaimed_knight_trains_hunting 
-			cc_accolade_huntsmaster_1
+			accolade_parameters = {
+				cc_accolade_huntsmaster_2
+				acclaimed_knight_trains_hunting
+				acclaimed_knight_reduces_hunting_danger
 			}
 		}
 		# Rank 3
-		600 = {
-			liege_modifier = {
-				trait_track_hunter_xp_gain_mult = @lifestyle_bonus_tier_2_value
-			}
-			accolade_parameters = {
-				acclaimed_knight_trains_hunting
-				acclaimed_knight_reduces_hunting_danger
-				cc_accolade_huntsmaster_2
-			}
-		}
-		# Rank 4
-		1000 = {
-			liege_modifier = {
-				trait_track_hunter_xp_gain_mult = @lifestyle_bonus_tier_2_value
-			}
-			accolade_parameters = {
-				acclaimed_knight_trains_hunting
-				acclaimed_knight_reduces_hunting_danger
-				cc_accolade_huntsmaster_2
-			}
-		}
-		# Rank 5
-		1500 = {
+		3 = {
 			liege_modifier = {
 				trait_track_hunter_xp_gain_mult = @lifestyle_bonus_tier_3_value
 			}
 			accolade_parameters = {
+				cc_accolade_huntsmaster_3
 				acclaimed_knight_trains_hunting
 				acclaimed_knight_reduces_hunting_danger_high
-				cc_accolade_huntsmaster_3
-			}
-		}
-		# Rank 6
-		2100 = {
-			liege_modifier = {
-				trait_track_hunter_xp_gain_mult = @lifestyle_bonus_tier_3_value
-			}
-			accolade_parameters = {
-				acclaimed_knight_trains_hunting
-				acclaimed_knight_reduces_hunting_danger_high
-				cc_accolade_huntsmaster_3
 			}
 		}
 	}
 }
 
-# Blademaster
 blademaster_attribute = {
-	
 	adjective = "accolade_blade_besting"
 	noun = "accolade_blademaster"
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_ethical_green.dds"
+	portrait_pose = "inspect_weapon"
 	accolade_categories = { eminent rare_traits prowess infantry educator army_bonus knights_bonus tournaments activities militant champion aggressive }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		has_trait = lifestyle_blademaster
-		has_trait_xp = {
-			trait = lifestyle_blademaster
-			value >= 100
-		}
+	squire_perfect_fit = {
+		blademaster_attribute_trigger = yes
 	}
-	
+	squire_acceptable_fit = {
+		blademaster_attribute_acceptable_trigger = yes
+	}
+
 	weight = {
 		# Should be a pretty common pick if you've bothered to unlock the legacy
 		value = accolade_fascinating_base_value
@@ -3506,95 +3015,60 @@ blademaster_attribute = {
 			}
 		}
 	}
-	
-	ranks = { 
+	ranks = {
 		# Rank 1
-		100 = {
+		1 = {
 			liege_modifier = {
 				trait_track_lifestyle_blademaster_xp_gain_mult = @lifestyle_bonus_tier_1_value
 			}
-			accolade_parameters = { 
+			accolade_parameters = {
+				cc_accolade_blademaster_1
 				acclaimed_knight_trains_swordfighting
 				accolade_increase_hostile_knight_death_low
-				cc_accolade_blademaster_1
 			}
 		}
 		# Rank 2
-		300 = {
+		2 = {
 			liege_modifier = {
-				trait_track_lifestyle_blademaster_xp_gain_mult = @lifestyle_bonus_tier_1_value
+				trait_track_lifestyle_blademaster_xp_gain_mult = @lifestyle_bonus_tier_2_value
+				knight_effectiveness_mult = @knight_effectiveness_tier_1_value
 			}
-			accolade_parameters = { 
+			accolade_parameters = {
+				cc_accolade_blademaster_2
 				acclaimed_knight_trains_swordfighting
-				accolade_increase_hostile_knight_death_low
-				cc_accolade_blademaster_1
+				accolade_increase_hostile_knight_death_medium
 			}
 		}
 		# Rank 3
-		600 = {
-			liege_modifier = {
-				trait_track_lifestyle_blademaster_xp_gain_mult = @lifestyle_bonus_tier_2_value
-				knight_effectiveness_mult = @knight_effectiveness_tier_1_value
-			}
-			accolade_parameters = {
-				acclaimed_knight_trains_swordfighting
-				accolade_increase_hostile_knight_death_medium
-				cc_accolade_blademaster_2
-			}
-		}
-		# Rank 4
-		1000 = {
-			liege_modifier = {
-				trait_track_lifestyle_blademaster_xp_gain_mult = @lifestyle_bonus_tier_2_value
-				knight_effectiveness_mult = @knight_effectiveness_tier_1_value
-			}
-			accolade_parameters = {
-				acclaimed_knight_trains_swordfighting
-				accolade_increase_hostile_knight_death_medium
-				cc_accolade_blademaster_2
-			}
-		}
-		# Rank 5
-		1500 = {
+		3 = {
 			liege_modifier = {
 				trait_track_lifestyle_blademaster_xp_gain_mult = @lifestyle_bonus_tier_3_value
 				knight_effectiveness_mult = @knight_effectiveness_tier_2_value
 			}
 			accolade_parameters = {
+				cc_accolade_blademaster_3
 				acclaimed_knight_trains_swordfighting
 				acclaimed_knight_tournament_invite_acceptance_bonus
 				accolade_increase_hostile_knight_death_high
-				cc_accolade_blademaster_3
-			}
-		}
-		# Rank 6
-		2100 = {
-			liege_modifier = {
-				trait_track_lifestyle_blademaster_xp_gain_mult = @lifestyle_bonus_tier_3_value
-				knight_effectiveness_mult = @knight_effectiveness_tier_2_value
-			}
-			accolade_parameters = {
-				acclaimed_knight_trains_swordfighting
-				acclaimed_knight_tournament_invite_acceptance_bonus
-				accolade_increase_hostile_knight_death_high
-				cc_accolade_blademaster_3
 			}
 		}
 	}
 }
 
-# Reveller
 master_of_revels_attribute = {
-	
 	adjective = "accolade_revel_leading"
 	noun = "accolade_master_of_revels"
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_courtly_red.dds"
+	portrait_pose = "dancing"
 	accolade_categories = { eminent rare_traits social diplomacy activities foreign_relations vassal_manager educator army_bonus prestige courtly leader subtle }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		has_trait = lifestyle_reveler
+	squire_perfect_fit = {
+		master_of_revels_attribute_trigger = yes
 	}
-	
+	squire_acceptable_fit = {
+		master_of_revels_attribute_acceptable_trigger = yes
+	}
+
 	weight = {
 		# Should be a pretty common pick if you've bothered to unlock the legacy
 		value = accolade_fascinating_base_value
@@ -3603,11 +3077,13 @@ master_of_revels_attribute = {
 			# Faith
 			if = {
 				limit = {
-					faith = {
-						OR = {
-							has_doctrine = tenet_monasticism
-							has_doctrine = tenet_gnosticism
-							has_doctrine = tenet_mendicant_preachers
+					OR = {
+						faith = { faith_has_monasticism_trigger = yes }
+						rite = {
+							OR = {
+								rite_has_tenet = tenet_gnosticism
+								rite_has_tenet = tenet_mendicant_preachers
+							}
 						}
 					}
 				}
@@ -3615,11 +3091,11 @@ master_of_revels_attribute = {
 			}
 			if = {
 				limit = {
-					faith = {
+					rite = {
 						OR = {
-							has_doctrine = tenet_natural_primitivism
-							has_doctrine = tenet_ritual_hospitality
-							has_doctrine = tenet_sun_worship
+							rite_has_tenet = tenet_natural_primitivism
+							rite_has_tenet = tenet_ritual_hospitality
+							rite_has_tenet = tenet_sun_worship
 						}
 					}
 				}
@@ -3627,10 +3103,10 @@ master_of_revels_attribute = {
 			}
 			if = {
 				limit = {
-					faith = {
+					rite = {
 						OR = {
-							has_doctrine = tenet_ritual_celebrations
-							has_doctrine = tenet_hedonistic
+							rite_has_tenet = tenet_ritual_celebrations
+							rite_has_tenet = tenet_hedonistic
 						}
 					}
 				}
@@ -3733,8 +3209,8 @@ master_of_revels_attribute = {
 			#Faith
 			if = {
 				limit = {
-					faith = {
-						has_doctrine = tenet_asceticism
+					rite = {
+						rite_has_tenet = tenet_asceticism
 					}
 				}
 				multiply = 0
@@ -3751,96 +3227,55 @@ master_of_revels_attribute = {
 			}
 		}
 	}
-	
 	ranks = {
 		# Rank 1
-		100 = {
+		1 = {
 			liege_modifier = {
 				lifestyle_reveler_xp_gain_mult = @lifestyle_bonus_tier_1_value
 			}
-			accolade_parameters = { 
-			acclaimed_knight_trains_reveling 
-			cc_accolade_master_of_revels_1
-			}
+			accolade_parameters = {
+				cc_accolade_master_of_revels_1 acclaimed_knight_trains_reveling }
 		}
 		# Rank 2
-		300 = {
+		2 = {
 			liege_modifier = {
-				lifestyle_reveler_xp_gain_mult = @lifestyle_bonus_tier_1_value
+				lifestyle_reveler_xp_gain_mult = @lifestyle_bonus_tier_2_value
 			}
-			accolade_parameters = { 
-			acclaimed_knight_trains_reveling 
-			cc_accolade_master_of_revels_1
+			accolade_parameters = {
+				cc_accolade_master_of_revels_2
+				acclaimed_knight_trains_reveling
+				acclaimed_knight_prestige_from_victory
 			}
 		}
 		# Rank 3
-		600 = {
-			liege_modifier = {
-				lifestyle_reveler_xp_gain_mult = @lifestyle_bonus_tier_2_value
-			}
-			accolade_parameters = {
-				acclaimed_knight_trains_reveling
-				acclaimed_knight_prestige_from_victory
-				cc_accolade_master_of_revels_2
-			}
-		}
-		# Rank 4
-		1000 = {
-			liege_modifier = {
-				lifestyle_reveler_xp_gain_mult = @lifestyle_bonus_tier_2_value
-			}
-			accolade_parameters = {
-				acclaimed_knight_trains_reveling
-				acclaimed_knight_prestige_from_victory
-				cc_accolade_master_of_revels_2
-			}
-		}
-		# Rank 5
-		1500 = {
+		3 = {
 			liege_modifier = {
 				lifestyle_reveler_xp_gain_mult = @lifestyle_bonus_tier_3_value
 			}
 			accolade_parameters = {
+				cc_accolade_master_of_revels_3
 				acclaimed_knight_trains_reveling
 				acclaimed_knight_feast_wedding_invite_acceptance_bonus
 				acclaimed_knight_prestige_from_victory_high
-				cc_accolade_master_of_revels_3
-			}
-		}
-		# Rank 6
-		2100 = {
-			liege_modifier = {
-				lifestyle_reveler_xp_gain_mult = @lifestyle_bonus_tier_3_value
-			}
-			accolade_parameters = {
-				acclaimed_knight_trains_reveling
-				acclaimed_knight_feast_wedding_invite_acceptance_bonus
-				acclaimed_knight_prestige_from_victory_high
-				cc_accolade_master_of_revels_3
 			}
 		}
 	}
 }
 
-# House Knight
 house_knight_attribute = {
-	
 	adjective = "accolade_house"
 	noun = "accolade_house_knight"
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_champion_blue.dds"
+	portrait_pose = "personality_honorable"
 	accolade_categories = { eminent relationship dynasty educator defensive champion }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		exists = house
-		house = liege.house
-		NOT = {
-			has_trait = denounced
-		}
-		dynasty = {
-			has_dynasty_perk = kin_legacy_4
-		}
+	squire_perfect_fit = {
+		house_knight_attribute_trigger = yes
 	}
-	
+	squire_acceptable_fit = {
+		house_knight_attribute_acceptable_trigger = yes
+	}
+
 	weight = {
 		# Should be a pretty common pick if you've bothered to unlock the legacy
 		value = accolade_standard_base_value
@@ -3869,8 +3304,8 @@ house_knight_attribute = {
 			# Faith
 			if = {
 				limit = {
-					faith = {
-						has_doctrine = tenet_divine_marriage
+					rite = {
+						rite_has_tenet = tenet_divine_marriage
 					}
 				}
 				add = 100
@@ -3897,6 +3332,7 @@ house_knight_attribute = {
 					has_trait = sayyid
 					has_trait = saoshyant_descendant
 					has_trait = pure_blooded
+					has_trait = golden_lineage
 				}
 			}
 			add = 200
@@ -3932,75 +3368,41 @@ house_knight_attribute = {
 			}
 		}
 	}
-	
 	ranks = {
 		# Rank 1
-		100 = {
+		1 = {
 			accolade_parameters = {
-				accolade_defends_family_low
 				cc_accolade_house_paragon_1
+				accolade_defends_family_low
 			}
 		}
 		# Rank 2
-		300 = {
+		2 = {
+			liege_modifier = { monthly_dynasty_prestige_mult = 0.05 }
 			accolade_parameters = {
-				accolade_defends_family_low
-				cc_accolade_house_paragon_1
-			}
+				cc_accolade_house_paragon_2 acclaimed_knight_inspires_family accolade_defends_family_medium }
 		}
 		# Rank 3
-		600 = {
-			liege_modifier = { monthly_dynasty_prestige_mult = 0.05 }
-			accolade_parameters = { 
-			acclaimed_knight_inspires_family accolade_defends_family_medium 
-			cc_accolade_house_paragon_2		
-			}
-		}
-		# Rank 4
-		1000 = {
-			liege_modifier = { monthly_dynasty_prestige_mult = 0.05 }
-			accolade_parameters = { 
-			acclaimed_knight_inspires_family accolade_defends_family_medium 
-			cc_accolade_house_paragon_2
-			}
-		}
-		# Rank 5
-		1500 = {
+		3 = {
 			liege_modifier = { monthly_dynasty_prestige_mult = 0.15 }
-			accolade_parameters = { 
-			acclaimed_knight_inspires_family_high accolade_defends_family_high 
-			cc_accolade_house_paragon_3
-			}
-		}
-		# Rank 6
-		2100 = {
-			liege_modifier = { monthly_dynasty_prestige_mult = 0.15 }
-			accolade_parameters = { 
-			acclaimed_knight_inspires_family_high accolade_defends_family_high 
-			cc_accolade_house_paragon_3
-			}
+			accolade_parameters = {
+				cc_accolade_house_paragon_3 acclaimed_knight_inspires_family_high accolade_defends_family_high }
 		}
 	}
 }
 
-
-# Archer
 archer_attribute = {
-	
 	adjective = accolade_bow_leading
 	noun = accolade_archer
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_ranged_fighter_red.dds"
+	portrait_pose = "hunting_shortbow_aim_arrow_default"
 	accolade_categories = { men_at_arms army_bonus militant leader subtle ranged_fighter }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait_xp = {
-				trait = tourney_participant
-				track = bow
-				value >= 20
-			}
-			has_trait = forest_fighter
-		}
+	squire_perfect_fit = {
+		archer_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		archer_attribute_acceptable_trigger = yes
 	}
 
 	weight = {
@@ -4100,113 +3502,67 @@ archer_attribute = {
 			}
 		}
 	}
-	
+
 	ranks = {
-		100 = {
-			liege_modifier = { 
-				archers_max_size_add = @number_maa_regiments_increment_2
-			}
-			knight_army_modifier = { 
-				archers_damage_mult = @accolade_maa_damage_1
-				archers_toughness_mult = @accolade_maa_toughness_1 
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_archer_1
 			}
-		}
-		300 = {
-			liege_modifier = { 
-				archers_max_size_add = @number_maa_regiments_increment_2
+
+			liege_modifier = {
+				archers_max_size_add = @number_maa_regiments_increment_1
 			}
-			knight_army_modifier = { 
-				archers_damage_mult = @accolade_maa_damage_1 
+			knight_army_modifier = {
+				archers_damage_mult = @accolade_maa_damage_1
 				archers_toughness_mult = @accolade_maa_toughness_1
 			}
-			accolade_parameters = {
-				cc_accolade_archer_1
-			}
 		}
-		600 = {
-			liege_modifier = { 
-				archers_maintenance_mult = @accolade_maa_maint_2
-				archers_max_size_add = @number_maa_regiments_increment_3
-			}
-			knight_army_modifier = { 
-				archers_damage_mult = @accolade_maa_damage_4
-				archers_toughness_mult = @accolade_maa_toughness_2 
-
-			}
+		2 = {
 			accolade_parameters = {
 				cc_accolade_archer_2
 			}
-			men_at_arms = { accolade_maa_archers }
-		}
-		1000 = {
-			liege_modifier = { 
+
+			liege_modifier = {
 				archers_maintenance_mult = @accolade_maa_maint_2
-				archers_max_size_add = @number_maa_regiments_increment_3
+				archers_max_size_add = @number_maa_regiments_increment_2
 			}
-			knight_army_modifier = { 
+			knight_army_modifier = {
 				archers_damage_mult = @accolade_maa_damage_4
 				archers_toughness_mult = @accolade_maa_toughness_2
-			}
-			accolade_parameters = {
-				cc_accolade_archer_2
-			}
-		}
-		1500 = {
-			liege_modifier = {
-				archers_maintenance_mult = @accolade_maa_maint_4
-				archers_max_size_add = @number_maa_regiments_increment_4
-			}
-			knight_army_modifier = { 
-				archers_damage_mult = @accolade_maa_damage_6
-				archers_toughness_mult = @accolade_maa_toughness_3
-			}
-			accolade_parameters = {
-				cc_accolade_archer_3
+
 			}
 			men_at_arms = { accolade_maa_archers }
 		}
-		2100 = {
-			liege_modifier = { 
-				archers_maintenance_mult = @accolade_maa_maint_4
-				archers_max_size_add = @number_maa_regiments_increment_4
-			}
-			knight_army_modifier = { 
-				archers_damage_mult = @accolade_maa_damage_6
-				archers_toughness_mult = @accolade_maa_toughness_3
-			}
+		3 = {
 			accolade_parameters = {
 				cc_accolade_archer_3
 			}
+
+			liege_modifier = {
+				archers_maintenance_mult = @accolade_maa_maint_4
+				archers_max_size_add = @number_maa_regiments_increment_3
+			}
+			knight_army_modifier = {
+				archers_damage_mult = @accolade_maa_damage_6
+				archers_toughness_mult = @accolade_maa_toughness_3
+			}
+			men_at_arms = { accolade_maa_archers }
 		}
 	}
 }
 
-# Skirmisher
 skirmisher_attribute = {
-	
 	adjective = accolade_skirmishing
 	noun = accolade_skirmisher
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_subtle_red.dds"
+	portrait_pose = "throne_room_one_handed_passive_3"
 	accolade_categories = { men_at_arms army_bonus militant champion subtle ranged_fighter infantry }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait_xp = {
-				trait = tourney_participant
-				track = bow
-				value >= 20
-			}
-			has_trait_xp = {
-				trait = tourney_participant
-				track = foot
-				value >= 20
-			}
-			has_trait = winter_soldier
-			has_trait = jungle_stalker
-		}
+	squire_perfect_fit = {
+		skirmisher_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		skirmisher_attribute_acceptable_trigger = yes
 	}
 
 	weight = {
@@ -4307,122 +3663,76 @@ skirmisher_attribute = {
 			}
 		}
 	}
-	
+
 	ranks = {
-		100 = {
-			liege_modifier = { 
-				skirmishers_max_size_add = @number_maa_regiments_increment_2
-			}
-			knight_army_modifier = { 
-				skirmishers_damage_mult = @accolade_maa_damage_1
-				skirmishers_toughness_mult = @accolade_maa_toughness_1
-				skirmishers_screen_mult = @accolade_maa_screen_1
-				winter_movement_speed = @skirmisher_attr_winter_movement_speed_1 
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_skirmisher_1
 			}
-		}
-		300 = {
-			liege_modifier = { 
-				skirmishers_max_size_add = @number_maa_regiments_increment_2
+
+			liege_modifier = {
+				skirmishers_max_size_add = @number_maa_regiments_increment_1
 			}
-			knight_army_modifier = { 
-				skirmishers_damage_mult = @accolade_maa_damage_1 
+			knight_army_modifier = {
+				skirmishers_damage_mult = @accolade_maa_damage_1
 				skirmishers_toughness_mult = @accolade_maa_toughness_1
 				skirmishers_screen_mult = @accolade_maa_screen_1
 				winter_movement_speed = @skirmisher_attr_winter_movement_speed_1
 			}
-			accolade_parameters = {
-				cc_accolade_skirmisher_1
-			}
 		}
-		600 = {
-			liege_modifier = { 
-				skirmishers_maintenance_mult = @accolade_maa_maint_2
-				skirmishers_max_size_add = @number_maa_regiments_increment_3
-			}
-			knight_army_modifier = { 
-				skirmishers_damage_mult = @accolade_maa_damage_4
-				skirmishers_toughness_mult = @accolade_maa_toughness_2
-				skirmishers_screen_mult = @accolade_maa_screen_3
-				winter_movement_speed = @skirmisher_attr_winter_movement_speed_2 
-			}
+		2 = {
 			accolade_parameters = {
 				cc_accolade_skirmisher_2
 			}
-			men_at_arms = { accolade_maa_skirmishers }
-		}
-		1000 = {
-			liege_modifier = { 
+
+			liege_modifier = {
 				skirmishers_maintenance_mult = @accolade_maa_maint_2
 				skirmishers_max_size_add = @number_maa_regiments_increment_3
 			}
-			knight_army_modifier = { 
+			knight_army_modifier = {
 				skirmishers_damage_mult = @accolade_maa_damage_4
 				skirmishers_toughness_mult = @accolade_maa_toughness_2
 				skirmishers_screen_mult = @accolade_maa_screen_3
 				winter_movement_speed = @skirmisher_attr_winter_movement_speed_2
 			}
-			accolade_parameters = {
-				cc_accolade_skirmisher_2
-			}
+			men_at_arms = { accolade_maa_skirmishers }
 		}
-		1500 = {
+		3 = {
+			accolade_parameters = {
+				cc_accolade_skirmisher_3
+			}
+
 			liege_modifier = {
 				skirmishers_maintenance_mult = @accolade_maa_maint_4
 				skirmishers_max_size_add = @number_maa_regiments_increment_4
 			}
-			knight_army_modifier = { 
+			knight_army_modifier = {
 				skirmishers_damage_mult = @accolade_maa_damage_6
 				skirmishers_toughness_mult = @accolade_maa_toughness_3
 				skirmishers_screen_mult = @accolade_maa_screen_5
 				winter_movement_speed = @skirmisher_attr_winter_movement_speed_3
-			}
-			accolade_parameters = {
-				cc_accolade_skirmisher_3
 			}
 			men_at_arms = { accolade_maa_skirmishers }
-		}
-		2100 = {
-			liege_modifier = { 
-				skirmishers_maintenance_mult = @accolade_maa_maint_4
-				skirmishers_max_size_add = @number_maa_regiments_increment_4
-			}
-			knight_army_modifier = { 
-				skirmishers_damage_mult = @accolade_maa_damage_6
-				skirmishers_toughness_mult = @accolade_maa_toughness_3
-				skirmishers_screen_mult = @accolade_maa_screen_5
-				winter_movement_speed = @skirmisher_attr_winter_movement_speed_3
-			}
-			accolade_parameters = {
-				cc_accolade_skirmisher_3
-			}
 		}
 	}
 }
 
-# Pike Captain
 pike_attribute = {
-	
 	# We can't say "Piking" due to two notable places:
 	## Sigil
 	## Britain
 	### All angles covered, folks.
 	adjective = accolade_pike_leading
 	noun = accolade_pike_captain
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_champion_red.dds"
+	portrait_pose = "relaxed_spear"
 	accolade_categories = { men_at_arms army_bonus militant leader defensive forceful infantry }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait_xp = {
-				trait = tourney_participant
-				track = foot
-				value >= 20
-			}
-			has_trait = rough_terrain_expert
-		}
+	squire_perfect_fit = {
+		pike_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		pike_attribute_acceptable_trigger = yes
 	}
 
 	weight = {
@@ -4518,106 +3828,66 @@ pike_attribute = {
 			}
 		}
 	}
-	
+
 	ranks = {
-		100 = {
-			liege_modifier = { 
-				pikemen_max_size_add = @number_maa_regiments_increment_1
-			}
-			knight_army_modifier = { 
-				pikemen_damage_mult = @accolade_maa_damage_1
-				pikemen_toughness_mult = @accolade_maa_toughness_1 
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_pike_1
 			}
-		}
-		300 = {
-			liege_modifier = { 
+
+			liege_modifier = {
 				pikemen_max_size_add = @number_maa_regiments_increment_1
 			}
-			knight_army_modifier = { 
-				pikemen_damage_mult = @accolade_maa_damage_1 
+			knight_army_modifier = {
+				pikemen_damage_mult = @accolade_maa_damage_1
 				pikemen_toughness_mult = @accolade_maa_toughness_1
 			}
-			accolade_parameters = {
-				cc_accolade_pike_1
-			}
 		}
-		600 = {
-			liege_modifier = { 
+		2 = {
+			accolade_parameters = {
+				cc_accolade_pike_2
+			}
+
+			liege_modifier = {
 				pikemen_maintenance_mult = @accolade_maa_maint_1
 				pikemen_max_size_add = @number_maa_regiments_increment_2
 			}
-			knight_army_modifier = { 
+			knight_army_modifier = {
 				pikemen_damage_mult = @accolade_maa_damage_3
 				pikemen_toughness_mult = @accolade_maa_toughness_4
-			}
-			accolade_parameters = {
-				cc_accolade_pike_2
 			}
 			men_at_arms = { accolade_maa_pikes }
 		}
-		1000 = {
-			liege_modifier = { 
-				pikemen_maintenance_mult = @accolade_maa_maint_1
-				pikemen_max_size_add = @number_maa_regiments_increment_2
-			}
-			knight_army_modifier = { 
-				pikemen_damage_mult = @accolade_maa_damage_3
-				pikemen_toughness_mult = @accolade_maa_toughness_4
-			}
+		3 = {
 			accolade_parameters = {
-				cc_accolade_pike_2
+				cc_accolade_pike_3
 			}
-		}
-		1500 = {
+
 			liege_modifier = {
 				pikemen_maintenance_mult = @accolade_maa_maint_3
 				pikemen_max_size_add = @number_maa_regiments_increment_3
 			}
-			knight_army_modifier = { 
+			knight_army_modifier = {
 				pikemen_damage_mult = @accolade_maa_damage_5
 				pikemen_toughness_mult = @accolade_maa_toughness_6
-			}
-			accolade_parameters = {
-				cc_accolade_pike_3
 			}
 			men_at_arms = { accolade_maa_pikes }
-		}
-		2100 = {
-			liege_modifier = { 
-				pikemen_maintenance_mult = @accolade_maa_maint_3
-				pikemen_max_size_add = @number_maa_regiments_increment_3
-			}
-			knight_army_modifier = { 
-				pikemen_damage_mult = @accolade_maa_damage_5
-				pikemen_toughness_mult = @accolade_maa_toughness_6
-			}
-			accolade_parameters = {
-				cc_accolade_pike_3
-			}
 		}
 	}
 }
 
-# Outrider
 outrider_attribute = {
-	
 	adjective = accolade_outriding
 	noun = accolade_outrider
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_equestrian_red.dds"
+	portrait_pose = "jockey_walk"
 	accolade_categories = { men_at_arms army_bonus militant equestrian subtle champion aggressive cavalry light_fighter }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait_xp = {
-				trait = tourney_participant
-				track = horse
-				value >= 20
-			}
-			has_trait = open_terrain_expert
-		}
+	squire_perfect_fit = {
+		outrider_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		outrider_attribute_acceptable_trigger = yes
 	}
 
 	weight = {
@@ -4685,6 +3955,7 @@ outrider_attribute = {
 								has_cultural_pillar = heritage_iberian
 								has_cultural_pillar = heritage_indo_aryan
 								has_cultural_pillar = heritage_magyar
+								has_cultural_pillar = heritage_caucasian
 							}
 						}
 					}
@@ -4720,139 +3991,72 @@ outrider_attribute = {
 			}
 		}
 	}
-	
+
 	ranks = {
-		100 = {
-			liege_modifier = { 
-				light_cavalry_max_size_add = @number_maa_regiments_increment_1
-			}
-			knight_army_modifier = { 
-				light_cavalry_damage_mult = @accolade_maa_damage_1
-				light_cavalry_toughness_mult = @accolade_maa_toughness_1 
-				light_cavalry_pursuit_mult = @accolade_maa_pursuit_1
-				movement_speed = @outrider_attr_movement_speed_1
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_outrider_1
 			}
-		}
-		300 = {
-			liege_modifier = { 
+
+			liege_modifier = {
 				light_cavalry_max_size_add = @number_maa_regiments_increment_1
 			}
-			knight_army_modifier = { 
-				light_cavalry_damage_mult = @accolade_maa_damage_1 
+			knight_army_modifier = {
+				light_cavalry_damage_mult = @accolade_maa_damage_1
 				light_cavalry_toughness_mult = @accolade_maa_toughness_1
 				light_cavalry_pursuit_mult = @accolade_maa_pursuit_1
 				movement_speed = @outrider_attr_movement_speed_1
 			}
-			accolade_parameters = {
-				cc_accolade_outrider_1
-			}
 		}
-		600 = {
-			liege_modifier = { 
+		2 = {
+			accolade_parameters = {
+				cc_accolade_outrider_2
+			}
+
+			liege_modifier = {
 				light_cavalry_maintenance_mult = @accolade_maa_maint_1
 				light_cavalry_max_size_add = @number_maa_regiments_increment_2
 			}
-			knight_army_modifier = { 
+			knight_army_modifier = {
 				light_cavalry_damage_mult = @accolade_maa_damage_4
 				light_cavalry_toughness_mult = @accolade_maa_toughness_2
 				light_cavalry_pursuit_mult = @accolade_maa_pursuit_2
-				movement_speed = @outrider_attr_movement_speed_2 
-			}
-			accolade_parameters = {
-				cc_accolade_outrider_2
+				movement_speed = @outrider_attr_movement_speed_2
 			}
 			men_at_arms = { accolade_maa_outriders }
 		}
-		1000 = {
-			liege_modifier = { 
-				light_cavalry_maintenance_mult = @accolade_maa_maint_1
-				light_cavalry_max_size_add = @number_maa_regiments_increment_2
-			}
-			knight_army_modifier = { 
-				light_cavalry_damage_mult = @accolade_maa_damage_4
-				light_cavalry_toughness_mult = @accolade_maa_toughness_2
-				light_cavalry_pursuit_mult = @accolade_maa_pursuit_2
-				movement_speed = @outrider_attr_movement_speed_2 
-			}
-			accolade_parameters = {
-				cc_accolade_outrider_2
-			}
-		}
-		1500 = {
-			liege_modifier = {
-				light_cavalry_maintenance_mult = @accolade_maa_maint_3
-				light_cavalry_max_size_add = @number_maa_regiments_increment_3
-			}
-			knight_army_modifier = { 
-				light_cavalry_damage_mult = @accolade_maa_damage_6
-				light_cavalry_toughness_mult = @accolade_maa_toughness_3
-				light_cavalry_pursuit_mult = @accolade_maa_pursuit_4
-				movement_speed = @outrider_attr_movement_speed_3 
-			}
+		3 = {
 			accolade_parameters = {
 				cc_accolade_outrider_3
 			}
-			men_at_arms = { accolade_maa_outriders }
-		}
-		2100 = {
-			liege_modifier = { 
+
+			liege_modifier = {
 				light_cavalry_maintenance_mult = @accolade_maa_maint_3
-				light_cavalry_max_size_add = @number_maa_regiments_increment_3
+				light_cavalry_max_size_add = @number_maa_regiments_increment_2
 			}
-			knight_army_modifier = { 
+			knight_army_modifier = {
 				light_cavalry_damage_mult = @accolade_maa_damage_6
 				light_cavalry_toughness_mult = @accolade_maa_toughness_3
 				light_cavalry_pursuit_mult = @accolade_maa_pursuit_4
 				movement_speed = @outrider_attr_movement_speed_3
 			}
-			accolade_parameters = {
-				cc_accolade_outrider_3
-			}
+			men_at_arms = { accolade_maa_outriders }
 		}
 	}
 }
 
-# Vanguard
 vanguard_attribute = {
-	
 	adjective = accolade_vanguard
 	noun = accolade_vanguard
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_forceful_green.dds"
+	portrait_pose = "marshal_shield"
 	accolade_categories = { men_at_arms army_bonus militant forceful aggressive defensive infantry heavy_fighter }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		# Has the MaA unlocked.
-		
-		OR = {
-			has_trait = strong
-			has_trait = athletic
-			has_trait = physique_good
-			has_trait_xp = {
-				trait = tourney_participant
-				track = foot
-				value >= 20
-			}
-		}
-		culture ?= {
-			OR = {
-				has_innovation = innovation_quilted_armor
-				has_cultural_tradition = tradition_fp1_coastal_warriors
-				has_cultural_tradition = tradition_hird
-				has_cultural_tradition = tradition_futuwaa
-				has_cultural_tradition = tradition_druzhina
-				has_cultural_tradition = tradition_khadga_puja
-				has_cultural_tradition = tradition_garuda_warriors
-				has_cultural_tradition = tradition_himalayan_settlers
-				has_cultural_tradition = tradition_mubarizuns
-				has_cultural_tradition = tradition_burman_royal_army
-				has_cultural_tradition = tradition_mountaineer_ruralism
-				has_innovation = innovation_sarawit
-				has_innovation = innovation_legionnaires
-			}
-		}
+	squire_perfect_fit = {
+		vanguard_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		vanguard_attribute_acceptable_trigger = yes
 	}
 
 	weight = {
@@ -4957,114 +4161,66 @@ vanguard_attribute = {
 			}
 		}
 	}
-	
+
 	ranks = {
-		100 = {
-			liege_modifier = { 
-				heavy_infantry_max_size_add = @number_maa_regiments_increment_1
-			}
-			knight_army_modifier = { 
-				heavy_infantry_damage_mult = @accolade_maa_damage_1
-				heavy_infantry_toughness_mult = @accolade_maa_toughness_1 
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_vanguard_1
 			}
-		}
-		300 = {
-			liege_modifier = { 
+
+			liege_modifier = {
 				heavy_infantry_max_size_add = @number_maa_regiments_increment_1
 			}
-			knight_army_modifier = { 
-				heavy_infantry_damage_mult = @accolade_maa_damage_1 
+			knight_army_modifier = {
+				heavy_infantry_damage_mult = @accolade_maa_damage_1
 				heavy_infantry_toughness_mult = @accolade_maa_toughness_1
 			}
-			accolade_parameters = {
-				cc_accolade_vanguard_1
-			}
 		}
-		600 = {
-			liege_modifier = { 
+		2 = {
+			accolade_parameters = {
+				cc_accolade_vanguard_2
+			}
+
+			liege_modifier = {
 				heavy_infantry_maintenance_mult = @accolade_maa_maint_1
 				heavy_infantry_max_size_add = @number_maa_regiments_increment_2
 			}
-			knight_army_modifier = { 
+			knight_army_modifier = {
 				heavy_infantry_damage_mult = @accolade_maa_damage_4
 				heavy_infantry_toughness_mult = @accolade_maa_toughness_2
-			}
-			accolade_parameters = {
-				cc_accolade_vanguard_2
 			}
 			men_at_arms = { accolade_maa_vanguards }
 		}
-		1000 = {
-			liege_modifier = { 
-				heavy_infantry_maintenance_mult = @accolade_maa_maint_1
-				heavy_infantry_max_size_add = @number_maa_regiments_increment_2
-			}
-			knight_army_modifier = { 
-				heavy_infantry_damage_mult = @accolade_maa_damage_4
-				heavy_infantry_toughness_mult = @accolade_maa_toughness_2
-			}
+		3 = {
 			accolade_parameters = {
-				cc_accolade_vanguard_2
+				cc_accolade_vanguard_3
 			}
-		}
-		1500 = {
+
 			liege_modifier = {
 				heavy_infantry_maintenance_mult = @accolade_maa_maint_3
-				heavy_infantry_max_size_add = @number_maa_regiments_increment_3
+				heavy_infantry_max_size_add = @number_maa_regiments_increment_2
 			}
-			knight_army_modifier = { 
+			knight_army_modifier = {
 				heavy_infantry_damage_mult = @accolade_maa_damage_6
 				heavy_infantry_toughness_mult = @accolade_maa_toughness_3
-			}
-			accolade_parameters = {
-				cc_accolade_vanguard_3
 			}
 			men_at_arms = { accolade_maa_vanguards }
-		}
-		2100 = {
-			liege_modifier = { 
-				heavy_infantry_maintenance_mult = @accolade_maa_maint_3
-				heavy_infantry_max_size_add = @number_maa_regiments_increment_3
-			}
-			knight_army_modifier = { 
-				heavy_infantry_damage_mult = @accolade_maa_damage_6
-				heavy_infantry_toughness_mult = @accolade_maa_toughness_3
-			}
-			accolade_parameters = {
-				cc_accolade_vanguard_3
-			}
 		}
 	}
 }
 
-# Lancer
 lancer_attribute = {
-	
 	adjective = accolade_lancer
 	noun = accolade_lancer
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_equestrian_blue.dds"
+	portrait_pose = "horse_surveying"
 	accolade_categories = { men_at_arms army_bonus militant forceful aggressive equestrian cavalry heavy_fighter }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait_xp = {
-				trait = tourney_participant
-				track = horse
-				value >= 20
-			}
-			has_trait = aggressive_attacker
-		}
-		culture ?= {
-			OR = {
-				has_innovation = innovation_arched_saddle
-				has_cultural_tradition = tradition_caucasian_wolves
-				has_cultural_tradition = tradition_roman_legacy
-				has_innovation = innovation_valets
-			}
-		}
+	squire_perfect_fit = {
+		lancer_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		lancer_attribute_acceptable_trigger = yes
 	}
 
 	weight = {
@@ -5147,7 +4303,7 @@ lancer_attribute = {
 								has_cultural_pillar = heritage_frankish
 								has_cultural_pillar = heritage_indo_aryan
 								has_cultural_pillar = heritage_byzantine
-
+								has_cultural_pillar = heritage_caucasian
 							}
 						}
 					}
@@ -5179,112 +4335,63 @@ lancer_attribute = {
 			}
 		}
 	}
-	
+
 	ranks = {
-		100 = {
-			liege_modifier = { 
-				heavy_cavalry_max_size_add = @number_maa_regiments_increment_1
-			}
-			knight_army_modifier = { 
-				heavy_cavalry_damage_mult = @accolade_maa_damage_1
-				heavy_cavalry_toughness_mult = @accolade_maa_toughness_1 
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_lancer_1
 			}
-		}
-		300 = {
-			liege_modifier = { 
-				heavy_cavalry_max_size_add = @number_maa_regiments_increment_1
-			}
-			knight_army_modifier = { 
-				heavy_cavalry_damage_mult = @accolade_maa_damage_1 
+
+			knight_army_modifier = {
+				heavy_cavalry_damage_mult = @accolade_maa_damage_1
 				heavy_cavalry_toughness_mult = @accolade_maa_toughness_1
 			}
-			accolade_parameters = {
-				cc_accolade_lancer_1
-			}
 		}
-		600 = {
-			liege_modifier = { 
-				heavy_cavalry_maintenance_mult = @accolade_maa_maint_1
-				heavy_cavalry_max_size_add = @number_maa_regiments_increment_2
-			}
-			knight_army_modifier = { 
-				heavy_cavalry_damage_mult = @accolade_maa_damage_4
-				heavy_cavalry_toughness_mult = @accolade_maa_toughness_2
-			}
+		2 = {
 			accolade_parameters = {
 				cc_accolade_lancer_2
+			}
+
+			liege_modifier = {
+				heavy_cavalry_maintenance_mult = @accolade_maa_maint_1
+				heavy_cavalry_max_size_add = @number_maa_regiments_increment_1
+			}
+			knight_army_modifier = {
+				heavy_cavalry_damage_mult = @accolade_maa_damage_4
+				heavy_cavalry_toughness_mult = @accolade_maa_toughness_2
 			}
 			men_at_arms = { accolade_maa_lancers }
 		}
-		1000 = {
-			liege_modifier = { 
-				heavy_cavalry_maintenance_mult = @accolade_maa_maint_1
-				heavy_cavalry_max_size_add = @number_maa_regiments_increment_2
-			}
-			knight_army_modifier = { 
-				heavy_cavalry_damage_mult = @accolade_maa_damage_4
-				heavy_cavalry_toughness_mult = @accolade_maa_toughness_2
-			}
+		3 = {
 			accolade_parameters = {
-				cc_accolade_lancer_2
+				cc_accolade_lancer_3
 			}
-		}
-		1500 = {
+
 			liege_modifier = {
 				heavy_cavalry_maintenance_mult = @accolade_maa_maint_3
-				heavy_cavalry_max_size_add = @number_maa_regiments_increment_3
+				heavy_cavalry_max_size_add = @number_maa_regiments_increment_2
 			}
-			knight_army_modifier = { 
+			knight_army_modifier = {
 				heavy_cavalry_damage_mult = @accolade_maa_damage_6
 				heavy_cavalry_toughness_mult = @accolade_maa_toughness_3
-			}
-			accolade_parameters = {
-				cc_accolade_lancer_3
 			}
 			men_at_arms = { accolade_maa_lancers }
-		}
-		2100 = {
-			liege_modifier = { 
-				heavy_cavalry_maintenance_mult = @accolade_maa_maint_3
-				heavy_cavalry_max_size_add = @number_maa_regiments_increment_3
-			}
-			knight_army_modifier = { 
-				heavy_cavalry_damage_mult = @accolade_maa_damage_6
-				heavy_cavalry_toughness_mult = @accolade_maa_toughness_3
-			}
-			accolade_parameters = {
-				cc_accolade_lancer_3
-			}
 		}
 	}
 }
 
-# Crossbowmen
 crossbowmen_attribute = {
-	
 	adjective = accolade_crossbow_leading
 	noun = accolade_crossbow_captain
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_militant_green.dds"
+	portrait_pose = "crossbow"
 	accolade_categories = { men_at_arms army_bonus militant defensive leader subtle ranged_fighter }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait_xp = {
-				trait = tourney_participant
-				track = bow
-				value >= 20
-			}
-			has_trait = cautious_leader
-		}
-		culture ?= {
-			OR = {
-				has_innovation = innovation_advanced_bowmaking
-				has_innovation = innovation_repeating_crossbow
-			}
-		}
+	squire_perfect_fit = {
+		crossbowmen_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		crossbowmen_attribute_acceptable_trigger = yes
 	}
 
 	weight = {
@@ -5294,21 +4401,12 @@ crossbowmen_attribute = {
 			if = {
 				limit = {
 					OR = {
-						number_maa_regiments_of_type = {
-							type = crossbowmen
-							value >= 1
+						"number_maa_regiments_of_type(crossbowmen)" >= 1
+						"number_maa_regiments_of_type(shenbigong)" >= 1
+						"number_maa_regiments_of_type(accolade_maa_crossbowers)" >= 1
+						NOT = {
+							culture ?= { has_innovation = innovation_advanced_bowmaking }
 						}
-						number_maa_regiments_of_type = {
-							type = chu_ko_nu
-							value >= 1
-						}
-						number_maa_regiments_of_type = {
-							type = accolade_maa_crossbowers
-							value >= 1
-						}
-					}
-					NOT = {
-						culture ?= { has_innovation = innovation_advanced_bowmaking }
 					}
 				}
 				add = @has_relevant_maa_weight_up_value
@@ -5317,18 +4415,9 @@ crossbowmen_attribute = {
 				if = {
 					limit = {
 						OR = {
-							number_maa_regiments_of_type = {
-								type = crossbowmen
-								value >= @number_maa_regiments_increment_1
-							}
-							number_maa_regiments_of_type = {
-								type = chu_ko_nu
-								value >= @number_maa_regiments_increment_1
-							}
-							number_maa_regiments_of_type = {
-								type = accolade_maa_crossbowers
-								value >= @number_maa_regiments_increment_1
-							}
+							"number_maa_regiments_of_type(crossbowmen)" >= @number_maa_regiments_increment_1
+							"number_maa_regiments_of_type(shenbigong)" >= @number_maa_regiments_increment_1
+							"number_maa_regiments_of_type(accolade_maa_crossbowers)" >= @number_maa_regiments_increment_1
 						}
 					}
 					add = @has_relevant_maa_weight_up_value
@@ -5337,18 +4426,9 @@ crossbowmen_attribute = {
 				if = {
 					limit = {
 						OR = {
-							number_maa_regiments_of_type = {
-								type = crossbowmen
-								value >= @number_maa_regiments_increment_2
-							}
-							number_maa_regiments_of_type = {
-								type = chu_ko_nu
-								value >= @number_maa_regiments_increment_2
-							}
-							number_maa_regiments_of_type = {
-								type = accolade_maa_crossbowers
-								value >= @number_maa_regiments_increment_2
-							}
+							"number_maa_regiments_of_type(crossbowmen)" >= @number_maa_regiments_increment_2
+							"number_maa_regiments_of_type(shenbigong)" >= @number_maa_regiments_increment_2
+							"number_maa_regiments_of_type(accolade_maa_crossbowers)" >= @number_maa_regiments_increment_2
 						}
 					}
 					add = @has_relevant_maa_weight_up_value
@@ -5357,18 +4437,9 @@ crossbowmen_attribute = {
 				if = {
 					limit = {
 						OR = {
-							number_maa_regiments_of_type = {
-								type = crossbowmen
-								value >= @number_maa_regiments_increment_3
-							}
-							number_maa_regiments_of_type = {
-								type = chu_ko_nu
-								value >= @number_maa_regiments_increment_3
-							}
-							number_maa_regiments_of_type = {
-								type = accolade_maa_crossbowers
-								value >= @number_maa_regiments_increment_3
-							}
+							"number_maa_regiments_of_type(crossbowmen)" >= @number_maa_regiments_increment_3
+							"number_maa_regiments_of_type(shenbigong)" >= @number_maa_regiments_increment_3
+							"number_maa_regiments_of_type(accolade_maa_crossbowers)" >= @number_maa_regiments_increment_3
 						}
 					}
 					add = @has_relevant_maa_weight_up_value
@@ -5377,18 +4448,9 @@ crossbowmen_attribute = {
 				if = {
 					limit = {
 						OR = {
-							number_maa_regiments_of_type = {
-								type = crossbowmen
-								value >= @number_maa_regiments_increment_4
-							}
-							number_maa_regiments_of_type = {
-								type = chu_ko_nu
-								value >= @number_maa_regiments_increment_4
-							}
-							number_maa_regiments_of_type = {
-								type = accolade_maa_crossbowers
-								value >= @number_maa_regiments_increment_4
-							}
+							"number_maa_regiments_of_type(crossbowmen)" >= @number_maa_regiments_increment_4
+							"number_maa_regiments_of_type(shenbigong)" >= @number_maa_regiments_increment_4
+							"number_maa_regiments_of_type(accolade_maa_crossbowers)" >= @number_maa_regiments_increment_4
 						}
 					}
 					add = @has_relevant_maa_weight_up_value
@@ -5429,109 +4491,58 @@ crossbowmen_attribute = {
 			}
 		}
 	}
-	
-		ranks = {
-		100 = {
-			liege_modifier = { 
-				archers_max_size_add = @number_maa_regiments_increment_2
-			}
-			knight_army_modifier = { 
-				archers_damage_mult = @accolade_maa_damage_1
-				archers_toughness_mult = @accolade_maa_toughness_1 
-			}
-			accolade_parameters = { 
-			accolade_increase_hostile_knight_death_low 
-			cc_accolade_crossbowmen_1
-			}
-		}
-		300 = {
-			liege_modifier = { 
-				archers_max_size_add = @number_maa_regiments_increment_2
-			}
-			knight_army_modifier = { 
-				archers_damage_mult = @accolade_maa_damage_1 
-				archers_toughness_mult = @accolade_maa_toughness_1
-			}
-			accolade_parameters = { 
-			accolade_increase_hostile_knight_death_low 
-			cc_accolade_crossbowmen_1
-			}
-		}
-		600 = {
-			liege_modifier = { 
-				archers_maintenance_mult = @accolade_maa_maint_2
-				archers_max_size_add = @number_maa_regiments_increment_3
-			}
-			knight_army_modifier = { 
-				archers_damage_mult = @accolade_maa_damage_4
-				archers_toughness_mult = @accolade_maa_toughness_2
-			}
-			men_at_arms = { accolade_maa_crossbowers }
-			accolade_parameters = { 
-			accolade_increase_hostile_knight_death_medium 
-			cc_accolade_crossbowmen_2
-			}
-		}
-		1000 = {
-			liege_modifier = { 
-				archers_maintenance_mult = @accolade_maa_maint_2
-				archers_max_size_add = @number_maa_regiments_increment_3
-			}
-			knight_army_modifier = { 
-				archers_damage_mult = @accolade_maa_damage_4
-				archers_toughness_mult = @accolade_maa_toughness_2
-			}
-			accolade_parameters = { 
-			accolade_increase_hostile_knight_death_medium 
-			cc_accolade_crossbowmen_2
-			}
-		}
-		1500 = {
+
+	ranks = {
+		1 = {
 			liege_modifier = {
-				archers_maintenance_mult = @accolade_maa_maint_4
-				archers_max_size_add = @number_maa_regiments_increment_4
+				capital_fort_level = 1
 			}
-			knight_army_modifier = { 
-				archers_damage_mult = @accolade_maa_damage_6
-				archers_toughness_mult = @accolade_maa_toughness_3
+			knight_army_modifier = {
+				archers_siege_value_add = 0.1
+				archers_screen_mult = 0.3
+			}
+			accolade_parameters = {
+				cc_accolade_crossbowmen_1 accolade_increase_hostile_knight_death_low }
+		}
+		2 = {
+			liege_modifier = {
+				capital_fort_level = 2
+			}
+			knight_army_modifier = {
+				archers_siege_value_add = 0.3
+				archers_screen_mult = 0.6
 			}
 			men_at_arms = { accolade_maa_crossbowers }
-			accolade_parameters = { 
-			accolade_increase_hostile_knight_death_high 
-			cc_accolade_crossbowmen_3
-			}
+			accolade_parameters = {
+				cc_accolade_crossbowmen_2 accolade_increase_hostile_knight_death_medium }
 		}
-		2100 = {
-			liege_modifier = { 
-				archers_maintenance_mult = @accolade_maa_maint_4
-				archers_max_size_add = @number_maa_regiments_increment_4
+		3 = {
+			liege_modifier = {
+				capital_fort_level = 3
 			}
-			knight_army_modifier = { 
-				archers_damage_mult = @accolade_maa_damage_6
-				archers_toughness_mult = @accolade_maa_toughness_3
+			knight_army_modifier = {
+				archers_siege_value_add = 0.3
+				archers_screen_mult = 1
 			}
-			accolade_parameters = { 
-			accolade_increase_hostile_knight_death_high 
-			cc_accolade_crossbowmen_3
-			}
+			men_at_arms = { accolade_maa_crossbowers }
+			accolade_parameters = {
+				cc_accolade_crossbowmen_3 accolade_increase_hostile_knight_death_high }
 		}
 	}
 }
 
-# Besieger
 besieger_attribute = {
-	
 	adjective = accolade_besieging
 	noun = accolade_besieger
-	accolade_categories = { men_at_arms army_bonus militant aggressive subtle leader ranged_fighter }
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_defensive_red.dds"
+	portrait_pose = "thinking"
+	accolade_categories = { men_at_arms army_bonus militant aggressive subtle leader ranged_fighter siege }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait = military_engineer
-			has_trait = logistician
-		}
-		culture ?= { has_innovation = innovation_mangonel }
+	squire_perfect_fit = {
+		besieger_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		besieger_attribute_acceptable_trigger = yes
 	}
 
 	weight = {
@@ -5611,90 +4622,57 @@ besieger_attribute = {
 			}
 		}
 	}
-	
+
 	ranks = {
 		# Siege equipment, we want to just let you get real crazy with it, so you can have more and more and more siege equipment. Simultaneously, a sieging knight'll help you to bring places down faster.
-		100 = {
+		1 = {
+			accolade_parameters = {
+				cc_accolade_besieger_1
+			}
+
 			liege_modifier = { siege_weapon_max_size_add = @besieger_attr_siege_weapon_max_size_1 }
 			knight_army_modifier = {
 				siege_phase_time = @besieger_attr_siege_phase_time_1
 				siege_morale_loss = @besieger_attr_siege_mortal_loss_1
 			}
-			accolade_parameters = {
-				cc_accolade_besieger_1
-			}
 		}
-		300 = {
-			liege_modifier = { siege_weapon_max_size_add = @besieger_attr_siege_weapon_max_size_1 }
-			knight_army_modifier = {
-				siege_phase_time = @besieger_attr_siege_phase_time_1
-				siege_morale_loss = @besieger_attr_siege_mortal_loss_1
-			}
+		2 = {
 			accolade_parameters = {
-				cc_accolade_besieger_1
+				cc_accolade_besieger_2
 			}
-		}
-		600 = {
+
 			liege_modifier = { siege_weapon_max_size_add = @besieger_attr_siege_weapon_max_size_2 }
 			knight_army_modifier = {
 				siege_phase_time = @besieger_attr_siege_phase_time_2
 				siege_morale_loss = @besieger_attr_siege_mortal_loss_2
 			}
-			accolade_parameters = {
-				cc_accolade_besieger_2
-			}
 		}
-		1000 = {
-			liege_modifier = { siege_weapon_max_size_add = @besieger_attr_siege_weapon_max_size_2 }
-			knight_army_modifier = {
-				siege_phase_time = @besieger_attr_siege_phase_time_2
-				siege_morale_loss = @besieger_attr_siege_mortal_loss_2
-			}
+		3 = {
 			accolade_parameters = {
-				cc_accolade_besieger_2
+				cc_accolade_besieger_3
 			}
-		}
-		1500 = {
+
 			liege_modifier = { siege_weapon_max_size_add = @besieger_attr_siege_weapon_max_size_3 }
 			knight_army_modifier = {
 				siege_phase_time = @besieger_attr_siege_phase_time_3
 				siege_morale_loss = @besieger_attr_siege_mortal_loss_3
-			}
-			accolade_parameters = {
-				cc_accolade_besieger_3
-			}
-		}
-		2100 = {
-			liege_modifier = { siege_weapon_max_size_add = @besieger_attr_siege_weapon_max_size_3 }
-			knight_army_modifier = {
-				siege_phase_time = @besieger_attr_siege_phase_time_3
-				siege_morale_loss = @besieger_attr_siege_mortal_loss_3
-			}
-			accolade_parameters = {
-				cc_accolade_besieger_3
 			}
 		}
 	}
 }
 
-# Camel Rider
 camelry_attribute = {
-	
 	adjective = accolade_camel_riding
 	noun = accolade_camelier
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_champion_green.dds"
+	portrait_pose = "throne_room_two_handed_passive_1"
 	accolade_categories = { men_at_arms army_bonus militant aggressive defensive cavalry light_fighter }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait_xp = {
-				trait = tourney_participant
-				track = horse
-				value >= 20
-			}
-			has_trait = desert_warrior
-		}
-		culture ?= { has_innovation = innovation_war_camels }
+	squire_perfect_fit = {
+		camelry_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		camelry_attribute_acceptable_trigger = yes
 	}
 
 	weight = {
@@ -5785,125 +4763,75 @@ camelry_attribute = {
 			}
 		}
 	}
-	
+
 	ranks = {
-		100 = {
-			liege_modifier = { 
-				camel_cavalry_max_size_add = @number_maa_regiments_increment_1
-			}
-			knight_army_modifier = { 
-				camel_cavalry_damage_mult = @accolade_maa_damage_1
-				camel_cavalry_toughness_mult = @accolade_maa_toughness_1 
-				camel_cavalry_pursuit_mult = @accolade_maa_pursuit_1
-				camel_cavalry_screen_mult = @accolade_maa_screen_1
-				movement_speed = @outrider_attr_movement_speed_1
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_camelry_1
 			}
-		}
-		300 = {
-			liege_modifier = { 
+
+			liege_modifier = {
 				camel_cavalry_max_size_add = @number_maa_regiments_increment_1
 			}
-			knight_army_modifier = { 
-				camel_cavalry_damage_mult = @accolade_maa_damage_1 
+			knight_army_modifier = {
+				camel_cavalry_damage_mult = @accolade_maa_damage_1
 				camel_cavalry_toughness_mult = @accolade_maa_toughness_1
 				camel_cavalry_pursuit_mult = @accolade_maa_pursuit_1
 				camel_cavalry_screen_mult = @accolade_maa_screen_1
 				movement_speed = @outrider_attr_movement_speed_1
 			}
-			accolade_parameters = {
-				cc_accolade_camelry_1
-			}
 		}
-		600 = {
-			liege_modifier = { 
+		2 = {
+			accolade_parameters = {
+				cc_accolade_camelry_2
+			}
+
+			liege_modifier = {
 				camel_cavalry_maintenance_mult = @accolade_maa_maint_1
 				camel_cavalry_max_size_add = @number_maa_regiments_increment_2
 			}
-			knight_army_modifier = { 
+			knight_army_modifier = {
 				camel_cavalry_damage_mult = @accolade_maa_damage_4
 				camel_cavalry_toughness_mult = @accolade_maa_toughness_2
 				camel_cavalry_pursuit_mult = @accolade_maa_pursuit_2
 				camel_cavalry_screen_mult = @accolade_maa_screen_2
-				movement_speed = @outrider_attr_movement_speed_2 
-			}
-			accolade_parameters = {
-				cc_accolade_camelry_2
+				movement_speed = @outrider_attr_movement_speed_2
 			}
 			men_at_arms = { accolade_maa_cameliers }
 		}
-		1000 = {
-			liege_modifier = { 
-				camel_cavalry_maintenance_mult = @accolade_maa_maint_1
-				camel_cavalry_max_size_add = @number_maa_regiments_increment_2
-			}
-			knight_army_modifier = { 
-				camel_cavalry_damage_mult = @accolade_maa_damage_4
-				camel_cavalry_toughness_mult = @accolade_maa_toughness_2
-				camel_cavalry_pursuit_mult = @accolade_maa_pursuit_2
-				camel_cavalry_screen_mult = @accolade_maa_screen_2
-				movement_speed = @outrider_attr_movement_speed_2 
-			}
-			accolade_parameters = {
-				cc_accolade_camelry_2
-			}
-		}
-		1500 = {
-			liege_modifier = {
-				camel_cavalry_maintenance_mult = @accolade_maa_maint_3
-				camel_cavalry_max_size_add = @number_maa_regiments_increment_3
-			}
-			knight_army_modifier = { 
-				camel_cavalry_damage_mult = @accolade_maa_damage_6
-				camel_cavalry_toughness_mult = @accolade_maa_toughness_3
-				camel_cavalry_pursuit_mult = @accolade_maa_pursuit_3
-				camel_cavalry_screen_mult = @accolade_maa_screen_3
-				movement_speed = @outrider_attr_movement_speed_3 
-			}
+		3 = {
 			accolade_parameters = {
 				cc_accolade_camelry_3
 			}
-			men_at_arms = { accolade_maa_cameliers }
-		}
-		2100 = {
-			liege_modifier = { 
+
+			liege_modifier = {
 				camel_cavalry_maintenance_mult = @accolade_maa_maint_3
-				camel_cavalry_max_size_add = @number_maa_regiments_increment_3
+				camel_cavalry_max_size_add = @number_maa_regiments_increment_2
 			}
-			knight_army_modifier = { 
+			knight_army_modifier = {
 				camel_cavalry_damage_mult = @accolade_maa_damage_6
 				camel_cavalry_toughness_mult = @accolade_maa_toughness_3
 				camel_cavalry_pursuit_mult = @accolade_maa_pursuit_3
 				camel_cavalry_screen_mult = @accolade_maa_screen_3
 				movement_speed = @outrider_attr_movement_speed_3
 			}
-			accolade_parameters = {
-				cc_accolade_camelry_3
-			}
+			men_at_arms = { accolade_maa_cameliers }
 		}
 	}
 }
 
-# Elephant Rider
 elephantry_attribute = {
-	
 	adjective = accolade_elephant_riding
 	noun = accolade_elephanteer
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_aggressive_green.dds"
+	portrait_pose = "hunting_shortbow_rest_arrow_default"
 	accolade_categories = { men_at_arms army_bonus militant forceful leader aggressive defensive cavalry heavy_fighter }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait_xp = {
-				trait = tourney_participant
-				track = horse
-				value >= 20
-			}
-			has_trait = jungle_stalker
-		}
-		culture ?= { has_innovation = innovation_elephantry }
+	squire_perfect_fit = {
+		elephantry_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		elephantry_attribute_acceptable_trigger = yes
 	}
 
 	weight = {
@@ -5996,101 +4924,60 @@ elephantry_attribute = {
 			}
 		}
 	}
-	
+
 	ranks = {
 		# Elephants are incredibly deadly but also really expensive. So what if. *What if*. We reduced the cost to run them as we started to buff them? Scream, cry, seethe, cope, etc.
-		100 = {
-			liege_modifier = {
-				elephant_cavalry_maintenance_mult = @elephantry_attr_eleph_maint_1
-				elephant_cavalry_max_size_add = @elephantry_attr_eleph_max_size_1
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_elephantry_1
 			}
-		}
-		300 = {
+
 			liege_modifier = {
 				elephant_cavalry_maintenance_mult = @elephantry_attr_eleph_maint_1
-				elephant_cavalry_max_size_add = @elephantry_attr_eleph_max_size_1
-			}
-			accolade_parameters = {
-				cc_accolade_elephantry_1
 			}
 		}
-		600 = {
-			liege_modifier = {
-				elephant_cavalry_maintenance_mult = @elephantry_attr_eleph_maint_2
-				elephant_cavalry_max_size_add = @elephantry_attr_eleph_max_size_2
-			}
-			knight_army_modifier = { elephant_cavalry_damage_mult = @elephantry_attr_eleph_damage_2 }
+		2 = {
 			accolade_parameters = {
 				cc_accolade_elephantry_2
 			}
+
+			liege_modifier = {
+				elephant_cavalry_maintenance_mult = @elephantry_attr_eleph_maint_2
+				elephant_cavalry_max_size_add = @number_maa_regiments_increment_1
+			}
+			knight_army_modifier = { elephant_cavalry_damage_mult = @elephantry_attr_eleph_damage_2 }
 			men_at_arms = { accolade_maa_elephantiers }
 		}
-		1000 = {
-			liege_modifier = {
-				elephant_cavalry_maintenance_mult = @elephantry_attr_eleph_maint_2
-				elephant_cavalry_max_size_add = @elephantry_attr_eleph_max_size_2
-			}
-			knight_army_modifier = { elephant_cavalry_damage_mult = @elephantry_attr_eleph_damage_2 }
+		3 = {
 			accolade_parameters = {
-				cc_accolade_elephantry_2
+				cc_accolade_elephantry_3
 			}
-		}
-		1500 = {
+
 			liege_modifier = {
 				elephant_cavalry_maintenance_mult = @elephantry_attr_eleph_maint_3
-				elephant_cavalry_max_size_add = @elephantry_attr_eleph_max_size_3
+				elephant_cavalry_max_size_add = @number_maa_regiments_increment_2
 			}
 			knight_army_modifier = {
 				elephant_cavalry_damage_mult = @elephantry_attr_eleph_damage_3
 				elephant_cavalry_toughness_mult = @elephantry_attr_eleph_tough_3
 			}
-			accolade_parameters = {
-				cc_accolade_elephantry_3
-			}
 			men_at_arms = { accolade_maa_elephantiers }
-		}
-		2100 = {
-			liege_modifier = {
-				elephant_cavalry_maintenance_mult = @elephantry_attr_eleph_maint_3
-				elephant_cavalry_max_size_add = @elephantry_attr_eleph_max_size_3
-			}
-			knight_army_modifier = {
-				elephant_cavalry_damage_mult = @elephantry_attr_eleph_damage_3
-				elephant_cavalry_toughness_mult = @elephantry_attr_eleph_tough_3
-			}
-			accolade_parameters = {
-				cc_accolade_elephantry_3
-			}
 		}
 	}
 }
 
-# Horse Archers/Archer
 horse_archer_attribute = {
-	
 	adjective = accolade_horse_arching
 	noun = accolade_horse_archer
+	icon = "gfx/interface/icons/knight_badge/icons/accolade_trait_ranged_fighter_blue.dds"
+	portrait_pose = "horse_archer_aggressive"
 	accolade_categories = { men_at_arms army_bonus militant subtle equestrian aggressive defensive cavalry ranged_fighter light_fighter }
 
-	potential = {
-		prowess >= accolade_prowess_requirement_value
-		OR = {
-			has_trait_xp = {
-				trait = tourney_participant
-				track = horse
-				value >= 20
-			}
-			has_trait_xp = {
-				trait = tourney_participant
-				track = bow
-				value >= 20
-			}
-			has_trait = flexible_leader
-		}
-		culture ?= { has_cultural_tradition = tradition_horse_lords }
+	squire_perfect_fit = {
+		horse_archer_attribute_trigger = yes
+	}
+	squire_acceptable_fit = {
+		horse_archer_attribute_acceptable_trigger = yes
 	}
 
 	weight = {
@@ -6183,97 +5070,56 @@ horse_archer_attribute = {
 			### No specific era preference.
 		}
 	}
-	
+
 	ranks = {
-		100 = {
-			liege_modifier = { 
-				archer_cavalry_max_size_add = @number_maa_regiments_increment_1
-			}
-			knight_army_modifier = { 
-				archer_cavalry_damage_mult = @accolade_maa_damage_1
-				archer_cavalry_toughness_mult = @accolade_maa_toughness_1 
-				archer_cavalry_pursuit_mult = @accolade_maa_pursuit_1
-				movement_speed = @outrider_attr_movement_speed_1
-			}
+		1 = {
 			accolade_parameters = {
 				cc_accolade_horse_archer_1
 			}
-		}
-		300 = {
-			liege_modifier = { 
+
+			liege_modifier = {
 				archer_cavalry_max_size_add = @number_maa_regiments_increment_1
 			}
-			knight_army_modifier = { 
-				archer_cavalry_damage_mult = @accolade_maa_damage_1 
+			knight_army_modifier = {
+				archer_cavalry_damage_mult = @accolade_maa_damage_1
 				archer_cavalry_toughness_mult = @accolade_maa_toughness_1
 				archer_cavalry_pursuit_mult = @accolade_maa_pursuit_1
 				movement_speed = @outrider_attr_movement_speed_1
 			}
-			accolade_parameters = {
-				cc_accolade_horse_archer_1
-			}
 		}
-		600 = {
-			liege_modifier = { 
-				archer_cavalry_maintenance_mult = @accolade_maa_maint_1
-				archer_cavalry_max_size_add = @number_maa_regiments_increment_2
+		2 = {
+			accolade_parameters = {
+				cc_accolade_horse_archer_2
 			}
-			knight_army_modifier = { 
+
+			liege_modifier = {
+				archer_cavalry_maintenance_mult = @accolade_maa_maint_1
+				archer_cavalry_max_size_add = @number_maa_regiments_increment_1
+			}
+			knight_army_modifier = {
 				archer_cavalry_damage_mult = @accolade_maa_damage_4
 				archer_cavalry_toughness_mult = @accolade_maa_toughness_2
 				archer_cavalry_pursuit_mult = @accolade_maa_pursuit_2
-				movement_speed = @outrider_attr_movement_speed_2 
-			}
-			accolade_parameters = {
-				cc_accolade_horse_archer_2
+				movement_speed = @outrider_attr_movement_speed_2
 			}
 			men_at_arms = { accolade_maa_horse_archers }
 		}
-		1000 = {
-			liege_modifier = { 
-				archer_cavalry_maintenance_mult = @accolade_maa_maint_1
-				archer_cavalry_max_size_add = @number_maa_regiments_increment_2
-			}
-			knight_army_modifier = { 
-				archer_cavalry_damage_mult = @accolade_maa_damage_4
-				archer_cavalry_toughness_mult = @accolade_maa_toughness_2
-				archer_cavalry_pursuit_mult = @accolade_maa_pursuit_2
-				movement_speed = @outrider_attr_movement_speed_2 
-			}
-			accolade_parameters = {
-				cc_accolade_horse_archer_2
-			}
-		}
-		1500 = {
-			liege_modifier = {
-				archer_cavalry_maintenance_mult = @accolade_maa_maint_3
-				archer_cavalry_max_size_add = @number_maa_regiments_increment_3
-			}
-			knight_army_modifier = { 
-				archer_cavalry_damage_mult = @accolade_maa_damage_6
-				archer_cavalry_toughness_mult = @accolade_maa_toughness_3
-				archer_cavalry_pursuit_mult = @accolade_maa_pursuit_4
-				movement_speed = @outrider_attr_movement_speed_3 
-			}
+		3 = {
 			accolade_parameters = {
 				cc_accolade_horse_archer_3
 			}
-			men_at_arms = { accolade_maa_horse_archers }
-		}
-		2100 = {
-			liege_modifier = { 
+
+			liege_modifier = {
 				archer_cavalry_maintenance_mult = @accolade_maa_maint_3
-				archer_cavalry_max_size_add = @number_maa_regiments_increment_4
+				archer_cavalry_max_size_add = @number_maa_regiments_increment_2
 			}
-			knight_army_modifier = { 
+			knight_army_modifier = {
 				archer_cavalry_damage_mult = @accolade_maa_damage_6
 				archer_cavalry_toughness_mult = @accolade_maa_toughness_3
 				archer_cavalry_pursuit_mult = @accolade_maa_pursuit_4
 				movement_speed = @outrider_attr_movement_speed_3
 			}
-			accolade_parameters = {
-				cc_accolade_horse_archer_3
-			}
+			men_at_arms = { accolade_maa_horse_archers }
 		}
 	}
 }

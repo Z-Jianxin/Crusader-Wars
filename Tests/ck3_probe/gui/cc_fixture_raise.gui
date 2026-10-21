@@ -1,0 +1,14 @@
+# Invoke with: gui.createwidget gui/cc_fixture_raise.gui cc_fixture_raise
+# A native action raises the player's real MAA and knights (not spawned stand-ins).
+window = {
+    name = "cc_fixture_raise"
+    size = { 0 0 }
+    alpha = 0
+    alwaystransparent = yes
+    state = {
+        name = cc_fixture_raise
+        trigger_when = "[GetPlayer.IsValid]"
+        duration = 0.5
+        on_finish = "[PlayerRaiseAllRegiments]"
+    }
+}

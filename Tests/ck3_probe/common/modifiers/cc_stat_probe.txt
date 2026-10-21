@@ -1,0 +1,7 @@
+﻿# Deliberately large, known changes in a disposable runtime fixture only.
+cc_stat_probe_boost = {
+    maa_damage_add = 20
+    maa_toughness_add = 10
+    knight_effectiveness_mult = 0.5
+    martial = 5
+}

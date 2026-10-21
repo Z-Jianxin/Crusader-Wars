@@ -1,0 +1,218 @@
+# Fixed non-reentrant stages: every console command runs in its own completed state.
+# Enable this test-only mod after the production mod and load a disposable save.
+window = {
+    name = "cc_stat_probe"
+    size = { 0 0 }
+    alpha = 0
+    alwaystransparent = yes
+    datacontext = "[GetPlayer.MakeScope.Var('cc_stat_probe_regiment').Regiment]"
+    datacontext = "[Regiment.GetOwner]"
+    datacontext = "[Regiment.GetMAAType]"
+    datacontext = "[Regiment.GetOriginProvince]"
+    datacontext = "[Regiment.GetOwningTitle]"
+
+    state = {
+        name = cc_probe_collect
+        duration = 1
+        trigger_when = "[GetPlayer.IsValid]"
+        next = cc_probe_begin
+        on_finish = "[GetScriptedGui('cc_stat_probe_collect').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+    }
+    state = {
+        name = cc_probe_begin
+        duration = 0.5
+        next = cc_probe_serial_integer
+        on_finish = "[ExecuteConsoleCommand('CCPROBE|BEGIN')]"
+    }
+    state = {
+        name = cc_probe_serial_integer
+        duration = 0.5
+        next = cc_probe_regiment
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|serial_integer|', IntToString(FixedPointToInt(GetPlayer.MakeScope.Var('ccstat_snapshot_serial').GetValue))))]"
+    }
+    state = {
+        name = cc_probe_regiment
+        duration = 0.5
+        next = cc_probe_owner
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|regiment|', UIntToString(Regiment.GetID)))]"
+    }
+    state = {
+        name = cc_probe_owner
+        duration = 0.5
+        next = cc_probe_origin_valid
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|owner|', UIntToString(Character.GetID)))]"
+    }
+    state = {
+        name = cc_probe_origin_valid
+        duration = 0.5
+        next = cc_probe_title_valid
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|origin_valid|', Select_CString(Province.IsValid, 'yes', 'no')))]"
+    }
+    state = {
+        name = cc_probe_title_valid
+        duration = 0.5
+        next = cc_probe_base_damage
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|title_valid|', Select_CString(Title.IsValid, 'yes', 'no')))]"
+    }
+    state = {
+        name = cc_probe_base_damage
+        duration = 0.5
+        next = cc_probe_base_toughness
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|base_damage|', CCProbeDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'damage'))))]"
+    }
+    state = {
+        name = cc_probe_base_toughness
+        duration = 0.5
+        next = cc_probe_advantage_coefficient
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|base_toughness|', CCProbeDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'toughness'))))]"
+    }
+    state = {
+        name = cc_probe_advantage_coefficient
+        duration = 0.5
+        next = cc_probe_knight_damage_per_prowess
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|advantage_coefficient|', CCProbeDecimal(Divide_CFixedPoint(GetDefine('NCombat', 'ADVANTAGE_DAMAGE_SCALING_FACTOR'), '(CFixedPoint)100'))))]"
+    }
+    state = {
+        name = cc_probe_knight_damage_per_prowess
+        duration = 0.5
+        next = cc_probe_knight_toughness_per_prowess
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|knight_damage_per_prowess|', CCProbeDecimal(IntToFixedPoint(GetDefine('NCombat', 'KNIGHT_DAMAGE_PER_PROWESS')))))]"
+    }
+    state = {
+        name = cc_probe_knight_toughness_per_prowess
+        duration = 0.5
+        next = cc_probe_baseline_damage
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|knight_toughness_per_prowess|', CCProbeDecimal(IntToFixedPoint(GetDefine('NCombat', 'KNIGHT_TOUGHNESS_PER_PROWESS')))))]"
+    }
+    state = {
+        name = cc_probe_baseline_damage
+        duration = 0.5
+        next = cc_probe_baseline_toughness
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|baseline_damage|', CCProbeDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'damage'))))]"
+    }
+    state = {
+        name = cc_probe_baseline_toughness
+        duration = 0.5
+        next = cc_probe_baseline_pursuit
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|baseline_toughness|', CCProbeDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'toughness'))))]"
+    }
+    state = {
+        name = cc_probe_baseline_pursuit
+        duration = 0.5
+        next = cc_probe_baseline_screen
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|baseline_pursuit|', CCProbeDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'pursuit'))))]"
+    }
+    state = {
+        name = cc_probe_baseline_screen
+        duration = 0.5
+        next = cc_probe_baseline_knight_effectiveness
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|baseline_screen|', CCProbeDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'screen'))))]"
+    }
+    state = {
+        name = cc_probe_baseline_knight_effectiveness
+        duration = 0.5
+        next = cc_probe_baseline_commander_advantage
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|baseline_knight_effectiveness|', CCProbeDecimal(Character.GetKnightEffectiveness)))]"
+    }
+    state = {
+        name = cc_probe_baseline_commander_advantage
+        duration = 0.5
+        next = cc_probe_boost
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|baseline_commander_advantage|', IntToString(Character.GetCommanderAdvantage)))]"
+    }
+    state = {
+        name = cc_probe_boost
+        duration = 0.5
+        next = cc_probe_boosted_damage
+        on_finish = "[GetScriptedGui('cc_stat_probe_boost').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+    }
+    state = {
+        name = cc_probe_boosted_damage
+        duration = 0.5
+        next = cc_probe_boosted_toughness
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|boosted_damage|', CCProbeDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'damage'))))]"
+    }
+    state = {
+        name = cc_probe_boosted_toughness
+        duration = 0.5
+        next = cc_probe_boosted_pursuit
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|boosted_toughness|', CCProbeDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'toughness'))))]"
+    }
+    state = {
+        name = cc_probe_boosted_pursuit
+        duration = 0.5
+        next = cc_probe_boosted_screen
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|boosted_pursuit|', CCProbeDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'pursuit'))))]"
+    }
+    state = {
+        name = cc_probe_boosted_screen
+        duration = 0.5
+        next = cc_probe_boosted_knight_effectiveness
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|boosted_screen|', CCProbeDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'screen'))))]"
+    }
+    state = {
+        name = cc_probe_boosted_knight_effectiveness
+        duration = 0.5
+        next = cc_probe_boosted_commander_advantage
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|boosted_knight_effectiveness|', CCProbeDecimal(Character.GetKnightEffectiveness)))]"
+    }
+    state = {
+        name = cc_probe_boosted_commander_advantage
+        duration = 0.5
+        next = cc_probe_cleanup
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|boosted_commander_advantage|', IntToString(Character.GetCommanderAdvantage)))]"
+    }
+    state = {
+        name = cc_probe_cleanup
+        duration = 0.5
+        next = cc_probe_restored_damage
+        on_finish = "[GetScriptedGui('cc_stat_probe_cleanup').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+    }
+    state = {
+        name = cc_probe_restored_damage
+        duration = 0.5
+        next = cc_probe_restored_toughness
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|restored_damage|', CCProbeDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'damage'))))]"
+    }
+    state = {
+        name = cc_probe_restored_toughness
+        duration = 0.5
+        next = cc_probe_restored_pursuit
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|restored_toughness|', CCProbeDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'toughness'))))]"
+    }
+    state = {
+        name = cc_probe_restored_pursuit
+        duration = 0.5
+        next = cc_probe_restored_screen
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|restored_pursuit|', CCProbeDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'pursuit'))))]"
+    }
+    state = {
+        name = cc_probe_restored_screen
+        duration = 0.5
+        next = cc_probe_restored_knight_effectiveness
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|restored_screen|', CCProbeDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'screen'))))]"
+    }
+    state = {
+        name = cc_probe_restored_knight_effectiveness
+        duration = 0.5
+        next = cc_probe_restored_commander_advantage
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|restored_knight_effectiveness|', CCProbeDecimal(Character.GetKnightEffectiveness)))]"
+    }
+    state = {
+        name = cc_probe_restored_commander_advantage
+        duration = 0.5
+        next = cc_probe_end
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCPROBE|restored_commander_advantage|', IntToString(Character.GetCommanderAdvantage)))]"
+    }
+    state = {
+        name = cc_probe_end
+        duration = 0.5
+        next = cc_probe_save
+        on_finish = "[ExecuteConsoleCommand('CCPROBE|END')]"
+    }
+    state = {
+        name = cc_probe_save
+        duration = 0.5
+        on_finish = "[ExecuteConsoleCommand('save ccf_probe_boost')]"
+    }
+}

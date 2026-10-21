@@ -1,4 +1,4 @@
-window = {
+﻿window = {
     name = "cc_options"
     parentanchor = center
     size = { 70% 75% }
@@ -36,7 +36,7 @@ window = {
             layoutpolicy_horizontal = expanding
 
             button_tab = {
-                visible = False
+                visible = no
                 layoutpolicy_horizontal = expanding
                 text = "cc_op_tab2_title"
                 #raw_text = "Battle Scale"
@@ -47,7 +47,7 @@ window = {
             }
 
             button_tab = {
-            visible = False
+            visible = no
                 layoutpolicy_horizontal = expanding
                 text = "cc_op_tab3_title"
                 #raw_text = "Unit Scale"
@@ -658,7 +658,7 @@ window = {
                     }
 
                     vbox_component_entry = {
-                        #visible = False # REMOVE THIS ONCE THE BACKEND CODE TO ALLOW FOR DIFFERENT COMMANDER TYPES IS UPDATED
+                        #visible = no # REMOVE THIS ONCE THE BACKEND CODE TO ALLOW FOR DIFFERENT COMMANDER TYPES IS UPDATED
                         #visible = "[IsInGame]"
                         blockoverride "vce_name"
                         {
@@ -746,7 +746,7 @@ window = {
 
                     vbox_component_entry = {
                         #visible = "[IsInGame]"
-                        visible = False
+                        visible = no
                         blockoverride "vce_name"
                         {
                             text = cc_op_unitnames_head
@@ -1177,27 +1177,4 @@ window = {
             }
         }
     }
-}
-
-
-
-
-
-
-
-
-
-		
-
-
-		
-
-		
-		
-
-
-
-button = {
-	onclick = "[ExecuteConsoleCommand( Select_CString( GetVariableSystem.Exists('cc_options_open'), 'gui.createwidget gui/custom_gui/cc_options.gui cc_options' ) )]"
-	onclick = "[GetVariableSystem.Toggle('cc_options_open')]"
 }

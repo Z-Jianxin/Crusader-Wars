@@ -1,0 +1,176 @@
+﻿# Fixed select/decide/emit phases: never call the console reentrantly.
+# Optional province/title arguments use native .Self contexts rather than null promotes.
+types CCStatExportTypes {
+    type cc_stat_export = widget {
+        size = { 0 0 }
+        alpha = 0
+        alwaystransparent = yes
+        datacontext = "[GetPlayer.MakeScope.Var('ccstat_current_regiment').Regiment]"
+        datacontext = "[Regiment.GetOwner]"
+        datacontext = "[Regiment.GetMAAType]"
+        datacontext = "[Regiment.GetOriginProvince]"
+        datacontext = "[Regiment.GetOwningTitle]"
+        state = {
+            name = ccstat_begin
+            duration = 0.01
+            on_finish = "[GetVariableSystem.Clear('ccstat_complete')]"
+            on_finish = "[GetVariableSystem.Set('ccstat_active', 'preparing')]"
+        }
+        state = {
+            name = ccstat_pause
+            trigger_when = "[And(GetVariableSystem.Exists('ccstat_active'), Not(IsGamePaused))]"
+            duration = 0.01
+            on_finish = "[OnPause]"
+        }
+        state = {
+            name = ccstat_collect
+            trigger_when = "[And(GetVariableSystem.HasValue('ccstat_active', 'preparing'), IsGamePaused)]"
+            duration = 0.1
+            next = ccstat_header
+            on_finish = "[GetScriptedGui('ccstat_prepare_snapshot').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('ccstat_selected_combat', CombatWindow.GetCombat.MakeScope).End)]"
+            on_finish = "[GetVariableSystem.Set('ccstat_active', 'exporting')]"
+        }
+        state = {
+            name = ccstat_header
+            duration = 0.1
+            next = ccstat_attacker_commander
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT|v1|BEGIN|snapshot-', IntToString(FixedPointToInt(GetPlayer.MakeScope.Var('ccstat_snapshot_serial').GetValue))))]"
+        }
+        state = {
+            name = ccstat_attacker_commander
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetPlayer.MakeScope.HasFlag('ccstat_attacker_commander'), 'ccstat_attacker_commander_present', 'ccstat_attacker_commander_none'))]"
+        }
+        state = {
+            name = ccstat_attacker_commander_present
+            duration = 0.1
+            next = ccstat_defender_commander
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT|v1|COMMANDER|attacker|', Concatenate(UIntToString(GetPlayer.MakeScope.Var('ccstat_attacker_commander').Char.GetID), Concatenate('|', Concatenate(IntToString(GetPlayer.MakeScope.Var('ccstat_attacker_commander').Char.GetCommanderAdvantage), Concatenate('|', CCStatDecimal(Divide_CFixedPoint(GetDefine('NCombat', 'ADVANTAGE_DAMAGE_SCALING_FACTOR'), '(CFixedPoint)100'))))))))]"
+        }
+        state = {
+            name = ccstat_attacker_commander_none
+            duration = 0.1
+            next = ccstat_defender_commander
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT|v1|COMMANDER|attacker|none|0|', CCStatDecimal(Divide_CFixedPoint(GetDefine('NCombat', 'ADVANTAGE_DAMAGE_SCALING_FACTOR'), '(CFixedPoint)100'))))]"
+        }
+        state = {
+            name = ccstat_defender_commander
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetPlayer.MakeScope.HasFlag('ccstat_defender_commander'), 'ccstat_defender_commander_present', 'ccstat_defender_commander_none'))]"
+        }
+        state = {
+            name = ccstat_defender_commander_present
+            duration = 0.1
+            next = ccstat_select_attacker_regiment
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT|v1|COMMANDER|defender|', Concatenate(UIntToString(GetPlayer.MakeScope.Var('ccstat_defender_commander').Char.GetID), Concatenate('|', Concatenate(IntToString(GetPlayer.MakeScope.Var('ccstat_defender_commander').Char.GetCommanderAdvantage), Concatenate('|', CCStatDecimal(Divide_CFixedPoint(GetDefine('NCombat', 'ADVANTAGE_DAMAGE_SCALING_FACTOR'), '(CFixedPoint)100'))))))))]"
+        }
+        state = {
+            name = ccstat_defender_commander_none
+            duration = 0.1
+            next = ccstat_select_attacker_regiment
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT|v1|COMMANDER|defender|none|0|', CCStatDecimal(Divide_CFixedPoint(GetDefine('NCombat', 'ADVANTAGE_DAMAGE_SCALING_FACTOR'), '(CFixedPoint)100'))))]"
+        }
+        state = {
+            name = ccstat_select_attacker_regiment
+            duration = 0.1
+            next = ccstat_decide_attacker_regiment
+            on_finish = "[GetScriptedGui('ccstat_select_attacker_regiment').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+        }
+        state = {
+            name = ccstat_decide_attacker_regiment
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetPlayer.MakeScope.HasFlag('ccstat_current_regiment'), 'ccstat_emit_attacker_regiment', 'ccstat_select_defender_regiment'))]"
+        }
+        state = {
+            name = ccstat_emit_attacker_regiment
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(Province.IsValid, 'ccstat_emit_attacker_regiment_stationed', 'ccstat_emit_attacker_regiment_unstationed'))]"
+        }
+        state = {
+            name = ccstat_emit_attacker_regiment_stationed
+            duration = 0.1
+            next = ccstat_select_attacker_regiment
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT', Concatenate('|', Concatenate('v1', Concatenate('|', Concatenate('REGIMENT', Concatenate('|', Concatenate('attacker', Concatenate('|', Concatenate('none', Concatenate('|', Concatenate(UIntToString(Regiment.GetID), Concatenate('|', Concatenate(UIntToString(Character.GetID), Concatenate('|', Concatenate('source', Concatenate('|', Concatenate(UIntToString(Province.GetID), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'damage')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'toughness')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'pursuit')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'screen')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'damage')), Concatenate('|', CCStatDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'toughness')))))))))))))))))))))))))))))))]"
+        }
+        state = {
+            name = ccstat_emit_attacker_regiment_unstationed
+            duration = 0.1
+            next = ccstat_select_attacker_regiment
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT', Concatenate('|', Concatenate('v1', Concatenate('|', Concatenate('REGIMENT', Concatenate('|', Concatenate('attacker', Concatenate('|', Concatenate('none', Concatenate('|', Concatenate(UIntToString(Regiment.GetID), Concatenate('|', Concatenate(UIntToString(Character.GetID), Concatenate('|', Concatenate('source', Concatenate('|', Concatenate('none', Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'damage')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'toughness')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'pursuit')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'screen')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'damage')), Concatenate('|', CCStatDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'toughness')))))))))))))))))))))))))))))))]"
+        }
+        state = {
+            name = ccstat_select_defender_regiment
+            duration = 0.1
+            next = ccstat_decide_defender_regiment
+            on_finish = "[GetScriptedGui('ccstat_select_defender_regiment').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+        }
+        state = {
+            name = ccstat_decide_defender_regiment
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetPlayer.MakeScope.HasFlag('ccstat_current_regiment'), 'ccstat_emit_defender_regiment', 'ccstat_select_attacker_knight'))]"
+        }
+        state = {
+            name = ccstat_emit_defender_regiment
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(Province.IsValid, 'ccstat_emit_defender_regiment_stationed', 'ccstat_emit_defender_regiment_unstationed'))]"
+        }
+        state = {
+            name = ccstat_emit_defender_regiment_stationed
+            duration = 0.1
+            next = ccstat_select_defender_regiment
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT', Concatenate('|', Concatenate('v1', Concatenate('|', Concatenate('REGIMENT', Concatenate('|', Concatenate('defender', Concatenate('|', Concatenate('none', Concatenate('|', Concatenate(UIntToString(Regiment.GetID), Concatenate('|', Concatenate(UIntToString(Character.GetID), Concatenate('|', Concatenate('source', Concatenate('|', Concatenate(UIntToString(Province.GetID), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'damage')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'toughness')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'pursuit')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'screen')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'damage')), Concatenate('|', CCStatDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'toughness')))))))))))))))))))))))))))))))]"
+        }
+        state = {
+            name = ccstat_emit_defender_regiment_unstationed
+            duration = 0.1
+            next = ccstat_select_defender_regiment
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT', Concatenate('|', Concatenate('v1', Concatenate('|', Concatenate('REGIMENT', Concatenate('|', Concatenate('defender', Concatenate('|', Concatenate('none', Concatenate('|', Concatenate(UIntToString(Regiment.GetID), Concatenate('|', Concatenate(UIntToString(Character.GetID), Concatenate('|', Concatenate('source', Concatenate('|', Concatenate('none', Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'damage')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'toughness')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'pursuit')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(Character.Self, Province.Self, Title.Self, 'screen')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'damage')), Concatenate('|', CCStatDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'toughness')))))))))))))))))))))))))))))))]"
+        }
+        state = {
+            name = ccstat_select_attacker_knight
+            duration = 0.1
+            next = ccstat_decide_attacker_knight
+            on_finish = "[GetScriptedGui('ccstat_select_attacker_knight').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+        }
+        state = {
+            name = ccstat_decide_attacker_knight
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetPlayer.MakeScope.HasFlag('ccstat_current_knight'), 'ccstat_emit_attacker_knight', 'ccstat_select_defender_knight'))]"
+        }
+        state = {
+            name = ccstat_emit_attacker_knight
+            duration = 0.1
+            next = ccstat_select_attacker_knight
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT', Concatenate('|', Concatenate('v1', Concatenate('|', Concatenate('KNIGHT', Concatenate('|', Concatenate('attacker', Concatenate('|', Concatenate(UIntToString(GetPlayer.MakeScope.Var('ccstat_current_knight').Char.GetID), Concatenate('|', Concatenate(IntToString(GetPlayer.MakeScope.Var('ccstat_current_knight').Char.GetProwess), Concatenate('|', Concatenate(CCStatDecimal(GetPlayer.MakeScope.Var('ccstat_current_knight').Char.GetKnightArmy.GetOwner.GetKnightEffectiveness), Concatenate('|', Concatenate(CCStatDecimal(IntToFixedPoint(GetDefine('NCombat', 'KNIGHT_DAMAGE_PER_PROWESS'))), Concatenate('|', CCStatDecimal(IntToFixedPoint(GetDefine('NCombat', 'KNIGHT_TOUGHNESS_PER_PROWESS'))))))))))))))))))))]"
+        }
+        state = {
+            name = ccstat_select_defender_knight
+            duration = 0.1
+            next = ccstat_decide_defender_knight
+            on_finish = "[GetScriptedGui('ccstat_select_defender_knight').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+        }
+        state = {
+            name = ccstat_decide_defender_knight
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetPlayer.MakeScope.HasFlag('ccstat_current_knight'), 'ccstat_emit_defender_knight', 'ccstat_end'))]"
+        }
+        state = {
+            name = ccstat_emit_defender_knight
+            duration = 0.1
+            next = ccstat_select_defender_knight
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT', Concatenate('|', Concatenate('v1', Concatenate('|', Concatenate('KNIGHT', Concatenate('|', Concatenate('defender', Concatenate('|', Concatenate(UIntToString(GetPlayer.MakeScope.Var('ccstat_current_knight').Char.GetID), Concatenate('|', Concatenate(IntToString(GetPlayer.MakeScope.Var('ccstat_current_knight').Char.GetProwess), Concatenate('|', Concatenate(CCStatDecimal(GetPlayer.MakeScope.Var('ccstat_current_knight').Char.GetKnightArmy.GetOwner.GetKnightEffectiveness), Concatenate('|', Concatenate(CCStatDecimal(IntToFixedPoint(GetDefine('NCombat', 'KNIGHT_DAMAGE_PER_PROWESS'))), Concatenate('|', CCStatDecimal(IntToFixedPoint(GetDefine('NCombat', 'KNIGHT_TOUGHNESS_PER_PROWESS'))))))))))))))))))))]"
+        }
+        state = {
+            name = ccstat_end
+            duration = 0.1
+            next = ccstat_finished
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT|v1|END|snapshot-', IntToString(FixedPointToInt(GetPlayer.MakeScope.Var('ccstat_snapshot_serial').GetValue))))]"
+        }
+        state = {
+            name = ccstat_finished
+            duration = 0.1
+            on_finish = "[GetVariableSystem.Clear('ccstat_active')]"
+            on_finish = "[GetVariableSystem.Set('ccstat_complete', 'yes')]"
+        }
+    }
+}

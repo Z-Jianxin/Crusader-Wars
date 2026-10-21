@@ -1,0 +1,12 @@
+# Only Crusader Conflicts overrides: inherit all other defines from the active game.
+NCombat = {
+    WAR_ATTACKER_COMBAT_MAX_SCORE = 80
+    WAR_DEFENDER_COMBAT_MAX_SCORE = 80
+}
+NArmy = {
+    REGIMENT_MONTHLY_REINFORCE_SPEED = 0.017
+    REGIMENT_MONTHLY_MAA_REINFORCE_SPEED = 0.05
+}
+NWar = {
+    MAX_ATTACKER_BATTLES_WAR_SCORE = 80
+}

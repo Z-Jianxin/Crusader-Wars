@@ -1,0 +1,103 @@
+﻿# Disposable game only. Load the 1066 Harold fixture, raise his normal troops
+# (including knights), then run: event ccf_test.1
+# This event never runs automatically and must not ship in the production mod.
+namespace = ccf_test
+
+ccf_test.1 = {
+    type = character_event
+    hidden = yes
+    immediate = {
+        remove_variable = ccf_fixture_enemy
+        remove_variable = ccf_fixture_army
+        every_war_enemy = {
+            limit = { NOT = { root = { has_variable = ccf_fixture_enemy } } }
+            root = { set_variable = { name = ccf_fixture_enemy value = prev } }
+        }
+        every_army = {
+            limit = { NOT = { exists = involved_combat_side } }
+            set_army_location = root.capital_province
+            root = {
+                if = {
+                    limit = { NOT = { has_variable = ccf_fixture_army } }
+                    set_variable = { name = ccf_fixture_army value = prev }
+                }
+            }
+        }
+        if = {
+            limit = { has_variable = ccf_fixture_enemy has_variable = ccf_fixture_army }
+            add_character_modifier = { modifier = cc_stat_probe_boost days = 30 }
+            var:ccf_fixture_army = { assign_commander = root }
+            var:ccf_fixture_enemy = {
+                save_scope_as = ccf_fixture_enemy
+                spawn_army = {
+                    name = ccf_fixture_army_name
+                    men_at_arms = { type = armored_footmen men = 1000 }
+                    men_at_arms = { type = bowmen men = 1000 }
+                    levies = 6000
+                    location = capital_province
+                    origin = capital_province
+                    uses_supply = no
+                    save_scope_as = ccf_fixture_enemy_army
+                }
+            }
+            scope:ccf_fixture_enemy_army = {
+                assign_commander = scope:ccf_fixture_enemy
+                set_army_location = root.capital_province
+            }
+            var:ccf_fixture_army.involved_combat_side.combat = {
+                root = { set_variable = { name = ccf_fixture_combat value = prev } }
+            }
+            debug_log = "CCFIXTURE|combat_created"
+            debug_log_scopes = yes
+        }
+        else = { debug_log = "CCFIXTURE|ERROR|Raise player troops in a disposable save where the player is at war before running this event" }
+    }
+}
+
+# Optional additional participant fixture. Intended after ccf_test.1 in Harold's
+# defensive war; produces the same MAA types under a third, unboosted owner.
+ccf_test.2 = {
+    type = character_event
+    hidden = yes
+    immediate = {
+        remove_variable = ccf_fixture_ally
+        every_vassal = {
+            limit = {
+                is_adult = yes
+                NOT = { root = { has_variable = ccf_fixture_ally } }
+            }
+            root = { set_variable = { name = ccf_fixture_ally value = prev } }
+        }
+        if = {
+            limit = {
+                has_variable = ccf_fixture_ally
+                exists = var:ccf_fixture_army.involved_combat_side.combat.combat_war
+                var:ccf_fixture_army.involved_combat_side.combat.combat_war = {
+                    primary_defender = root
+                }
+            }
+            var:ccf_fixture_ally = { save_scope_as = ccf_fixture_ally }
+            var:ccf_fixture_army.involved_combat_side.combat.combat_war = {
+                add_defender = scope:ccf_fixture_ally
+            }
+            scope:ccf_fixture_ally = {
+                spawn_army = {
+                    name = ccf_fixture_army_name
+                    men_at_arms = { type = armored_footmen men = 600 }
+                    men_at_arms = { type = bowmen men = 400 }
+                    location = capital_province
+                    origin = capital_province
+                    uses_supply = no
+                    save_scope_as = ccf_fixture_ally_army
+                }
+            }
+            scope:ccf_fixture_ally_army = {
+                assign_commander = scope:ccf_fixture_ally
+                set_army_location = root.capital_province
+            }
+            debug_log = "CCFIXTURE|ally_added"
+            debug_log_scopes = yes
+        }
+        else = { debug_log = "CCFIXTURE|ERROR|Allied fixture requires an active defensive combat from ccf_test.1 and an adult vassal" }
+    }
+}

@@ -94,7 +94,7 @@
 
 	#
 	### Unit Mapping ### 
-	cc_op_tab5_desc: "details about unit mapping, both default and CK3 mod compatibility ".
+	cc_op_tab5_desc: "details about unit mapping, both default and CK3 mod compatibility."
 	cc_op_tab5_default: "#clickable Troops by Culture (Defaults)"
 	cc_op_tab5_compatmods: "#clickable Troops by Culture (Compatible Mods)"
 	cc_op_tab5_custom: "#clickable Troops by Culture (Customize)"

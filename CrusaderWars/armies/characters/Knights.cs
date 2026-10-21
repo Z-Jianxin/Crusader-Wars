@@ -62,7 +62,8 @@ namespace CrusaderWars
         public string GetCultureName() { return CultureObj?.GetCultureName() ?? "unknown_culture"; }
         public string GetHeritageName() { return CultureObj?.GetHeritageName() ?? "unknown_heritage"; }
         public Culture GetCultureObj() { return CultureObj; }
-        public int GetSoldiers() { return Soldiers; }
+        public int? FidelitySoldierCount { get; set; }
+        public int GetSoldiers() { return FidelitySoldierCount ?? Soldiers; }
         public int GetProwess() { return Prowess; }
         public bool IsAccolade() { return isAccoladeKnight; }
         public Accolade? GetAccolade() { return Accolade; }
@@ -456,7 +457,7 @@ namespace CrusaderWars
             }
         }
 
-        public void GetKilled(int remaining)
+        public void GetKilled(int remaining, bool alreadyUnscaled = false)
         {
             if (hasKnights)
             {
@@ -472,7 +473,7 @@ namespace CrusaderWars
                 // Un-scale 'remaining' to compare with the unscaled total
                 double scale = ArmyProportions.BattleScale / 100.0;
                 if (scale <= 0) scale = 1.0; // Avoid division by zero
-                int unscaledRemaining = (int)Math.Round(remaining / scale);
+                int unscaledRemaining = alreadyUnscaled ? remaining : (int)Math.Round(remaining / scale);
 
                 int soldiers_lost = totalSoldiers - unscaledRemaining;
                 if (soldiers_lost <= 0) return;

@@ -1,0 +1,174 @@
+﻿# Test-only mouse controls. No keyboard/console typing is required.
+window = {
+    name = "cc_debug_overlay"
+    parentanchor = top|left
+    position = { 20 180 }
+    size = { 300 350 }
+    layer = top
+    visible = "[GetPlayer.IsValid]"
+    using = Window_Background
+    text_single = {
+        position = { 12 9 }
+        size = { 276 28 }
+        raw_text = "CCF disposable test controls"
+        fontsize = 17
+    }
+
+    button_standard = {
+        name = "cc_debug_button_0"
+        position = { 12 44 }
+        size = { 134 36 }
+        raw_text = "Read stats"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_0')]"
+        state = {
+            name = cc_debug_action_0
+            duration = 0.1
+            on_finish = "[ExecuteConsoleCommand('gui.createwidget gui/cc_probe_read.gui cc_probe_read')]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_1"
+        position = { 154 44 }
+        size = { 134 36 }
+        raw_text = "Save fixture"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_1')]"
+        state = {
+            name = cc_debug_action_1
+            duration = 0.1
+            on_finish = "[ExecuteConsoleCommand('save ccf_runtime_fixture')]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_2"
+        position = { 12 89 }
+        size = { 134 36 }
+        raw_text = "Apply boost"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_2')]"
+        state = {
+            name = cc_debug_action_2
+            duration = 0.1
+            on_finish = "[GetScriptedGui('cc_stat_probe_boost').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_3"
+        position = { 154 89 }
+        size = { 134 36 }
+        raw_text = "Remove boost"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_3')]"
+        state = {
+            name = cc_debug_action_3
+            duration = 0.1
+            on_finish = "[GetScriptedGui('cc_stat_probe_cleanup').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_4"
+        position = { 12 134 }
+        size = { 134 36 }
+        raw_text = "Advance 1 day"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_4')]"
+        state = {
+            name = cc_debug_action_4
+            duration = 0.1
+            on_finish = "[ExecuteConsoleCommand('tick_day 1')]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_5"
+        position = { 154 134 }
+        size = { 134 36 }
+        raw_text = "Advance 10 days"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_5')]"
+        state = {
+            name = cc_debug_action_5
+            duration = 0.1
+            on_finish = "[ExecuteConsoleCommand('tick_day 10')]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_6"
+        position = { 12 179 }
+        size = { 134 36 }
+        raw_text = "Create battle"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_6')]"
+        state = {
+            name = cc_debug_action_6
+            duration = 0.1
+            on_finish = "[ExecuteConsoleCommand('event ccf_test.1')]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_7"
+        position = { 154 179 }
+        size = { 134 36 }
+        raw_text = "Add allied army"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_7')]"
+        state = {
+            name = cc_debug_action_7
+            duration = 0.1
+            on_finish = "[ExecuteConsoleCommand('event ccf_test.2')]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_8"
+        position = { 12 224 }
+        size = { 134 36 }
+        raw_text = "Raise all troops"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_8')]"
+        state = {
+            name = cc_debug_action_8
+            duration = 0.1
+            on_finish = "[PlayerRaiseAllRegiments]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_9"
+        position = { 154 224 }
+        size = { 134 36 }
+        raw_text = "Pause / resume"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_9')]"
+        state = {
+            name = cc_debug_action_9
+            duration = 0.1
+            on_finish = "[OnPause]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_10"
+        position = { 12 269 }
+        size = { 134 36 }
+        raw_text = "Run full probe"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_10')]"
+        state = {
+            name = cc_debug_action_10
+            duration = 0.1
+            on_finish = "[PdxGuiTriggerAllAnimations('cc_probe_collect')]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_11"
+        position = { 154 269 }
+        size = { 134 36 }
+        raw_text = "Export selected"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_11')]"
+        state = {
+            name = cc_debug_action_11
+            duration = 0.1
+            on_finish = "[PdxGuiTriggerAllAnimations('ccstat_begin')]"
+        }
+    }
+    text_single = { position = { 12 317 } size = { 276 22 } raw_text = "Test saves only. Export needs selected battle." fontsize = 12 }
+}

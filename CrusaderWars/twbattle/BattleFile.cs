@@ -1053,7 +1053,7 @@ namespace CrusaderWars
         }
 
 
-        public static void AddUnit(string troopKey, int numSoldiers, int numUnits, int numRest, string unitScript, string unit_experience, string direction, Knight? knightCommander = null)
+        public static void AddUnit(string troopKey, int numSoldiers, int numUnits, int numRest, string unitScript, string unit_experience, string direction, Knight? knightCommander = null, bool allowSingleSoldier = false)
         {
             if (Position == null)
             {
@@ -1061,7 +1061,7 @@ namespace CrusaderWars
                 return;
             }
 
-            if (numSoldiers <= 1 || numUnits == 0) return;
+            if ((allowSingleSoldier ? numSoldiers < 1 : numSoldiers <= 1) || numUnits == 0) return;
 
 
             int experience = 0;
@@ -1143,7 +1143,7 @@ namespace CrusaderWars
                 Position.AddUnitXSpacing(direction);
         }
 
-        public static void AddGeneralUnit(CommanderSystem Commander, string troopType, string unitScript, int experience, string direction)
+        public static void AddGeneralUnit(CommanderSystem Commander, string troopType, string unitScript, int experience, string direction, bool suppressMartialStars = false, int? representedSoldiers = null)
         {
             if (Position == null)
             {
@@ -1154,7 +1154,7 @@ namespace CrusaderWars
             if (Commander != null)
             {
                 string name = Commander.Name;
-                int numberOfSoldiers = Commander.GetUnitSoldiers();
+                int numberOfSoldiers = representedSoldiers ?? Commander.GetUnitSoldiers();
                 var accolade = Commander.GetAccolade();
 
                 if (numberOfSoldiers < 1) return;
@@ -1195,7 +1195,7 @@ namespace CrusaderWars
 
                     prGeneralBuilder.Append("<general>\n");
                     prGeneralBuilder.Append($"<name>{name}</name>\n");
-                    prGeneralBuilder.Append($"<star_rating level=\"{Commander.GetCommanderStarRating()}\"/>\n");
+                    prGeneralBuilder.Append($"<star_rating level=\"{(suppressMartialStars ? 1 : Commander.GetCommanderStarRating())}\"/>\n");
                     prGeneralBuilder.Append("</general>\n");
                     prGeneralBuilder.Append("</unit>\n\n");
                     string PR_General = prGeneralBuilder.ToString();
@@ -1222,7 +1222,7 @@ namespace CrusaderWars
             }
         }
 
-        public static void AddKnightUnit(KnightSystem Knights, string troopType, string unitScript, int experience, string direction, string? knightNameToDisplay = null)
+        public static void AddKnightUnit(KnightSystem Knights, string troopType, string unitScript, int experience, string direction, string? knightNameToDisplay = null, bool includeAccoladeAbilities = true)
         {
             if (Position == null)
             {
@@ -1233,7 +1233,7 @@ namespace CrusaderWars
             int numberOfSoldiers = Knights.GetKnightsSoldiers();
 
             Knights.SetAccolades();
-            var accoladesList = Knights.GetAccolades();
+            var accoladesList = includeAccoladeAbilities ? Knights.GetAccolades() : null;
 
 
             if (numberOfSoldiers == 0) return;

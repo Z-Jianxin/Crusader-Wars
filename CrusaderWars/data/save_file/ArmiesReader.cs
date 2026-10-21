@@ -18,6 +18,7 @@ namespace CrusaderWars.data.save_file
         public static List<(string name, int index)> save_file_traits { get; set; } = new List<(string name, int index)>();
         public static (List<Army> attacker, List<Army> defender) ReadBattleArmies()
         {
+            StatFidelity.StatFidelitySession.ValidateSaveEvidence(Writter.DataFilesPaths.Living_Path(), DataSearch.Player_Character?.GetID() ?? "", BattleResult.CombatID ?? "");
             attacker_armies.Clear();
             defender_armies.Clear();
             Program.Logger.Debug("Reading battle armies from CK3 save data...");
@@ -1354,6 +1355,7 @@ if (BattleResult.Player_Combat is not null)
             foreach (Army army in attacker_armies)
             {
                 ArmyRegiment? commanderRegiment = army.ArmyRegiments.FirstOrDefault(x => x.MAA_Name == army.CommanderID);
+                StatFidelity.StatFidelitySession.CaptureCommanderKnightBudget(army);
                 if (commanderRegiment != null)
                 {
                     Program.Logger.Debug($"Removing commander '{army.CommanderID}' from knight regiments in attacker army '{army.ID}'.");
@@ -1363,6 +1365,7 @@ if (BattleResult.Player_Combat is not null)
             foreach (Army army in defender_armies)
             {
                 ArmyRegiment? commanderRegiment = army.ArmyRegiments.FirstOrDefault(x => x.MAA_Name == army.CommanderID);
+                StatFidelity.StatFidelitySession.CaptureCommanderKnightBudget(army);
                 if (commanderRegiment != null)
                 {
                     Program.Logger.Debug($"Removing commander '{army.CommanderID}' from knight regiments in defender army '{army.ID}'.");

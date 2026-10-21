@@ -1,0 +1,141 @@
+﻿# Numeric snapshot data is collected only for the combat selected by the handoff.
+# Every side participant -> actual armies on that side -> army MAA (including hired).
+# Regiment identities remain distinct even when culture and type are identical.
+ccstat_prepare_snapshot = {
+    effect = {
+        if = {
+            limit = { has_variable = ccstat_snapshot_serial }
+            change_variable = { name = ccstat_snapshot_serial add = 1 }
+        }
+        else = { set_variable = { name = ccstat_snapshot_serial value = 1 } }
+        set_variable = { name = ccstat_combat value = scope:ccstat_selected_combat }
+        clear_variable_list = ccstat_attacker_regiments
+        clear_variable_list = ccstat_attacker_knights
+        remove_variable = ccstat_attacker_commander
+        scope:ccstat_selected_combat.combat_attacker = {
+            save_scope_as = ccstat_side
+            side_commander ?= {
+                root = { set_variable = { name = ccstat_attacker_commander value = prev } }
+            }
+            every_side_participant = {
+                every_army = {
+                    limit = {
+                        exists = involved_combat_side
+                        involved_combat_side = scope:ccstat_side
+                    }
+                    every_army_maa_regiment = {
+                        # Hired regiments are included by default in this iterator.
+                        save_scope_as = ccstat_regiment
+                        root = {
+                            if = {
+                                limit = {
+                                    NOT = { any_in_list = { variable = ccstat_attacker_regiments this = scope:ccstat_regiment } }
+                                }
+                                add_to_variable_list = { name = ccstat_attacker_regiments target = scope:ccstat_regiment }
+                            }
+                        }
+                    }
+                }
+            }
+            every_side_knight = {
+                root = { add_to_variable_list = { name = ccstat_attacker_knights target = prev } }
+            }
+        }
+        clear_variable_list = ccstat_defender_regiments
+        clear_variable_list = ccstat_defender_knights
+        remove_variable = ccstat_defender_commander
+        scope:ccstat_selected_combat.combat_defender = {
+            save_scope_as = ccstat_side
+            side_commander ?= {
+                root = { set_variable = { name = ccstat_defender_commander value = prev } }
+            }
+            every_side_participant = {
+                every_army = {
+                    limit = {
+                        exists = involved_combat_side
+                        involved_combat_side = scope:ccstat_side
+                    }
+                    every_army_maa_regiment = {
+                        # Hired regiments are included by default in this iterator.
+                        save_scope_as = ccstat_regiment
+                        root = {
+                            if = {
+                                limit = {
+                                    NOT = { any_in_list = { variable = ccstat_defender_regiments this = scope:ccstat_regiment } }
+                                }
+                                add_to_variable_list = { name = ccstat_defender_regiments target = scope:ccstat_regiment }
+                            }
+                        }
+                    }
+                }
+            }
+            every_side_knight = {
+                root = { add_to_variable_list = { name = ccstat_defender_knights target = prev } }
+            }
+        }
+    }
+}
+
+# Select/remove one existing identity deterministically; no random draw or game RNG.
+ccstat_select_attacker_regiment = {
+    effect = {
+        remove_variable = ccstat_current_regiment
+        every_in_list = {
+            variable = ccstat_attacker_regiments
+            limit = { NOT = { root = { has_variable = ccstat_current_regiment } } }
+            root = { set_variable = { name = ccstat_current_regiment value = prev } }
+        }
+        if = {
+            limit = { has_variable = ccstat_current_regiment }
+            remove_list_variable = { name = ccstat_attacker_regiments target = var:ccstat_current_regiment }
+        }
+    }
+}
+
+# Select/remove one existing identity deterministically; no random draw or game RNG.
+ccstat_select_defender_regiment = {
+    effect = {
+        remove_variable = ccstat_current_regiment
+        every_in_list = {
+            variable = ccstat_defender_regiments
+            limit = { NOT = { root = { has_variable = ccstat_current_regiment } } }
+            root = { set_variable = { name = ccstat_current_regiment value = prev } }
+        }
+        if = {
+            limit = { has_variable = ccstat_current_regiment }
+            remove_list_variable = { name = ccstat_defender_regiments target = var:ccstat_current_regiment }
+        }
+    }
+}
+
+# Select/remove one existing identity deterministically; no random draw or game RNG.
+ccstat_select_attacker_knight = {
+    effect = {
+        remove_variable = ccstat_current_knight
+        every_in_list = {
+            variable = ccstat_attacker_knights
+            limit = { NOT = { root = { has_variable = ccstat_current_knight } } }
+            root = { set_variable = { name = ccstat_current_knight value = prev } }
+        }
+        if = {
+            limit = { has_variable = ccstat_current_knight }
+            remove_list_variable = { name = ccstat_attacker_knights target = var:ccstat_current_knight }
+        }
+    }
+}
+
+# Select/remove one existing identity deterministically; no random draw or game RNG.
+ccstat_select_defender_knight = {
+    effect = {
+        remove_variable = ccstat_current_knight
+        every_in_list = {
+            variable = ccstat_defender_knights
+            limit = { NOT = { root = { has_variable = ccstat_current_knight } } }
+            root = { set_variable = { name = ccstat_current_knight value = prev } }
+        }
+        if = {
+            limit = { has_variable = ccstat_current_knight }
+            remove_list_variable = { name = ccstat_defender_knights target = var:ccstat_current_knight }
+        }
+    }
+}

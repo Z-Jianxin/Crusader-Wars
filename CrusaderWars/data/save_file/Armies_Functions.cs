@@ -521,12 +521,12 @@ namespace CrusaderWars.data.save_file
                 }
 
                 Program.Logger.Debug($"Creating units from {armies.Count} total armies, for army {army.ID}");
-                List<(Regiment regiment, RegimentType type, string maa_name)> list = new List<(Regiment regiment, RegimentType type, string maa_name)>();
+                List<(Regiment regiment, RegimentType type, string maa_name, string armyRegimentId)> list = new List<(Regiment regiment, RegimentType type, string maa_name, string armyRegimentId)>();
                 foreach (var army_regiment in army.ArmyRegiments)
                 {
                     foreach (var regiment in army_regiment.Regiments)
                     {
-                        list.Add((regiment, army_regiment.Type, army_regiment.MAA_Name));
+                        list.Add((regiment, army_regiment.Type, army_regiment.MAA_Name, army_regiment.ID));
                     }
                 }
 
@@ -564,7 +564,12 @@ namespace CrusaderWars.data.save_file
                         continue;
 
                     if (unit != null)
+                    {
+                        if (StatFidelity.StatFidelitySession.PreserveRegimentIdentity && regiment.type == RegimentType.MenAtArms)
+                            unit.SetSourceIdentity(army.ID, regiment.armyRegimentId, regiment.regiment.ID, regiment.regiment.Index,
+                                string.IsNullOrEmpty(regiment.regiment.Owner) ? army.Owner?.GetID() ?? "" : regiment.regiment.Owner);
                         units.Add(unit);
+                    }
 
 
                 }
@@ -633,6 +638,7 @@ namespace CrusaderWars.data.save_file
                 Name = u.GetName(),
                 Culture = u.GetCulture(),
                 Type = u.GetRegimentType(),
+                SourceIdentity = u.SourceIdentity,
                 IsMerc = (u.GetRegimentType() == RegimentType.Levy) ? false : u.IsMerc()
             });
 
@@ -646,6 +652,7 @@ namespace CrusaderWars.data.save_file
 
                 // Create a new Unit with the merged NumberOfSoldiers
                 Unit mergedUnit = new Unit(group.Key.Name, totalSoldiers, group.First().GetObjCulture(), group.Key.Type, isMerc, owner);
+                mergedUnit.CopySourceIdentity(group.First());
 
                 organizedUnits.Add(mergedUnit);
             }

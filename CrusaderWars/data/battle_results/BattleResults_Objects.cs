@@ -139,6 +139,8 @@ namespace CrusaderWars
             for (int i = 0; i < list.Count; i++)
             {
                 var unit = list[i];
+                // Calibrated knight formations are never scaled with the rank-and-file army.
+                if (StatFidelity.StatFidelitySession.IsCalibratedKnightUnit(unit.Item2)) continue;
                 double remainingRatio = Math.Round(Int32.Parse(unit.Item4) / porcentage);
                 unit = (unit.Item1, unit.Item2, unit.Item3, remainingRatio.ToString());
                 list[i] = unit;

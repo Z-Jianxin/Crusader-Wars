@@ -1668,7 +1668,7 @@ namespace CrusaderWars
                             }
 
                             // Check for base mod
-                            bool isBaseModEnabled = enabledMods.Contains("crusader_conflicts.mod") || enabledMods.Contains("ugc_3612451961.mod");
+                            bool isBaseModEnabled = enabledMods.Contains("crusader_conflicts.mod") || enabledMods.Contains("ugc_3612451961.mod") || enabledMods.Contains("cc_stat_fidelity.mod");
                             if (!isBaseModEnabled)
                             {
                                 Program.Logger.Debug("Crusader Conflicts mod (local or steam) not found in enabled_mods in dlc_load.json.");
@@ -3157,7 +3157,9 @@ namespace CrusaderWars
             string apostrophe = "'";
             foreach (char c in inputString)
             {
-                if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '.' || c == '_' || c == '\n' || c == '-' || c == ':' || c == ' ' || char.IsLetter(c) || c == '?' || c == apostrophe[0] || c == '%')
+                // CCSTAT records use pipes as schema delimiters; stripping them loses
+                // the machine export before its strict parser can validate the frame.
+                if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '.' || c == '_' || c == '\n' || c == '-' || c == ':' || c == ' ' || c == '|' || char.IsLetter(c) || c == '?' || c == apostrophe[0] || c == '%')
                 {
                     sb.Append(c);
                 }

@@ -94,6 +94,7 @@ namespace CrusaderWars.twbattle
                 // BattleState.ClearAutofixOverrides(); // Moved to end of successful battle processing
             }
             UnitsFile.ResetProcessedArmies(); // Reset tracker for each battle processing attempt.
+            StatFidelity.StatFidelitySession.ResetGeneration();
             var left_side = ArmiesReader.GetSideArmies("left", attacker_armies, defender_armies);
             var right_side = ArmiesReader.GetSideArmies("right", attacker_armies, defender_armies);
 
@@ -109,6 +110,8 @@ namespace CrusaderWars.twbattle
             // Check the "Combine Knights" option. If it's disabled, process prominent knights to lead MAA units.
             // If it's enabled, skip this step so all knights are grouped into the combined bodyguard unit.
             bool combineKnightsEnabled = client.ModOptions.optionsValuesCollection.TryGetValue("CombineKnights", out string? combineKnightsOption) && combineKnightsOption == "Enabled";
+            foreach (var army in attacker_armies.Concat(defender_armies))
+                StatFidelity.StatFidelitySession.PrepareKnightCalibration(army);
 
             if (!combineKnightsEnabled)
             {
@@ -1408,6 +1411,11 @@ namespace CrusaderWars.twbattle
             foreach (var army in allArmies)
             {
                 if (army.Units == null || !army.Units.Any()) continue;
+                if (StatFidelity.StatFidelitySession.PrepareKnightCalibration(army))
+                {
+                    StatFidelity.StatFidelitySession.Note("Army " + army.ID + ": knight calibration keeps characters in their knight pool; legacy MAA leadership XP disabled.");
+                    continue;
+                }
 
                 // Get all knights from this army
                 var armyKnights = new List<Knight>();

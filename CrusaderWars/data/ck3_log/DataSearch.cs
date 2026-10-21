@@ -207,6 +207,7 @@ namespace CrusaderWars
         public static void Search(string log)
         {
             Program.Logger.Debug("Starting CK3 log search...");
+            StatFidelity.StatFidelitySession.Begin(log);
             /*---------------------------------------------
              * ::::::::::::::::Army Ratio::::::::::::::::::
              ---------------------------------------------*/

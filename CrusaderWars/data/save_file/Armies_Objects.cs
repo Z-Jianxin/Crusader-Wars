@@ -97,6 +97,27 @@ namespace CrusaderWars.data.save_file
         public string? CharacterID { get; private set; }
         public int UniqueID { get; private set; }
         private static int _nextUniqueID = 1;
+        // Save identities survive culture grouping and Attila unit splitting. The generated
+        // DB unit key is never used to identify a source regiment or allocate its casualties.
+        public string? SourceArmyId { get; private set; }
+        public string? SourceArmyRegimentId { get; private set; }
+        public string? SourceRegimentId { get; private set; }
+        public string? SourceChunkIndex { get; private set; }
+        public string? SourceOwnerId { get; private set; }
+        public string? SourceIdentity => SourceRegimentId == null ? null : SourceArmyId + ":" + SourceArmyRegimentId + ":" + SourceRegimentId + ":" + SourceChunkIndex;
+
+        public void SetSourceIdentity(string armyId, string armyRegimentId, string regimentId, string chunkIndex, string ownerId)
+        {
+            SourceArmyId = armyId; SourceArmyRegimentId = armyRegimentId;
+            SourceRegimentId = regimentId; SourceChunkIndex = chunkIndex; SourceOwnerId = ownerId;
+        }
+
+        public void CopySourceIdentity(Unit source)
+        {
+            SourceArmyId = source.SourceArmyId; SourceArmyRegimentId = source.SourceArmyRegimentId;
+            SourceRegimentId = source.SourceRegimentId; SourceChunkIndex = source.SourceChunkIndex; SourceOwnerId = source.SourceOwnerId;
+            OriginalAttilaKey = source.OriginalAttilaKey;
+        }
 
 
         public Unit(string regiment_name, int soldiers, Culture? culture_obj, RegimentType type, int garrisonLevel = 0)
@@ -174,6 +195,7 @@ namespace CrusaderWars.data.save_file
         public void ChangeSoldiers(int y) { Soldiers = y; }
         public void AddSoldiers(int soldiers) { Soldiers += soldiers; }
         public void SetSoldiers(int soldiers) { Soldiers = soldiers; }
+        public void SetInitialSoldiers(int soldiers) { Soldiers = soldiers; OriginalSoldiers = soldiers; }
         public void SetMax(int i) { Max = i; }
         public void SetLocName(string t) { LocName = t; }
         public void ChangeCulture(Culture culture) { UnitCulture = culture; }

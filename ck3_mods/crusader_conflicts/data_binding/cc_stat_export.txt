@@ -1,0 +1,13 @@
+﻿# Machine protocol formatting deliberately bypasses localized number formatting.
+# CFixedPoint has six fractional digits. Split before multiplying so a large
+# whole stat does not overflow int32 when the fraction is scaled by one million.
+# Native integer conversion produces no grouping separators or localized markup.
+macro = {
+    definition = "CCStatFraction(Value)"
+    replace_with = "Concatenate(Select_CString(LessThan_int32(Value, '(int32)10'), '00000', Select_CString(LessThan_int32(Value, '(int32)100'), '0000', Select_CString(LessThan_int32(Value, '(int32)1000'), '000', Select_CString(LessThan_int32(Value, '(int32)10000'), '00', Select_CString(LessThan_int32(Value, '(int32)100000'), '0', ''))))), IntToString(Value))"
+}
+
+macro = {
+    definition = "CCStatDecimal(Value)"
+    replace_with = "Concatenate(Select_CString(LessThan_CFixedPoint(Value, '(CFixedPoint)0'), '-', ''), Concatenate(IntToString(FixedPointToInt(Abs_CFixedPoint(Value))), Concatenate('.', CCStatFraction(FixedPointToInt(Multiply_CFixedPoint(Modulo_CFixedPoint(Abs_CFixedPoint(Value), '(CFixedPoint)1'), '(CFixedPoint)1000000'))))))"
+}

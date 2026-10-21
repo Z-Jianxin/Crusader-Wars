@@ -1,80 +1,54 @@
-using System;
-using System.Diagnostics;
+﻿using System;
 using System.IO;
-using System.Text.RegularExpressions;
-using System.Windows.Forms;
-using System.Linq;
+using CrusaderWars.StatFidelity;
 
 namespace CrusaderWars
 {
     public static class PackFile
     {
-
-
         public static void PackFileCreator()
         {
-            Program.Logger.Debug("Starting .pack file creation process...");
-            // Create and import .pack file
+            string runtimeRoot = Directory.GetCurrentDirectory();
+            string rpfm = Path.Combine(runtimeRoot, "data", "rpfm", "rpfm_cli.exe");
+            string schema = Path.Combine(runtimeRoot, "data", "schema_att.ron");
+            string sources = Path.Combine(runtimeRoot, "data", "battle files");
+            string attila = Properties.Settings.Default.VAR_attila_path;
+            string destinationDirectory = Path.Combine(Path.GetDirectoryName(attila)!, "data");
+            string destination = Path.Combine(destinationDirectory, "CrusaderConflicts.pack");
 
-            string create_path = Directory.GetCurrentDirectory() + @"\CrusaderConflicts.pack";
-            string add_path = Directory.GetCurrentDirectory() + @"\data\battle files";
-            string thumbnail_path = Directory.GetCurrentDirectory() + @"\settings\CrusaderWars.png";
-            string tsv_path = Directory.GetCurrentDirectory() + @"\data\schema_att.ron";
-
-            string create_command = $@"--game attila pack create -p ""{create_path}""";
-            string add_command = $@"--game attila pack add -p ""{create_path}"" -t ""{tsv_path}"" -F ""{add_path}""";
-
-            CreatePackFile(create_command);
-            CreatePackFile(add_command);
-
-            string pack_dir_path = Path.Combine(Path.GetDirectoryName(Properties.Settings.Default.VAR_attila_path)!, "data");
-            string pack_to_move_path = create_path;
-            string pack_file_path = Path.Combine(pack_dir_path, "CrusaderConflicts.pack");
-            string thumb_file_path = Path.Combine(pack_dir_path, "CrusaderWars.png");
-
-            if (File.Exists(pack_file_path))
+            StatFidelitySession.WriteCoverageReport(runtimeRoot);
+            StatFidelityBackend.ClearGeneratedTables(runtimeRoot);
+            if (StatFidelitySession.PendingProfiles.Count > 0)
             {
-                File.Delete(pack_file_path);
-            }
-            File.Move(pack_to_move_path, pack_file_path);
-
-            if (!File.Exists(thumb_file_path))
-            {
-                File.Copy(thumbnail_path, thumb_file_path);
-            }
-            Program.Logger.Debug(".pack file created and moved to Attila data folder successfully.");
-        }
-
-        private static string? CreatePackFile(string command)
-        {
-            Program.Logger.Debug($"Executing RPFM command: {command}");
-            string rpfm_client_path = @".\data\rpfm\rpfm_cli.exe";
-
-            ProcessStartInfo procStartInfo = new ProcessStartInfo(rpfm_client_path, command)
-
-            {
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-
-            };
-
-            try
-            {
-                using (Process proc = new Process())
+                Program.Logger.Debug($"Generating {StatFidelitySession.PendingProfiles.Count} stat fidelity profiles...");
+                try { StatFidelityBackend.Generate(runtimeRoot, attila, StatFidelitySession.PendingProfiles); }
+                catch (Exception ex)
                 {
-                    proc.StartInfo = procStartInfo;
-                    proc.Start();
-                    string output = proc.StandardOutput.ReadToEnd();
-                    Program.Logger.Debug($"RPFM output: {output}");
-                    return output;
+                    StatFidelitySession.Note("Attila stat generation failed: " + ex.Message);
+                    StatFidelitySession.WriteCoverageReport(runtimeRoot);
+                    throw;
                 }
             }
-            catch (Exception ex)
+            Directory.CreateDirectory(destinationDirectory);
+            // Build beside the destination: the final atomic replacement never crosses volumes.
+            string staging = Path.Combine(destinationDirectory, "cc-building-" + Guid.NewGuid().ToString("N") + ".pack");
+            try
             {
-                Program.Logger.Debug($"Error creating pack file: {ex.Message}");
-                return null;
+                RpfmRunner.Run(rpfm, "--game", "attila", "pack", "create", "-p", staging);
+                RpfmRunner.Run(rpfm, "--game", "attila", "pack", "add", "-p", staging, "-t", schema, "-F", sources);
+                if (!File.Exists(staging) || new FileInfo(staging).Length < 28)
+                    throw new InvalidOperationException("RPFM produced an empty battle pack. The previous battle pack is unchanged.");
+                RpfmRunner.Run(rpfm, "--game", "attila", "pack", "list", "-p", staging);
+                if (File.Exists(destination)) File.Replace(staging, destination, null);
+                else File.Move(staging, destination);
             }
+            finally
+            {
+                if (File.Exists(staging)) File.Delete(staging);
+            }
+            string thumbnail = Path.Combine(destinationDirectory, "CrusaderWars.png");
+            if (!File.Exists(thumbnail)) File.Copy(Path.Combine(runtimeRoot, "settings", "CrusaderWars.png"), thumbnail);
+            Program.Logger.Debug("Battle pack created and atomically installed successfully.");
         }
     }
 }

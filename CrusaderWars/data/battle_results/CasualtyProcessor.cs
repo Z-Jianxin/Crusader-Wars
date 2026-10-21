@@ -11,6 +11,7 @@ using System.Globalization; // Added for CultureInfo
 using CrusaderWars.armies; // Added for List<Army>
 using CrusaderWars.unit_mapper;
 using CrusaderWars.locs;
+using CrusaderWars.client;
 using System.Runtime.Versioning;
 using System.Windows.Forms;
 
@@ -189,6 +190,23 @@ namespace CrusaderWars.data.battle_results
                 {
                     if (regiment.Culture is null || string.IsNullOrEmpty(regiment.CurrentNum)) continue;
 
+                    // Direct-stat variants of identical culture/type can have different losses.
+                    // Sum every split unit belonging to this exact save regiment chunk.
+                    var sourceUnits = army.Units.Where(u => u.SourceArmyId == army.ID && u.SourceArmyRegimentId == armyRegiment.ID &&
+                        u.SourceRegimentId == regiment.ID && u.SourceChunkIndex == regiment.Index && !u.IsSiege()).ToList();
+                    if (sourceUnits.Count > 0)
+                    {
+                        var exactReports = sourceUnits.Select(u => army.CasualitiesReports.Where(r =>
+                            r.Script.Contains("_" + u.UniqueID + "_CULTURE")).ToList()).ToList();
+                        if (exactReports.Any(r => r.Count != 1))
+                            throw new InvalidOperationException("Missing or ambiguous stat-fidelity casualty report for source regiment " + army.ID + ":" + regiment.ID + ":" + regiment.Index + ". Save update aborted.");
+                        long starting = exactReports.Sum(r => (long)r[0].GetStarting());
+                        long remaining = exactReports.Sum(r => (long)(r[0].GetAliveAfterPursuit() >= 0 ? r[0].GetAliveAfterPursuit() : r[0].GetAliveBeforePursuit()));
+                        int survivors = StatFidelity.StatScaling.SourceSurvivors(Int32.Parse(regiment.CurrentNum), starting, remaining);
+                        regiment.SetSoldiers(survivors.ToString(CultureInfo.InvariantCulture));
+                        continue;
+                    }
+
                     if (isSiegeType)
                     {
                         int finalMachineCount = 0;
@@ -291,10 +309,26 @@ namespace CrusaderWars.data.battle_results
 
         static void CreateUnitsReports(Army army)
         {
+            var identifiedUnits = army.Units.Where(u => u.SourceIdentity != null ||
+                (u.GetOriginalSoldiers() > 0 && StatFidelity.StatFidelitySession.IsCalibratedKnightUnit("knights_" + u.UniqueID))).ToArray();
             if (army.UnitsResults == null)
             {
+                if (identifiedUnits.Length > 0)
+                    throw new InvalidOperationException("Missing stat-fidelity unit results for army " + army.ID + ". Save update aborted.");
                 Program.Logger.Debug($"Warning: army.UnitsResults is null for army {army.ID}. Skipping unit reports creation.");
                 return;
+            }
+
+            // Validate the whole expected roster before mutating any casualty records.
+            // Otherwise an entirely absent calibrated knight report could bypass the
+            // per-record checks and silently leave all its characters alive.
+            foreach (var unit in identifiedUnits)
+            {
+                int matches = army.UnitsResults.Alive_MainPhase.Count(r =>
+                    r.Type.EndsWith("_" + unit.UniqueID, StringComparison.Ordinal) &&
+                    r.Script.Contains("_" + unit.UniqueID + "_CULTURE", StringComparison.Ordinal));
+                if (matches != 1)
+                    throw new InvalidOperationException("Missing or ambiguous stat-fidelity survivor report for unit " + unit.UniqueID + " in army " + army.ID + ". Save update aborted.");
             }
 
             Program.Logger.Debug($"Entering CreateUnitsReports for army {army.ID}. Processing each Attila unit record individually.");
@@ -376,6 +410,10 @@ namespace CrusaderWars.data.battle_results
                     continue;
                 }
 
+                bool requiresExactReport = matchingUnit.SourceIdentity != null || StatFidelity.StatFidelitySession.IsCalibratedKnightUnit(typeIdentifier);
+                if (requiresExactReport && (!int.TryParse(mainUnit.Remaining, out int verifiedRemaining) || verifiedRemaining < 0))
+                    throw new InvalidOperationException("Invalid survivor count for identified stat-fidelity unit " + script + ". Save update aborted.");
+
                 // Determine the display name for the report
                 // Use the screen name from the unit mapper if available to ensure 1:1 matching in the AAR
                 string attilaKey = matchingUnit.GetAttilaUnitKey();
@@ -431,7 +469,17 @@ namespace CrusaderWars.data.battle_results
                     // We assume the 'starting' is the same as 'remaining' if no casualties, 
                     // but since we don't have the individual starting count per Attila unit record in the log,
                     // we use the Unit object's soldiers count as a base, distributed if necessary.
-                    starting = (int)Math.Round(matchingUnit.GetOriginalSoldiers() * (ArmyProportions.BattleScale / 100.0));
+                    if (StatFidelity.StatFidelitySession.IsCalibratedKnightUnit(typeIdentifier))
+                        starting = matchingUnit.GetOriginalSoldiers();
+                    else if (matchingUnit.SourceIdentity != null)
+                    {
+                        // Split units were constructed after battlefield scaling. Results have
+                        // already been restored to 100%, so restore their starting denominator too.
+                        double scale = ModOptions.GetBattleScale() / 100.0;
+                        if (scale <= 0) throw new InvalidOperationException("Invalid battle scale for source-regiment casualties.");
+                        starting = (int)Math.Round(matchingUnit.GetOriginalSoldiers() / scale);
+                    }
+                    else starting = (int)Math.Round(matchingUnit.GetOriginalSoldiers() * (ArmyProportions.BattleScale / 100.0));
                 }
 
                 // Find corresponding kills for this specific script
@@ -442,6 +490,9 @@ namespace CrusaderWars.data.battle_results
                 // Find corresponding pursuit remaining for this specific script
                 int? pursuitRemaining = null;
                 var pursuitRecord = army.UnitsResults.Alive_PursuitPhase?.FirstOrDefault(p => p.Script == script);
+                if (requiresExactReport && army.UnitsResults.Alive_PursuitPhase?.Count > 0 &&
+                    (pursuitRecord == null || pursuitRecord.Value.Script != script || !int.TryParse(pursuitRecord.Value.Remaining, out int verifiedPursuit) || verifiedPursuit < 0))
+                    throw new InvalidOperationException("Missing or invalid pursuit report for identified stat-fidelity unit " + script + ". Save update aborted.");
                 if (pursuitRecord != null)
                 {
                     if (int.TryParse(pursuitRecord.Value.Remaining, out int pRemaining))
@@ -455,6 +506,8 @@ namespace CrusaderWars.data.battle_results
                 }
 
                 UnitCasualitiesReport unitReport;
+                if (requiresExactReport && (remaining > starting + 1 || pursuitRemaining > remaining + 1))
+                    throw new InvalidOperationException("Impossible survivor totals for identified stat-fidelity unit " + script + ". Save update aborted.");
                 if (pursuitRemaining.HasValue)
                 {
                     unitReport = new UnitCasualitiesReport(unitType, reportTypeName, culture, starting, remaining, pursuitRemaining.Value, startingMachines, attilaFaction, script);
@@ -540,6 +593,12 @@ namespace CrusaderWars.data.battle_results
                 }
 
                 // Handle combined unit first
+                foreach (var calibrated in allKnightUnitReports.Where(r => StatFidelity.StatFidelitySession.IsCalibratedKnightUnit(r.Type)))
+                {
+                    if (!Int32.TryParse(calibrated.Remaining, out int remaining) || remaining < 0)
+                        throw new InvalidOperationException("Invalid calibrated knight survivor report.");
+                    army.Knights.GetKilled(remaining, alreadyUnscaled: true);
+                }
                 var combinedUnitReport = allKnightUnitReports.FirstOrDefault(r => r.Type == "knights");
                 if (combinedUnitReport != default)
                 {
@@ -562,7 +621,7 @@ namespace CrusaderWars.data.battle_results
             Program.Logger.Debug($"Checking knight kills for army {army.ID}");
             if (army.Knights != null && army.Knights.HasKnights())
             {
-                var knightKillsReport = army.UnitsResults?.Kills_MainPhase.FirstOrDefault(x => x.Type == "knights");
+                var knightKillsReport = army.UnitsResults?.Kills_MainPhase.FirstOrDefault(x => x.Type == "knights" || StatFidelity.StatFidelitySession.IsCalibratedKnightUnit(x.Type));
                 int kills = 0;
                 if (knightKillsReport.HasValue && knightKillsReport.Value.Item4 != null)
                 {
