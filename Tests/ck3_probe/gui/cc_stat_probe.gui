@@ -1,4 +1,4 @@
-# Fixed non-reentrant stages: every console command runs in its own completed state.
+﻿# Fixed non-reentrant stages: every console command runs in its own completed state.
 # Enable this test-only mod after the production mod and load a disposable save.
 window = {
     name = "cc_stat_probe"
@@ -14,7 +14,6 @@ window = {
     state = {
         name = cc_probe_collect
         duration = 1
-        trigger_when = "[GetPlayer.IsValid]"
         next = cc_probe_begin
         on_finish = "[GetScriptedGui('cc_stat_probe_collect').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
     }

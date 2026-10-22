@@ -1,9 +1,9 @@
-﻿# Test-only mouse controls. No keyboard/console typing is required.
+﻿# Test-only mouse controls. The engine, not agent latency, stops simulation.
 window = {
     name = "cc_debug_overlay"
     parentanchor = top|left
     position = { 20 180 }
-    size = { 300 350 }
+    size = { 300 585 }
     layer = top
     visible = "[GetPlayer.IsValid]"
     using = Window_Background
@@ -12,6 +12,15 @@ window = {
         size = { 276 28 }
         raw_text = "CCF disposable test controls"
         fontsize = 17
+    }
+    state = {
+        name = _show
+        trigger_on_create = yes
+        duration = 0.01
+        on_finish = "[GetVariableSystem.Clear('cc_debug_run')]"
+        on_finish = "[GetVariableSystem.Clear('cc_debug_stop')]"
+        on_finish = "[GetVariableSystem.Clear('cc_debug_unpause')]"
+        on_finish = "[GetVariableSystem.Clear('cc_debug_capture')]"
     }
 
     button_standard = {
@@ -70,26 +79,34 @@ window = {
         name = "cc_debug_button_4"
         position = { 12 134 }
         size = { 134 36 }
-        raw_text = "Advance 1 day"
+        raw_text = "Run 1 day"
         fontsize = 14
         onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_4')]"
         state = {
             name = cc_debug_action_4
             duration = 0.1
-            on_finish = "[ExecuteConsoleCommand('tick_day 1')]"
+            on_finish = "[SetGameSpeed('(int32)0')]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_target_day', IntToString(Add_int32(GetCurrentDate.GetDateAsTotalDays, '(int32)1')))]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_capture', 'no')]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_run', 'days')]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_unpause', 'yes')]"
         }
     }
     button_standard = {
         name = "cc_debug_button_5"
         position = { 154 134 }
         size = { 134 36 }
-        raw_text = "Advance 10 days"
+        raw_text = "Run 10 days"
         fontsize = 14
         onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_5')]"
         state = {
             name = cc_debug_action_5
             duration = 0.1
-            on_finish = "[ExecuteConsoleCommand('tick_day 10')]"
+            on_finish = "[SetGameSpeed('(int32)0')]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_target_day', IntToString(Add_int32(GetCurrentDate.GetDateAsTotalDays, '(int32)10')))]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_capture', 'no')]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_run', 'days')]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_unpause', 'yes')]"
         }
     }
     button_standard = {
@@ -141,6 +158,7 @@ window = {
         state = {
             name = cc_debug_action_9
             duration = 0.1
+            on_finish = "[GetVariableSystem.Clear('cc_debug_run')]"
             on_finish = "[OnPause]"
         }
     }
@@ -170,5 +188,218 @@ window = {
             on_finish = "[PdxGuiTriggerAllAnimations('ccstat_begin')]"
         }
     }
-    text_single = { position = { 12 317 } size = { 276 22 } raw_text = "Test saves only. Export needs selected battle." fontsize = 12 }
+    button_standard = {
+        name = "cc_debug_button_12"
+        position = { 12 314 }
+        size = { 134 36 }
+        raw_text = "Open pause menu"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_12')]"
+        state = {
+            name = cc_debug_action_12
+            duration = 0.1
+            on_finish = "[GetVariableSystem.Clear('cc_debug_run')]"
+            on_finish = "[GetVariableSystem.Clear('cc_debug_stop')]"
+            on_finish = "[GetVariableSystem.Clear('cc_debug_unpause')]"
+            on_finish = "[OnPauseMenu]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_13"
+        position = { 154 314 }
+        size = { 134 36 }
+        raw_text = "Run until ready"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_13')]"
+        state = {
+            name = cc_debug_action_13
+            duration = 0.1
+            on_finish = "[SetGameSpeed('(int32)0')]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_target_day', IntToString(Add_int32(GetCurrentDate.GetDateAsTotalDays, '(int32)30')))]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_capture', 'no')]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_run', 'battle')]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_unpause', 'yes')]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_14"
+        position = { 12 359 }
+        size = { 134 36 }
+        raw_text = "Run + handoff"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_14')]"
+        state = {
+            name = cc_debug_action_14
+            duration = 0.1
+            on_finish = "[SetGameSpeed('(int32)0')]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_target_day', IntToString(Add_int32(GetCurrentDate.GetDateAsTotalDays, '(int32)30')))]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_capture', 'yes')]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_run', 'battle')]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_unpause', 'yes')]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_15"
+        position = { 154 359 }
+        size = { 134 36 }
+        raw_text = "Cancel auto"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_15')]"
+        state = {
+            name = cc_debug_action_15
+            duration = 0.1
+            on_finish = "[GetVariableSystem.Clear('cc_debug_run')]"
+            on_finish = "[GetVariableSystem.Clear('cc_debug_unpause')]"
+            on_finish = "[GetVariableSystem.Set('cc_debug_stop', 'cancel')]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_16"
+        position = { 12 404 }
+        size = { 134 36 }
+        raw_text = "Station boost"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_16')]"
+        state = {
+            name = cc_debug_action_16
+            duration = 0.1
+            on_finish = "[ExecuteConsoleCommand('event ccf_test.3')]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_17"
+        position = { 154 404 }
+        size = { 134 36 }
+        raw_text = "Clear station boost"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_17')]"
+        state = {
+            name = cc_debug_action_17
+            duration = 0.1
+            on_finish = "[ExecuteConsoleCommand('event ccf_test.4')]"
+        }
+    }
+    # Arm/unpause and stop/pause are separate reactive stages so OnPause is
+    # never toggled twice or called while already in the desired state.
+    state = {
+        name = cc_debug_unpause
+        trigger_when = "[And(GetVariableSystem.Exists('cc_debug_unpause'), IsGamePaused)]"
+        duration = 0.01
+        on_finish = "[OnPause]"
+        on_finish = "[GetVariableSystem.Clear('cc_debug_unpause')]"
+    }
+    state = {
+        name = cc_debug_already_running
+        trigger_when = "[And(GetVariableSystem.Exists('cc_debug_unpause'), Not(IsGamePaused))]"
+        duration = 0.01
+        on_finish = "[GetVariableSystem.Clear('cc_debug_unpause')]"
+    }
+    state = {
+        name = cc_debug_date_reached
+        trigger_when = "[And(GetVariableSystem.Exists('cc_debug_run'), GetVariableSystem.HasValue('cc_debug_target_day', IntToString(GetCurrentDate.GetDateAsTotalDays)))]"
+        duration = 0.01
+        on_finish = "[GetVariableSystem.Set('cc_debug_stop', 'date')]"
+        on_finish = "[GetVariableSystem.Clear('cc_debug_run')]"
+    }
+    state = {
+        name = cc_debug_battle_ready
+        trigger_when = "[And(GetVariableSystem.HasValue('cc_debug_run', 'battle'), GreaterThan_CFixedPoint(GetPlayer.MakeScope.Var('ccf_fixture_combat').Combat.GetLeftSide.GetSoftCasualties, '(CFixedPoint)0'))]"
+        duration = 0.01
+        on_finish = "[GetVariableSystem.Set('cc_debug_stop', 'ready')]"
+        on_finish = "[GetVariableSystem.Clear('cc_debug_run')]"
+    }
+    state = {
+        name = cc_debug_pause
+        trigger_when = "[And(GetVariableSystem.Exists('cc_debug_stop'), Not(IsGamePaused))]"
+        duration = 0.01
+        on_finish = "[OnPause]"
+    }
+    state = {
+        name = cc_debug_pause_completed
+        trigger_when = "[And(GetVariableSystem.Exists('cc_debug_stop'), IsGamePaused)]"
+        duration = 0.01
+        on_finish = "[GetVariableSystem.Set('cc_debug_stop_reason', GetVariableSystem.Get('cc_debug_stop'))]"
+        on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(And(GetVariableSystem.HasValue('cc_debug_stop', 'ready'), GetVariableSystem.HasValue('cc_debug_capture', 'yes')), 'cc_debug_start_handoff', 'cc_debug_stop_done'))]"
+        on_finish = "[GetVariableSystem.Clear('cc_debug_stop')]"
+    }
+    state = {
+        name = cc_debug_start_handoff
+        duration = 0.1
+        next = cc_debug_stop_done
+        on_finish = "[PdxGuiTriggerAllAnimations('start_CW')]"
+    }
+    state = {
+        name = cc_debug_stop_done
+        duration = 0.1
+        on_finish = "[GetVariableSystem.Clear('cc_debug_capture')]"
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCFIXTURE|AUTO_PAUSED|', GetVariableSystem.Get('cc_debug_stop_reason')))]"
+    }
+    button_standard = {
+        name = "cc_debug_button_18"
+        position = { 12 449 }
+        size = { 134 36 }
+        raw_text = "Read levy API"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_18')]"
+        state = {
+            name = cc_debug_action_18
+            duration = 0.1
+            on_finish = "[ExecuteConsoleCommand('gui.createwidget gui/cc_levy_probe.gui cc_levy_probe')]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_19"
+        position = { 154 449 }
+        size = { 134 36 }
+        raw_text = "Levy toughness -5"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_19')]"
+        state = {
+            name = cc_debug_action_19
+            duration = 0.1
+            on_finish = "[GetScriptedGui('cc_stat_levy_apply').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+        }
+    }
+    button_standard = {
+        name = "cc_debug_button_20"
+        position = { 12 494 }
+        size = { 134 36 }
+        raw_text = "Clear levy debuff"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_20')]"
+        state = {
+            name = cc_debug_action_20
+            duration = 0.1
+            on_finish = "[GetScriptedGui('cc_stat_levy_clear').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+        }
+    }
+    # Native HUD action: fixture battles are created at the player's capital.
+    # This recentres the map without injecting keyboard or mouse coordinates.
+    button_standard = {
+        name = "cc_debug_center_fixture"
+        position = { 154 494 }
+        size = { 134 36 }
+        raw_text = "Center battle"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_center_fixture')]"
+        state = {
+            name = cc_debug_center_fixture
+            duration = 0.1
+            on_finish = "[OnGoToPlayerCapital]"
+        }
+    }
+
+    button_standard = {
+        name = "cc_debug_button_22"
+        position = { 12 539 }
+        size = { 134 36 }
+        raw_text = "Add levy army"
+        fontsize = 14
+        onclick = "[PdxGuiWidget.TriggerAnimation('cc_debug_action_22')]"
+        state = {
+            name = cc_debug_action_22
+            duration = 0.1
+            on_finish = "[ExecuteConsoleCommand('event ccf_test.5')]"
+        }
+    }
 }

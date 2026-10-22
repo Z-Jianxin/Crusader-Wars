@@ -101,6 +101,15 @@ namespace CrusaderWars
                 string player_commander_id = CK3LogData.LeftSide.GetCommander().id;
 
                 bool isPlayerTheAttacker = attacker_armies.Any(army => army.CommanderID == player_commander_id);
+                if (StatFidelity.StatFidelitySession.HasBoundExport)
+                {
+                    string leftOwner = CK3LogData.LeftSide.GetMainParticipant().id;
+                    bool leftAttacker = attacker_armies.Any(army => army.Owner?.GetID() == leftOwner);
+                    bool leftDefender = defender_armies.Any(army => army.Owner?.GetID() == leftOwner);
+                    if (leftAttacker == leftDefender)
+                        throw new InvalidOperationException("The current left-side owner does not identify exactly one saved combat side. No commander/owner substitution was made.");
+                    isPlayerTheAttacker = leftAttacker;
+                }
 
                 if (isPlayerTheAttacker)
                 {
@@ -1003,6 +1012,11 @@ namespace CrusaderWars
         {
             if (army.CombatSide == "defender" && ModOptions.DefensiveDeployables() is true && army.Commander != null)
             {
+                if (StatFidelity.StatFidelitySession.UsesDirectCommanderStats(army.CombatSide))
+                {
+                    StatFidelity.StatFidelitySession.Note("Direct commander advantage replaces legacy Martial/trait-derived defensive deployables; no second Martial bonus is added as battlefield obstacles.");
+                    return;
+                }
                 int deployables_boost = UnitsFile.GetCommanderTraitsObj(army.IsPlayer())?.GetDeployablesBoost() ?? 0;
                 int army_soldiers = army.Units.Sum(unit => unit.GetSoldiers());
                 army.SetDefences(new DefensiveSystem(army_soldiers, army.Commander.Martial, deployables_boost));
@@ -1143,7 +1157,7 @@ namespace CrusaderWars
                 Position.AddUnitXSpacing(direction);
         }
 
-        public static void AddGeneralUnit(CommanderSystem Commander, string troopType, string unitScript, int experience, string direction, bool suppressMartialStars = false, int? representedSoldiers = null)
+        public static void AddGeneralUnit(CommanderSystem Commander, string troopType, string unitScript, int experience, string direction, bool suppressMartialStars = false, int? representedSoldiers = null, bool includeAccoladeAbilities = true)
         {
             if (Position == null)
             {
@@ -1175,7 +1189,7 @@ namespace CrusaderWars
                     prGeneralBuilder.Append($"<unit_experience level=\"{experience}\"/>\n");
 
 
-                    if (accolade != null)
+                    if (accolade != null && includeAccoladeAbilities)
                     {
                         var special_ability = AccoladesAbilities.ReturnAbilitiesKeys(accolade);
                         if (special_ability.primaryKey != "null" || special_ability.secundaryKey != "null")
@@ -1222,7 +1236,7 @@ namespace CrusaderWars
             }
         }
 
-        public static void AddKnightUnit(KnightSystem Knights, string troopType, string unitScript, int experience, string direction, string? knightNameToDisplay = null, bool includeAccoladeAbilities = true)
+        public static void AddKnightUnit(KnightSystem Knights, string troopType, string unitScript, int experience, string direction, string? knightNameToDisplay = null, bool includeAccoladeAbilities = true, int? representedSoldiers = null)
         {
             if (Position == null)
             {
@@ -1230,7 +1244,7 @@ namespace CrusaderWars
                 return;
             }
 
-            int numberOfSoldiers = Knights.GetKnightsSoldiers();
+            int numberOfSoldiers = representedSoldiers ?? Knights.GetKnightsSoldiers();
 
             Knights.SetAccolades();
             var accoladesList = includeAccoladeAbilities ? Knights.GetAccolades() : null;

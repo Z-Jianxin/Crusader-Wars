@@ -1,12 +1,17 @@
-﻿# Keep startup diagnostics without the removed 2024 notification event or
-# GUI/console expressions (which are not valid script effects).
+﻿# Register additive callbacks; never replace vanilla's on_action effect body.
 on_game_start = {
+    on_actions = { cc_diagnostics_game_start }
+}
+cc_diagnostics_game_start = {
     effect = {
         every_player = { debug_log = "CW_SAVE_PURGE_debug_log_on_game_start" }
     }
 }
 
 on_game_start_after_lobby = {
+    on_actions = { cc_diagnostics_after_lobby }
+}
+cc_diagnostics_after_lobby = {
     effect = {
         every_player = { debug_log = "CW_SAVE_PURGE_debug_log_on_action3" }
     }

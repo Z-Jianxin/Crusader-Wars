@@ -567,7 +567,8 @@ namespace CrusaderWars.data.save_file
                     {
                         if (StatFidelity.StatFidelitySession.PreserveRegimentIdentity && regiment.type == RegimentType.MenAtArms)
                             unit.SetSourceIdentity(army.ID, regiment.armyRegimentId, regiment.regiment.ID, regiment.regiment.Index,
-                                string.IsNullOrEmpty(regiment.regiment.Owner) ? army.Owner?.GetID() ?? "" : regiment.regiment.Owner);
+                                string.IsNullOrEmpty(regiment.regiment.Owner) ? army.Owner?.GetID() ?? "" : regiment.regiment.Owner,
+                                string.IsNullOrEmpty(regiment.regiment.Origin) ? "none" : regiment.regiment.Origin);
                         units.Add(unit);
                     }
 
@@ -578,7 +579,9 @@ namespace CrusaderWars.data.save_file
                 if (army.Commander != null && !army.IsGarrisonArmy)
                 {
                     var cmdr = army.Commander;
-                    Unit commanderUnit = new Unit(cmdr.Name, cmdr.GetUnitSoldiers(), cmdr.GetCultureObj(), RegimentType.Commander);
+                    int representedSoldiers = StatFidelity.StatFidelitySession.HasBoundExport
+                        ? StatFidelity.StatFidelitySession.Settings.CommanderBodyguardSoldiers : cmdr.GetUnitSoldiers();
+                    Unit commanderUnit = new Unit(cmdr.Name, representedSoldiers, cmdr.GetCultureObj(), RegimentType.Commander);
                     commanderUnit.SetCharacterRank(cmdr.Rank);
                     units.Add(commanderUnit);
                 }

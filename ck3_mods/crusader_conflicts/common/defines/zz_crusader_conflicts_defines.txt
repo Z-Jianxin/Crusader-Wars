@@ -1,4 +1,4 @@
-# Only Crusader Conflicts overrides: inherit all other defines from the active game.
+﻿# Only Crusader Conflicts overrides: inherit all other defines from the active game.
 NCombat = {
     WAR_ATTACKER_COMBAT_MAX_SCORE = 80
     WAR_DEFENDER_COMBAT_MAX_SCORE = 80

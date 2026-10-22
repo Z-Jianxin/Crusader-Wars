@@ -1,4 +1,4 @@
-print_battle_scale_25 = {
+﻿print_battle_scale_25 = {
     effect = {
         debug_log = "battle_scale:25"
     }

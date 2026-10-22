@@ -104,18 +104,21 @@ namespace CrusaderWars.data.save_file
         public string? SourceRegimentId { get; private set; }
         public string? SourceChunkIndex { get; private set; }
         public string? SourceOwnerId { get; private set; }
+        public string? SourceOriginProvinceId { get; private set; }
         public string? SourceIdentity => SourceRegimentId == null ? null : SourceArmyId + ":" + SourceArmyRegimentId + ":" + SourceRegimentId + ":" + SourceChunkIndex;
 
-        public void SetSourceIdentity(string armyId, string armyRegimentId, string regimentId, string chunkIndex, string ownerId)
+        public void SetSourceIdentity(string armyId, string armyRegimentId, string regimentId, string chunkIndex, string ownerId, string? originProvinceId = null)
         {
             SourceArmyId = armyId; SourceArmyRegimentId = armyRegimentId;
             SourceRegimentId = regimentId; SourceChunkIndex = chunkIndex; SourceOwnerId = ownerId;
+            SourceOriginProvinceId = originProvinceId;
         }
 
         public void CopySourceIdentity(Unit source)
         {
             SourceArmyId = source.SourceArmyId; SourceArmyRegimentId = source.SourceArmyRegimentId;
             SourceRegimentId = source.SourceRegimentId; SourceChunkIndex = source.SourceChunkIndex; SourceOwnerId = source.SourceOwnerId;
+            SourceOriginProvinceId = source.SourceOriginProvinceId;
             OriginalAttilaKey = source.OriginalAttilaKey;
         }
 

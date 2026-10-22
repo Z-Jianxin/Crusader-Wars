@@ -5,3 +5,11 @@ cc_stat_probe_boost = {
     knight_effectiveness_mult = 0.5
     martial = 5
 }
+
+# Applied to an actual station province, never the regiment owner's character.
+cc_stat_probe_station_boost = {
+    stationed_maa_damage_add = 30
+    stationed_maa_toughness_add = 15
+}
+
+cc_stat_probe_levy_debuff = { levy_toughness = -5 }

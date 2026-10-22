@@ -300,6 +300,7 @@ if (BattleResult.Player_Combat is not null)
                 ReadCourtPositions();
                 CheckForNullCultures();
                 ReadCultureManager();
+                foreach (var army in attacker_armies.Concat(defender_armies)) StatFidelity.StatFidelitySession.EnsureNativeCommanderRepresentation(army);
                 CreateUnits();
 
                 // Expand garrison placeholder units into distributed levies
@@ -651,6 +652,8 @@ if (BattleResult.Player_Combat is not null)
                     }
                     else if (searchStarted && line.StartsWith("\tfirst_name=")) //# FIRST NAME
                     {
+                        if (isKnight && searchingKnight != null)
+                            searchingKnight.SetName(Regex.Match(line, "\"(.+)\"").Groups[1].Value);
                         if (isCommander)
                         {
                             nonMainCommander_Name = Regex.Match(line, "\"(.+)\"").Groups[1].Value;
@@ -1442,7 +1445,8 @@ if (BattleResult.Player_Combat is not null)
                 var mainArmy = left_side_armies.FirstOrDefault(x => x.isMainArmy && !x.IsGarrison());
                 if (mainArmy != null)
                 {
-                    mainArmy.SetCommander(new CommanderSystem(left_main_commander_data.name, left_main_commander_data.id, left_main_commander_data.prowess, left_main_commander_data.martial, left_main_commander_data.rank, true));
+                    if (!StatFidelity.StatFidelitySession.EnsureNativeCommanderRepresentation(mainArmy))
+                        mainArmy.SetCommander(new CommanderSystem(left_main_commander_data.name, left_main_commander_data.id, left_main_commander_data.prowess, left_main_commander_data.martial, left_main_commander_data.rank, true));
                 }
             }
 
@@ -1453,7 +1457,8 @@ if (BattleResult.Player_Combat is not null)
                 var mainArmy = right_side_armies.FirstOrDefault(x => x.isMainArmy && !x.IsGarrison());
                 if (mainArmy != null)
                 {
-                    mainArmy.SetCommander(new CommanderSystem(right_main_commander_data.name, right_main_commander_data.id, right_main_commander_data.prowess, right_main_commander_data.martial, right_main_commander_data.rank, true));
+                    if (!StatFidelity.StatFidelitySession.EnsureNativeCommanderRepresentation(mainArmy))
+                        mainArmy.SetCommander(new CommanderSystem(right_main_commander_data.name, right_main_commander_data.id, right_main_commander_data.prowess, right_main_commander_data.martial, right_main_commander_data.rank, true));
                 }
             }
             Program.Logger.Debug("Finished creating main commanders.");
@@ -1473,6 +1478,11 @@ if (BattleResult.Player_Combat is not null)
                 for (int x = 0; x < left_side_armies.Count; x++)
                 {
                     var army = left_side_armies[x];
+                    if (StatFidelity.StatFidelitySession.TryCreateNativeKnights(army, CK3LogData.LeftSide.GetKnights(), out var nativeKnights))
+                    {
+                        army.SetKnights(nativeKnights);
+                        continue;
+                    }
                     for (int y = 0; y < army.ArmyRegiments.Count; y++)
                     {
                         var regiment = army.ArmyRegiments[y];
@@ -1528,6 +1538,11 @@ if (BattleResult.Player_Combat is not null)
                 for (int x = 0; x < right_side_armies.Count; x++)
                 {
                     var army = right_side_armies[x];
+                    if (StatFidelity.StatFidelitySession.TryCreateNativeKnights(army, CK3LogData.RightSide.GetKnights(), out var nativeKnights))
+                    {
+                        army.SetKnights(nativeKnights);
+                        continue;
+                    }
                     for (int y = 0; y < army.ArmyRegiments.Count; y++)
                     {
                         var regiment = army.ArmyRegiments[y];

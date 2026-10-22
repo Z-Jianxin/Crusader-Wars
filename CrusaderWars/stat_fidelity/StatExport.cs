@@ -23,6 +23,17 @@ namespace CrusaderWars.StatFidelity
         public string Identity => Side + ":" + ArmyId + ":" + RegimentId + ":" + OwnerId;
     }
 
+    public sealed class LevyStats
+    {
+        public string Side { get; set; } = "";
+        public string OwnerId { get; set; } = "";
+        public double Damage { get; set; }
+        public double Toughness { get; set; }
+        public double BaseDamage { get; set; }
+        public double BaseToughness { get; set; }
+        public string Identity => Side + ":" + OwnerId;
+    }
+
     public sealed class CommanderStats
     {
         public string Side { get; set; } = "";
@@ -47,6 +58,7 @@ namespace CrusaderWars.StatFidelity
         public string BattleId { get; internal set; } = "";
         public bool Complete { get; internal set; }
         public List<RegimentStats> Regiments { get; } = new List<RegimentStats>();
+        public Dictionary<string, LevyStats> Levies { get; } = new Dictionary<string, LevyStats>(StringComparer.Ordinal);
         public Dictionary<string, CommanderStats> Commanders { get; } = new Dictionary<string, CommanderStats>(StringComparer.Ordinal);
         public Dictionary<string, KnightStats> Knights { get; } = new Dictionary<string, KnightStats>(StringComparer.Ordinal);
         public List<string> Diagnostics { get; } = new List<string>();
@@ -130,7 +142,7 @@ namespace CrusaderWars.StatFidelity
             if (result.BattleId.Length == 0) result.Diagnostics.Add("No versioned stat export available; legacy conversion retained.");
             if (!result.Complete)
             {
-                result.Regiments.Clear(); result.Commanders.Clear(); result.Knights.Clear();
+                result.Regiments.Clear(); result.Levies.Clear(); result.Commanders.Clear(); result.Knights.Clear();
             }
             return result;
         }
@@ -155,9 +167,22 @@ namespace CrusaderWars.StatFidelity
                 result.Regiments.Add(row);
                 return true;
             }
+            if (f[2] == "LEVY" && f.Length == 9 && Side(f[3]) && Identifier(f[4]) && f[4] != "none" &&
+                Number(f[5], 0, 1000000, out double levyDamage) && Number(f[6], 0, 1000000, out double levyToughness) &&
+                Number(f[7], 0.000001, 1000000, out double levyBaseDamage) && Number(f[8], 0.000001, 1000000, out double levyBaseToughness))
+            {
+                string key = f[3] + ":" + f[4];
+                if (!identities.Add("levy:" + key))
+                {
+                    result.Levies.Remove(key); reason = "Duplicate levy owner/side rejected: " + key; return false;
+                }
+                result.Levies.Add(key, new LevyStats { Side = f[3], OwnerId = f[4], Damage = levyDamage, Toughness = levyToughness, BaseDamage = levyBaseDamage, BaseToughness = levyBaseToughness });
+                return true;
+            }
             if (f[2] == "COMMANDER" && f.Length == 7 && Side(f[3]) && Identifier(f[4]) &&
                 Number(f[5], -1000, 1000, out double advantage) && Number(f[6], 0, 1, out double coefficient))
             {
+                if (f[4] == "none" && advantage != 0) return false;
                 if (!identities.Add("commander:" + f[3]))
                 {
                     result.Commanders.Remove(f[3]); reason = "Duplicate commander side rejected: " + f[3]; return false;

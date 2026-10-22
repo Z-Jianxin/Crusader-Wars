@@ -8,13 +8,14 @@ from analyze import analyze
 
 
 class CalibrationAnalysisTests(unittest.TestCase):
-    def summarize(self, lines, extra_matches=()):
+    def summarize(self, lines, extra_matches=(), native_roster_control=False, native_scenario=False):
         with tempfile.TemporaryDirectory(prefix="cc-calibration-analysis-") as temporary:
             directory = Path(temporary)
             matches = [{"Label": "damage2_r1", "Case": "damage2", "Mirrored": False,
                         "LeftKey": "strong", "RightKey": "baseline"}, *extra_matches]
             (directory / "manifest.json").write_text(json.dumps({
-                "suite": "infantry", "baseUnit": "native", "matches": matches}), encoding="utf-8")
+                "suite": "infantry", "baseUnit": "native", "matches": matches,
+                "nativeRosterControl": native_roster_control, "nativeScenario": native_scenario}), encoding="utf-8")
             (directory / "battle.csv").write_text("\n".join("1,infantry," + line for line in lines), encoding="utf-8")
             return analyze(directory)["runs"][0]
 
@@ -57,6 +58,36 @@ class CalibrationAnalysisTests(unittest.TestCase):
         self.assertTrue(run["eligible"])
         self.assertTrue(run["case_summaries"]["damage2"]["trials"][0]["contaminated"])
         self.assertEqual(run["case_summaries"]["damage2"]["valid_trials"], 0)
+
+    def test_structural_native_roster_control_is_not_stat_evidence(self):
+        run = self.summarize(self.complete_lines(), native_roster_control=True)
+        self.assertFalse(run["eligible"])
+        self.assertEqual(run["case_summaries"]["damage2"]["valid_trials"], 0)
+
+    def test_idle_timeout_is_not_valid_casualty_evidence(self):
+        lines = self.complete_lines()[:3] + [
+            "FINAL,300,damage2_r1,60,60,0,0,false,false", "COMPLETE,300,300_second_timeout"]
+        run = self.summarize(lines)
+        self.assertTrue(run["eligible"])
+        case = run["case_summaries"]["damage2"]
+        self.assertFalse(case["trials"][0]["casualties_observed"])
+        self.assertEqual(case["valid_trials"], 0)
+        self.assertIsNone(case["median_survivor_margin"])
+
+    def test_native_placement_and_lane_bounds_gate_combat_evidence(self):
+        valid = self.complete_lines()
+        valid.insert(3, "ATTACK_ORDER,0,damage2_r1,-35,0,35,0,-35,0,35,0")
+        self.assertEqual(self.summarize(valid, native_scenario=True)["case_summaries"]["damage2"]["valid_trials"], 1)
+        for record, flag in [
+            ("ATTACK_ORDER,0,damage2_r1,-200,0,35,0,-35,0,35,0", "placement_valid"),
+            ("POSITION,5,damage2_r1,-35,1000,35,0,-35,0,35,0", "outside_bounds"),
+            ("POSITION,5,damage2_r1,-35,50,35,0,-35,0,35,0", "lane_departure")]:
+            rows = self.complete_lines()
+            rows.insert(3, record if flag == "placement_valid" else valid[3])
+            if flag != "placement_valid": rows.insert(4, record)
+            case = self.summarize(rows, native_scenario=True)["case_summaries"]["damage2"]
+            self.assertEqual(case["valid_trials"], 0)
+            self.assertEqual(case["trials"][0][flag], flag != "placement_valid")
 
 
 if __name__ == "__main__":

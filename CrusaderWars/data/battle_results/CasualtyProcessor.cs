@@ -469,7 +469,7 @@ namespace CrusaderWars.data.battle_results
                     // We assume the 'starting' is the same as 'remaining' if no casualties, 
                     // but since we don't have the individual starting count per Attila unit record in the log,
                     // we use the Unit object's soldiers count as a base, distributed if necessary.
-                    if (StatFidelity.StatFidelitySession.IsCalibratedKnightUnit(typeIdentifier))
+                    if (unitType == RegimentType.Knight || unitType == RegimentType.Commander)
                         starting = matchingUnit.GetOriginalSoldiers();
                     else if (matchingUnit.SourceIdentity != null)
                     {
@@ -593,18 +593,20 @@ namespace CrusaderWars.data.battle_results
                 }
 
                 // Handle combined unit first
-                foreach (var calibrated in allKnightUnitReports.Where(r => StatFidelity.StatFidelitySession.IsCalibratedKnightUnit(r.Type)))
-                {
-                    if (!Int32.TryParse(calibrated.Remaining, out int remaining) || remaining < 0)
-                        throw new InvalidOperationException("Invalid calibrated knight survivor report.");
-                    army.Knights.GetKilled(remaining, alreadyUnscaled: true);
-                }
-                var combinedUnitReport = allKnightUnitReports.FirstOrDefault(r => r.Type == "knights");
-                if (combinedUnitReport != default)
+                var poolReports = allKnightUnitReports.Where(r => StatFidelity.StatFidelitySession.IsKnightPoolType(r.Type)).ToArray();
+                if (poolReports.Any())
                 {
                     int remaining = 0;
-                    Int32.TryParse(combinedUnitReport.Remaining, out remaining);
-                    army.Knights.GetKilled(remaining);
+                    foreach (var report in poolReports)
+                    {
+                        if (!Int32.TryParse(report.Remaining, out int value) || value < 0)
+                            throw new InvalidOperationException("Invalid knight survivor report.");
+                        remaining = checked(remaining + value);
+                    }
+                    // One character pool can be represented by several formations.
+                    // Sum once before one fate pass; these counts already describe the
+                    // actual retinue bodies and must not be unscaled a second time.
+                    army.Knights.GetKilled(remaining, alreadyUnscaled: true);
                 }
             }
 
@@ -621,11 +623,10 @@ namespace CrusaderWars.data.battle_results
             Program.Logger.Debug($"Checking knight kills for army {army.ID}");
             if (army.Knights != null && army.Knights.HasKnights())
             {
-                var knightKillsReport = army.UnitsResults?.Kills_MainPhase.FirstOrDefault(x => x.Type == "knights" || StatFidelity.StatFidelitySession.IsCalibratedKnightUnit(x.Type));
                 int kills = 0;
-                if (knightKillsReport.HasValue && knightKillsReport.Value.Item4 != null)
+                foreach (var report in army.UnitsResults?.Kills_MainPhase.Where(x => StatFidelity.StatFidelitySession.IsKnightPoolType(x.Type)) ?? Enumerable.Empty<(string Script, string Type, string CultureID, string Kills)>())
                 {
-                    Int32.TryParse(knightKillsReport.Value.Item4, out kills);
+                    if (Int32.TryParse(report.Kills, out int value) && value >= 0) kills = checked(kills + value);
                 }
 
                 army.Knights.GetKills(kills);

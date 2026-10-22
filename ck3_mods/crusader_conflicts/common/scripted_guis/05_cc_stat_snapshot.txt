@@ -1,5 +1,7 @@
 ﻿# Numeric snapshot data is collected only for the combat selected by the handoff.
-# Every side participant -> actual armies on that side -> army MAA (including hired).
+# Scan the selected combat location and filter exact side membership. A side
+# participant/contribution iterator can omit fresh allied reinforcements.
+# Include their actual armies immediately, before their first damage tick.
 # Regiment identities remain distinct even when culture and type are identical.
 ccstat_prepare_snapshot = {
     effect = {
@@ -9,6 +11,7 @@ ccstat_prepare_snapshot = {
         }
         else = { set_variable = { name = ccstat_snapshot_serial value = 1 } }
         set_variable = { name = ccstat_combat value = scope:ccstat_selected_combat }
+        clear_variable_list = ccstat_attacker_levy_owners
         clear_variable_list = ccstat_attacker_regiments
         clear_variable_list = ccstat_attacker_knights
         remove_variable = ccstat_attacker_commander
@@ -17,11 +20,20 @@ ccstat_prepare_snapshot = {
             side_commander ?= {
                 root = { set_variable = { name = ccstat_attacker_commander value = prev } }
             }
-            every_side_participant = {
-                every_army = {
+            scope:ccstat_selected_combat.location = {
+                every_army_in_location = {
                     limit = {
                         exists = involved_combat_side
                         involved_combat_side = scope:ccstat_side
+                    }
+                    army_owner = {
+                        save_scope_as = ccstat_levy_owner
+                        root = {
+                            if = {
+                                limit = { NOT = { any_in_list = { variable = ccstat_attacker_levy_owners this = scope:ccstat_levy_owner } } }
+                                add_to_variable_list = { name = ccstat_attacker_levy_owners target = scope:ccstat_levy_owner }
+                            }
+                        }
                     }
                     every_army_maa_regiment = {
                         # Hired regiments are included by default in this iterator.
@@ -41,6 +53,7 @@ ccstat_prepare_snapshot = {
                 root = { add_to_variable_list = { name = ccstat_attacker_knights target = prev } }
             }
         }
+        clear_variable_list = ccstat_defender_levy_owners
         clear_variable_list = ccstat_defender_regiments
         clear_variable_list = ccstat_defender_knights
         remove_variable = ccstat_defender_commander
@@ -49,11 +62,20 @@ ccstat_prepare_snapshot = {
             side_commander ?= {
                 root = { set_variable = { name = ccstat_defender_commander value = prev } }
             }
-            every_side_participant = {
-                every_army = {
+            scope:ccstat_selected_combat.location = {
+                every_army_in_location = {
                     limit = {
                         exists = involved_combat_side
                         involved_combat_side = scope:ccstat_side
+                    }
+                    army_owner = {
+                        save_scope_as = ccstat_levy_owner
+                        root = {
+                            if = {
+                                limit = { NOT = { any_in_list = { variable = ccstat_defender_levy_owners this = scope:ccstat_levy_owner } } }
+                                add_to_variable_list = { name = ccstat_defender_levy_owners target = scope:ccstat_levy_owner }
+                            }
+                        }
                     }
                     every_army_maa_regiment = {
                         # Hired regiments are included by default in this iterator.
@@ -136,6 +158,38 @@ ccstat_select_defender_knight = {
         if = {
             limit = { has_variable = ccstat_current_knight }
             remove_list_variable = { name = ccstat_defender_knights target = var:ccstat_current_knight }
+        }
+    }
+}
+
+# Owner profiles also cover armies with no MAA anchor.
+ccstat_select_attacker_levy_owner = {
+    effect = {
+        remove_variable = ccstat_current_levy_owner
+        every_in_list = {
+            variable = ccstat_attacker_levy_owners
+            limit = { NOT = { root = { has_variable = ccstat_current_levy_owner } } }
+            root = { set_variable = { name = ccstat_current_levy_owner value = prev } }
+        }
+        if = {
+            limit = { has_variable = ccstat_current_levy_owner }
+            remove_list_variable = { name = ccstat_attacker_levy_owners target = var:ccstat_current_levy_owner }
+        }
+    }
+}
+
+# Owner profiles also cover armies with no MAA anchor.
+ccstat_select_defender_levy_owner = {
+    effect = {
+        remove_variable = ccstat_current_levy_owner
+        every_in_list = {
+            variable = ccstat_defender_levy_owners
+            limit = { NOT = { root = { has_variable = ccstat_current_levy_owner } } }
+            root = { set_variable = { name = ccstat_current_levy_owner value = prev } }
+        }
+        if = {
+            limit = { has_variable = ccstat_current_levy_owner }
+            remove_list_variable = { name = ccstat_defender_levy_owners target = var:ccstat_current_levy_owner }
         }
     }
 }

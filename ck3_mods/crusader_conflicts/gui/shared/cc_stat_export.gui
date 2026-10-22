@@ -152,13 +152,25 @@ types CCStatExportTypes {
         state = {
             name = ccstat_decide_defender_knight
             duration = 0.1
-            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetPlayer.MakeScope.HasFlag('ccstat_current_knight'), 'ccstat_emit_defender_knight', 'ccstat_end'))]"
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetPlayer.MakeScope.HasFlag('ccstat_current_knight'), 'ccstat_emit_defender_knight', 'ccstat_start_levies'))]"
         }
         state = {
             name = ccstat_emit_defender_knight
             duration = 0.1
             next = ccstat_select_defender_knight
             on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT', Concatenate('|', Concatenate('v1', Concatenate('|', Concatenate('KNIGHT', Concatenate('|', Concatenate('defender', Concatenate('|', Concatenate(UIntToString(GetPlayer.MakeScope.Var('ccstat_current_knight').Char.GetID), Concatenate('|', Concatenate(IntToString(GetPlayer.MakeScope.Var('ccstat_current_knight').Char.GetProwess), Concatenate('|', Concatenate(CCStatDecimal(GetPlayer.MakeScope.Var('ccstat_current_knight').Char.GetKnightArmy.GetOwner.GetKnightEffectiveness), Concatenate('|', Concatenate(CCStatDecimal(IntToFixedPoint(GetDefine('NCombat', 'KNIGHT_DAMAGE_PER_PROWESS'))), Concatenate('|', CCStatDecimal(IntToFixedPoint(GetDefine('NCombat', 'KNIGHT_TOUGHNESS_PER_PROWESS'))))))))))))))))))))]"
+        }
+        state = {
+            name = ccstat_start_levies
+            duration = 0.1
+            next = ccstat_wait_levies
+            on_start = "[GetVariableSystem.Clear('ccstat_levies_complete')]"
+            on_finish = "[PdxGuiTriggerAllAnimations('ccstat_levy_begin')]"
+        }
+        state = {
+            name = ccstat_wait_levies
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetVariableSystem.HasValue('ccstat_levies_complete', 'yes'), 'ccstat_end', 'ccstat_wait_levies'))]"
         }
         state = {
             name = ccstat_end
@@ -171,6 +183,60 @@ types CCStatExportTypes {
             duration = 0.1
             on_finish = "[GetVariableSystem.Clear('ccstat_active')]"
             on_finish = "[GetVariableSystem.Set('ccstat_complete', 'yes')]"
+        }
+    }
+    # Levies are a native virtual/null MenAtArmsType. The independent context
+    # uses an empty regiment/type without inheriting MAA context or looking
+    # up nonexistent database keys. Verified against the native levy view.
+    type cc_stat_levy_export = widget {
+        name = ccstat_levy_profiles
+        size = { 0 0 }
+        alwaystransparent = yes
+        datacontext = "[EmptyScope.GetRootScope.Regiment]"
+        datacontext = "[Regiment.GetMAAType]"
+        state = {
+            name = ccstat_levy_begin
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation('ccstat_select_attacker_levy_owner')]"
+        }
+        state = {
+            name = ccstat_select_attacker_levy_owner
+            duration = 0.1
+            next = ccstat_decide_attacker_levy_owner
+            on_finish = "[GetScriptedGui('ccstat_select_attacker_levy_owner').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+        }
+        state = {
+            name = ccstat_decide_attacker_levy_owner
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetPlayer.MakeScope.HasFlag('ccstat_current_levy_owner'), 'ccstat_emit_attacker_levy_owner', 'ccstat_select_defender_levy_owner'))]"
+        }
+        state = {
+            name = ccstat_emit_attacker_levy_owner
+            duration = 0.1
+            next = ccstat_select_attacker_levy_owner
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT|v1|LEVY|attacker|', Concatenate(UIntToString(GetPlayer.MakeScope.Var('ccstat_current_levy_owner').Char.GetID), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(GetPlayer.MakeScope.Var('ccstat_current_levy_owner').Char, GetNullProvince, GetNullLandedTitle, 'damage')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(GetPlayer.MakeScope.Var('ccstat_current_levy_owner').Char, GetNullProvince, GetNullLandedTitle, 'toughness')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'damage')), Concatenate('|', CCStatDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'toughness'))))))))))))]"
+        }
+        state = {
+            name = ccstat_select_defender_levy_owner
+            duration = 0.1
+            next = ccstat_decide_defender_levy_owner
+            on_finish = "[GetScriptedGui('ccstat_select_defender_levy_owner').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+        }
+        state = {
+            name = ccstat_decide_defender_levy_owner
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetPlayer.MakeScope.HasFlag('ccstat_current_levy_owner'), 'ccstat_emit_defender_levy_owner', 'ccstat_levies_finished'))]"
+        }
+        state = {
+            name = ccstat_emit_defender_levy_owner
+            duration = 0.1
+            next = ccstat_select_defender_levy_owner
+            on_finish = "[ExecuteConsoleCommand(Concatenate('CCSTAT|v1|LEVY|defender|', Concatenate(UIntToString(GetPlayer.MakeScope.Var('ccstat_current_levy_owner').Char.GetID), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(GetPlayer.MakeScope.Var('ccstat_current_levy_owner').Char, GetNullProvince, GetNullLandedTitle, 'damage')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(GetPlayer.MakeScope.Var('ccstat_current_levy_owner').Char, GetNullProvince, GetNullLandedTitle, 'toughness')), Concatenate('|', Concatenate(CCStatDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'damage')), Concatenate('|', CCStatDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'toughness'))))))))))))]"
+        }
+        state = {
+            name = ccstat_levies_finished
+            duration = 0.1
+            on_finish = "[GetVariableSystem.Set('ccstat_levies_complete', 'yes')]"
         }
     }
 }

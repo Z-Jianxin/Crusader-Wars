@@ -3,6 +3,7 @@ using CrusaderWars.armies;
 using CrusaderWars.client;
 using CrusaderWars.data.battle_results;
 using CrusaderWars.data.save_file;
+using CrusaderWars.locs;
 using CrusaderWars.StatFidelity;
 using CrusaderWars.twbattle;
 using CrusaderWars.unit_mapper;
@@ -28,8 +29,9 @@ internal static class Replay
             var flags = ParseArguments(args);
             if (flags.ContainsKey("help"))
             {
-                Console.WriteLine("Offline CK3 battle replay: --runtime DIR --save FILE --log FILE --out NEW_DIR [--mapper DefaultCK3] [--export-only] [--attila EXE] [--stat-settings JSON]");
+                Console.WriteLine("Offline CK3 battle replay: --runtime DIR --save FILE --log FILE --out NEW_DIR [--mapper DefaultCK3] [--export-only | --snapshot-only --player-id ID] [--attila EXE] [--stat-cache DIR] [--stat-settings JSON] [--casualty-smoke]");
                 Console.WriteLine("Copies inputs into a new output directory. Never launches games or writes a campaign save. --attila additionally generates database TSV variants from installed packs, without loading a game.");
+                Console.WriteLine("--ck3-user-dir DIR selects the source CK3 user directory for read-only active-mod/landed-title lookups; defaults to Documents/Paradox Interactive/Crusader Kings III.");
                 return 0;
             }
             string runtime = Path.GetFullPath(Required(flags, "runtime"));
@@ -45,6 +47,9 @@ internal static class Replay
             Directory.CreateDirectory(output);
             stage = "isolate-inputs";
             CopyTree(Path.Combine(runtime, "data", "battle files"), Path.Combine(output, "data", "battle files"));
+            CopyTree(Path.Combine(runtime, "data", "traits"), Path.Combine(output, "data", "traits"));
+            CopyTree(Path.Combine(runtime, "data", "terrains_images"), Path.Combine(output, "data", "terrains_images"));
+            CopyTree(Path.Combine(runtime, "data", "units_cards_names"), Path.Combine(output, "data", "units_cards_names"));
             CopyTree(Path.Combine(runtime, "unit mappers"), Path.Combine(output, "unit mappers"));
             CopyTree(Path.Combine(runtime, "settings"), Path.Combine(output, "settings"));
             Directory.CreateDirectory(Path.Combine(output, "data", "save_file_data", "temp"));
@@ -75,7 +80,16 @@ internal static class Replay
             stage = "extract-save";
             ExtractSave(isolatedSave, gamestate);
             string logText = HomePage.RemoveASCII(File.ReadAllText(Path.Combine(output, "inputs", "console.log")));
+            if (flags.ContainsKey("snapshot-only"))
+            {
+                stage = "native-snapshot-validation";
+                ValidateSnapshotOnly(gamestate, logText, Required(flags, "player-id"), output);
+                Console.WriteLine("Native snapshot validated: " + output);
+                return 0;
+            }
             stage = "read-log";
+            ConfigureReadOnlyGamePaths(flags.GetValueOrDefault("ck3-user-dir",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Paradox Interactive", "Crusader Kings III")), output);
             DataSearch.Search(logText);
             if (BattleState.IsSiegeBattle) throw new NotSupportedException("This replay harness currently validates field battles only.");
             stage = "load-mapper";
@@ -91,7 +105,7 @@ internal static class Replay
             {
                 stage = "validate-regiment-coverage";
                 foreach (var army in attackers.Concat(defenders))
-                    foreach (var unit in army.Units.Where(u => u.GetRegimentType() == RegimentType.MenAtArms && !u.IsSiege()))
+                    foreach (var unit in army.Units.Where(u => u.GetRegimentType() is RegimentType.MenAtArms or RegimentType.Levy && !u.IsSiege()))
                     {
                         string key = unit.GetAttilaUnitKey();
                         if (string.IsNullOrWhiteSpace(key) || key == UnitMappers_BETA.NOT_FOUND_KEY)
@@ -116,6 +130,14 @@ internal static class Replay
             BattleFile.SetArmiesSides(attackers, defenders);
             UnitsFile.ResetProcessedArmies();
             StatFidelitySession.ResetGeneration();
+            if (StatFidelitySession.Settings.EnableKnightCalibration && StatFidelitySession.Settings.KnightBudgetMode == "Anchored")
+            {
+                stage = "prepare-knight-database";
+                EnsureBackendAssets(runtime, output);
+                string attilaForBudget = flags.TryGetValue("attila", out var selectedAttila) ? Path.GetFullPath(selectedAttila, originalDirectory) : CrusaderWars.Properties.Settings.Default.VAR_attila_path;
+                string? cache = flags.TryGetValue("stat-cache", out var selectedCache) ? Path.GetFullPath(selectedCache, originalDirectory) : null;
+                StatFidelitySession.PrepareKnightBudgetDatabase(output, attilaForBudget, cache);
+            }
             foreach (var army in attackers.Concat(defenders)) StatFidelitySession.PrepareKnightCalibration(army);
             if (!ModOptions.CombineKnightsEnabled())
                 typeof(BattleProcessor).GetMethod("ProcessProminentKnights", BindingFlags.NonPublic | BindingFlags.Static)!
@@ -126,6 +148,13 @@ internal static class Replay
             DeclarationsFile.Erase();
             BattleScript.EraseScript(false);
             Data.units_scripts.Clear();
+            UnitsCardsNames.RemoveFiles();
+            var leftSide = ArmiesReader.GetSideArmies("left", attackers, defenders);
+            var rightSide = ArmiesReader.GetSideArmies("right", attackers, defenders);
+            if (leftSide == null || rightSide == null || leftSide.Count == 0 || rightSide.Count == 0)
+                throw new InvalidOperationException("Current battle has no complete left/right side context.");
+            BattleDetails.ChangeBattleDetails(leftSide.Sum(a => a.GetTotalSoldiers()), rightSide.Sum(a => a.GetTotalSoldiers()),
+                leftSide[0].CombatSide, rightSide[0].CombatSide);
             BattleScript.CreateScript();
             int soldiers = attackers.Concat(defenders).Sum(a => a.Units.Sum(u => u.GetSoldiers()));
             ArmyProportions.AutoSizeUnits(soldiers);
@@ -144,20 +173,36 @@ internal static class Replay
             if (flags.TryGetValue("attila", out var attila))
             {
                 stage = "generate-database";
-                CopyTree(Path.Combine(runtime, "data", "rpfm"), Path.Combine(output, "data", "rpfm"));
-                File.Copy(Path.Combine(runtime, "data", "schema_att.ron"), Path.Combine(output, "data", "schema_att.ron"));
-                StatFidelityBackend.Generate(output, Path.GetFullPath(attila, originalDirectory), StatFidelitySession.PendingProfiles);
+                EnsureBackendAssets(runtime, output);
+                if (StatFidelitySession.PreparedDatabase != null)
+                    StatFidelitySession.PreparedDatabase.Generate(StatFidelitySession.PendingProfiles, Path.Combine(output, "data", "battle files"));
+                else StatFidelityBackend.Generate(output, Path.GetFullPath(attila, originalDirectory), StatFidelitySession.PendingProfiles);
                 databaseGenerated = true;
             }
             var battleXml = Directory.GetFiles(Path.Combine(output, "data", "battle files"), "tut_battle.xml", SearchOption.AllDirectories).Single();
-            XDocument.Load(battleXml); // Verify generated XML is structurally readable.
+            var battleDocument = XDocument.Load(battleXml);
+            var emittedScripts = battleDocument.Descendants("unit").Select(u => u.Attribute("script_name")?.Value ?? "").ToArray();
+            var generatedCharacters = attackers.Concat(defenders).SelectMany(a => new[] { a }.Concat(a.MergedArmies)).DistinctBy(a => a.ID)
+                .SelectMany(a => a.Units).Where(u => u.GetSoldiers() > 0 && u.GetRegimentType() is RegimentType.Commander or RegimentType.Knight).ToArray();
+            foreach (var unit in generatedCharacters)
+                if (emittedScripts.Count(s => s.Contains("_" + unit.UniqueID + "_CULTURE", StringComparison.Ordinal)) != 1)
+                    throw new InvalidOperationException("A character placeholder remained in the battle roster without exactly one XML formation: " + unit.UniqueID);
+            object? casualtySmoke = null;
+            if (flags.ContainsKey("casualty-smoke"))
+            {
+                stage = "synthetic-casualty-roundtrip";
+                casualtySmoke = CasualtySmoke.Run(attackers, defenders, gamestate, battleXml, output);
+            }
             WriteJson(Path.Combine(output, "result.json"), new
             {
                 success = true, stage = "complete", BattleResult.CombatID,
                 playerId = DataSearch.Player_Character?.GetID(), snapshotId = StatFidelitySession.Export.BattleId,
+                parsedBattleDate = new { Date.Year, Date.Month, Date.Day },
+                handoffContext = HandoffLog.SelectLatest(logText, true).Fields,
+                battlePresentation = new { BattleDetails.Name, leftRealm = CK3LogData.LeftSide.GetRealmName(), rightRealm = CK3LogData.RightSide.GetRealmName() },
                 StatFidelitySession.SaveEvidenceValidated, mapper = UnitMappers_BETA.GetLoadedUnitMapperName(), requiredPacks,
                 attackerArmies = attackers.Count, defenderArmies = defenders.Count,
-                generatedProfiles = StatFidelitySession.PendingProfiles.Count, databaseGenerated,
+                generatedProfiles = StatFidelitySession.PendingProfiles.Count, generatedCharacterFormations = generatedCharacters.Length, databaseGenerated, casualtySmoke,
                 gameLaunched = false, campaignSaveWritten = false,
                 validationLimit = "Offline conversion only; no claim of Attila engine loading, battle balance, or gameplay casualty return."
             });
@@ -181,9 +226,79 @@ internal static class Replay
     private static object ArmySummary(Army army) => new
     {
         army.ID, army.CombatSide, army.CommanderID,
-        units = army.Units.Select(u => new { u.UniqueID, name = u.GetName(), type = u.GetRegimentType().ToString(), soldiers = u.GetSoldiers(), u.SourceIdentity, u.SourceOwnerId, u.OriginalAttilaKey, key = u.GetAttilaUnitKey() }),
+        units = army.Units.Select(u => new { u.UniqueID, name = u.GetName(), type = u.GetRegimentType().ToString(), soldiers = u.GetSoldiers(), u.SourceIdentity, u.SourceOwnerId, u.SourceOriginProvinceId, u.OriginalAttilaKey, key = u.GetAttilaUnitKey() }),
         merged = (army.MergedArmies ?? new List<Army>()).Select(ArmySummary)
     };
+
+    private static void ValidateSnapshotOnly(string gamestate, string log, string playerId, string output)
+    {
+        // This diagnostic mode intentionally does not invent legacy battle log fields.
+        // It checks a real native snapshot and its save independently of GUI handoff.
+        StatFidelitySession.Begin(log);
+        Reader.ReadFile(gamestate);
+        BattleResult.ReadPlayerCombat(StatFidelitySession.Export.Commanders["attacker"].CharacterId);
+        if (string.IsNullOrWhiteSpace(BattleResult.Player_Combat)) throw new InvalidOperationException("No saved combat matched the exported attacker commander.");
+        StatFidelitySession.ValidateSaveEvidence(Writter.DataFilesPaths.Living_Path(), playerId, BattleResult.CombatID ?? "");
+        var attackerField = typeof(ArmiesReader).GetField("attacker_armies", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var defenderField = typeof(ArmiesReader).GetField("defender_armies", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var attackers = (List<Army>)attackerField.GetValue(null)!;
+        var defenders = (List<Army>)defenderField.GetValue(null)!;
+        attackers.Clear(); defenders.Clear();
+        InvokeArmyReader("ReadCombatArmies", BattleResult.Player_Combat);
+        attackers = (List<Army>)attackerField.GetValue(null)!;
+        defenders = (List<Army>)defenderField.GetValue(null)!;
+        InvokeArmyReader("ReadArmiesData");
+        InvokeArmyReader("ReadArmiesUnits");
+        InvokeArmyReader("ReadArmyRegiments");
+        InvokeArmyReader("ReadRegiments");
+        if (attackers.Count == 0 || defenders.Count == 0) throw new InvalidOperationException("The selected save combat has no two-sided army roster.");
+        var coverage = new List<object>();
+        var matched = new HashSet<string>(StringComparer.Ordinal);
+        var knightCoverage = new List<object>();
+        foreach (var army in attackers.Concat(defenders))
+        {
+            foreach (var armyRegiment in army.ArmyRegiments.Where(r => r.Type == RegimentType.MenAtArms))
+                foreach (var source in armyRegiment.Regiments)
+                {
+                    string owner = string.IsNullOrEmpty(source.Owner) ? army.Owner?.GetID() ?? "" : source.Owner;
+                    var rows = StatFidelitySession.Export.Regiments.Where(r => r.Side == army.CombatSide &&
+                        r.RegimentId == source.ID && r.OwnerId == owner && (r.ArmyId == "none" || r.ArmyId == army.ID) &&
+                        (r.Type == "source" || r.Type == armyRegiment.MAA_Name)).ToArray();
+                    if (rows.Length != 1) throw new InvalidOperationException("Snapshot has " + rows.Length + " matches for source " + army.CombatSide + ":" + army.ID + ":" + source.ID + ":" + owner);
+                    var stats = rows[0];
+                    string origin = string.IsNullOrEmpty(source.Origin) ? "none" : source.Origin;
+                    if (origin != stats.StationProvinceId) throw new InvalidOperationException("Native origin/station mismatch for " + source.ID);
+                    matched.Add(stats.Identity);
+                    coverage.Add(new { side = army.CombatSide, armyId = army.ID, armyRegimentId = armyRegiment.ID,
+                        sourceId = source.ID, chunkIndex = source.Index, ownerId = owner, originProvinceId = origin, type = armyRegiment.MAA_Name,
+                        source.CurrentNum, source.Max, stats.Damage, stats.Toughness, stats.BaseDamage, stats.BaseToughness,
+                        ratioAvailable = stats.BaseDamage > 0 && stats.BaseToughness > 0 });
+                }
+            foreach (var knight in army.ArmyRegiments.Where(r => r.Type == RegimentType.Knight))
+            {
+                if (!StatFidelitySession.Export.Knights.TryGetValue(army.CombatSide + ":" + knight.MAA_Name, out var stats))
+                    throw new InvalidOperationException("Snapshot is missing native knight " + army.CombatSide + ":" + knight.MAA_Name);
+                knightCoverage.Add(new { side = army.CombatSide, armyId = army.ID, stats.CharacterId, stats.Prowess, stats.Effectiveness,
+                    stats.DamagePerProwess, stats.ToughnessPerProwess, isCommander = army.CommanderID == stats.CharacterId });
+            }
+        }
+        string[] unmatchedExportRows = StatFidelitySession.Export.Regiments.Where(r => !matched.Contains(r.Identity)).Select(r => r.Identity).ToArray();
+        if (unmatchedExportRows.Length > 0) throw new InvalidOperationException("Export includes regiment identities absent from the saved combat: " + string.Join(", ", unmatchedExportRows));
+        WriteJson(Path.Combine(output, "native-coverage.json"), new { regiments = coverage, knights = knightCoverage });
+        StatFidelitySession.WriteCoverageReport(output);
+        WriteJson(Path.Combine(output, "result.json"), new
+        {
+            success = true, stage = "native-snapshot-validated", BattleResult.CombatID, playerId,
+            snapshotId = StatFidelitySession.Export.BattleId, StatFidelitySession.SaveEvidenceValidated,
+            attackerArmies = attackers.Count, defenderArmies = defenders.Count,
+            coveredSourceChunks = coverage.Count, coveredKnights = knightCoverage.Count,
+            battleGenerated = false, databaseGenerated = false, gameLaunched = false, campaignSaveWritten = false,
+            validationLimit = "Native export/save binding and source coverage only. No legacy log fields were fabricated; mapper/battle generation is untested in this mode."
+        });
+    }
+
+    private static void InvokeArmyReader(string method, params object[] arguments) =>
+        typeof(ArmiesReader).GetMethod(method, BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, arguments);
 
     private static void LoadOptions()
     {
@@ -197,6 +312,30 @@ internal static class Replay
         ModOptions.optionsValuesCollection["CloseAttila"] = "Disabled";
         ModOptions.optionsValuesCollection["AutoScaleUnits"] = "Disabled";
         ModOptions.optionsValuesCollection["BattleScale"] = "100%";
+    }
+
+    private static void ConfigureReadOnlyGamePaths(string userDirectory, string output)
+    {
+        userDirectory = Path.GetFullPath(userDirectory);
+        if (!File.Exists(Path.Combine(userDirectory, "dlc_load.json")))
+            throw new FileNotFoundException("Pass --ck3-user-dir for the CK3 user directory used by this fixture.");
+        var paths = XDocument.Load(Path.Combine("settings", "Paths.xml"));
+        CrusaderWars.Properties.Settings.Default.VAR_ck3_path = paths.Descendants("CrusaderKings").Single().Attribute("path")?.Value ?? "";
+        CrusaderWars.Properties.Settings.Default.VAR_attila_path = paths.Descendants("TotalWarAttila").Single().Attribute("path")?.Value ?? "";
+        CrusaderWars.Properties.Settings.Default.VAR_log_ck3 = Path.Combine(userDirectory, "console_history.txt");
+        // Only the original game and mod definitions are read. No persistent user
+        // settings are saved, and campaign-output settings point into isolation.
+        CrusaderWars.Properties.Settings.Default.VAR_dir_save = Path.Combine(output, "isolated-campaign", "save games");
+        CrusaderWars.Properties.Settings.Default.VAR_log_attila = Path.Combine(output, "inputs", "unused-attila.log");
+        File.Copy(Path.Combine(userDirectory, "dlc_load.json"), Path.Combine(output, "inputs", "dlc_load.json"));
+    }
+
+    private static void EnsureBackendAssets(string runtime, string output)
+    {
+        if (!Directory.Exists(Path.Combine(output, "data", "rpfm")))
+            CopyTree(Path.Combine(runtime, "data", "rpfm"), Path.Combine(output, "data", "rpfm"));
+        if (!File.Exists(Path.Combine(output, "data", "schema_att.ron")))
+            File.Copy(Path.Combine(runtime, "data", "schema_att.ron"), Path.Combine(output, "data", "schema_att.ron"));
     }
 
     private static void ExtractSave(string save, string gamestate)
@@ -235,10 +374,10 @@ internal static class Replay
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
         for (int i = 0; i < args.Length; i++)
         {
-            if (args[i] is "--help" or "--export-only") { result[args[i][2..]] = ""; continue; }
+            if (args[i] is "--help" or "--export-only" or "--snapshot-only" or "--casualty-smoke") { result[args[i][2..]] = ""; continue; }
             if (!args[i].StartsWith("--") || i + 1 == args.Length) throw new ArgumentException("Expected --name value. Use --help.");
             string key = args[i][2..];
-            if (key is not ("runtime" or "save" or "log" or "out" or "mapper" or "attila" or "stat-settings")) throw new ArgumentException("Unknown option: " + key);
+            if (key is not ("runtime" or "save" or "log" or "out" or "mapper" or "attila" or "stat-settings" or "player-id" or "ck3-user-dir" or "stat-cache")) throw new ArgumentException("Unknown option: " + key);
             if (!result.TryAdd(key, args[++i])) throw new ArgumentException("Repeated option: " + key);
         }
         return result;

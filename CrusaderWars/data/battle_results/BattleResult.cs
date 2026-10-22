@@ -56,10 +56,18 @@ namespace CrusaderWars.data.battle_results
             {
                 bool isSearchStarted = false;
                 string battleID = "";
+                bool exactSnapshotCombat = StatFidelity.StatFidelitySession.Enabled && StatFidelity.StatFidelitySession.Export.Complete;
+                if (exactSnapshotCombat)
+                {
+                    using var living = new StreamReader(Writter.DataFilesPaths.Living_Path());
+                    if (!StatFidelity.SnapshotEvidence.TryResolveCombat(living, DataSearch.Player_Character?.GetID() ?? "",
+                        StatFidelity.StatFidelitySession.Export.BattleId, out battleID, out string reason))
+                        throw StatFidelity.StatFidelitySession.InvalidateHandoff(reason);
+                }
                 StringBuilder sb = new StringBuilder();
                 using (StreamReader sr = new StreamReader(Writter.DataFilesPaths.Combats_Path()))
                 {
-                    while (!sr.EndOfStream)
+                    while (!exactSnapshotCombat && !sr.EndOfStream)
                     {
                         string? line = sr.ReadLine();
                         if (line == null) break;
@@ -102,6 +110,8 @@ namespace CrusaderWars.data.battle_results
                 }
 
                 BattleResult.CombatID = battleID;
+                if (exactSnapshotCombat && sb.Length == 0)
+                    throw StatFidelity.StatFidelitySession.InvalidateHandoff("The native snapshot's exact combat is absent from the saved combats section.");
                 Player_Combat = sb.ToString();
                 Original_Player_Combat = sb.ToString();
                 Program.Logger.Debug("Combat ID - " + battleID);
@@ -109,6 +119,7 @@ namespace CrusaderWars.data.battle_results
             catch (Exception ex)
             {
                 Program.Logger.Debug($"Error reading player combat: {ex.Message}");
+                if (StatFidelity.StatFidelitySession.Enabled) throw;
             }
 
 
@@ -190,10 +201,23 @@ namespace CrusaderWars.data.battle_results
             try
             {
                 string battle_id = "";
+                bool exactNativeResult = StatFidelity.StatFidelitySession.Enabled && StatFidelity.StatFidelitySession.Export.Complete && !twbattle.BattleState.IsSiegeBattle;
+                if (exactNativeResult)
+                {
+                    ResultID = null; Player_CombatResult = null; Original_Player_CombatResult = null;
+                    ReadPlayerCombat(CK3LogData.LeftSide.GetCommander().id);
+                    var resultLinks = Regex.Matches(Player_Combat ?? "", @"(?m)^\t{3}combat_results=(\d+)\r?$");
+                    var provinces = Regex.Matches(Player_Combat ?? "", @"(?m)^\t{3}province=(\d+)\r?$");
+                    if (resultLinks.Count != 1 || provinces.Count != 1 || provinces[0].Groups[1].Value != ProvinceID)
+                        throw StatFidelity.StatFidelitySession.InvalidateHandoff("The selected native combat has no unique result link or its province disagrees with the current handoff.");
+                    battle_id = resultLinks[0].Groups[1].Value;
+                }
                 StringBuilder f = new StringBuilder();
                 using (StreamReader sr = new StreamReader(@".\data\save_file_data\CombatResults.txt"))
                 {
-                    if (twbattle.BattleState.IsSiegeBattle && !twbattle.BattleState.HasReliefArmy && SiegeID != null)
+                    if (exactNativeResult)
+                        Program.Logger.Debug("Using the selected combat's exact saved result link: " + battle_id);
+                    else if (twbattle.BattleState.IsSiegeBattle && !twbattle.BattleState.HasReliefArmy && SiegeID != null)
                     {
                         Program.Logger.Debug($"Searching for siege battle result using SiegeID: {SiegeID}");
                         string? current_result_block_id = null;
@@ -272,6 +296,8 @@ namespace CrusaderWars.data.battle_results
                     }
                 }
 
+                if (exactNativeResult && (f.Length == 0 || !Regex.IsMatch(f.ToString(), @"(?m)^\t{3}location=" + Regex.Escape(ProvinceID!) + @"\r?$")))
+                    throw StatFidelity.StatFidelitySession.InvalidateHandoff("The selected combat's exact result is absent or has a different province. No earlier same-province battle was selected.");
                 BattleResult.ResultID = battle_id;
                 Player_CombatResult = f.ToString();
                 Original_Player_CombatResult = f.ToString();
@@ -281,6 +307,7 @@ namespace CrusaderWars.data.battle_results
             catch (Exception ex)
             {
                 Program.Logger.Debug($"Error reading all combat results: {ex.Message}");
+                if (StatFidelity.StatFidelitySession.Enabled) throw;
             }
 
 
@@ -367,7 +394,7 @@ namespace CrusaderWars.data.battle_results
             foreach (Army army in armies)
             {
                 if (army == null) continue; // Added null check for army
-                if (army.Commander != null && army.Commander.ID == char_id)
+                if (army.Commander != null && army.Commander.IsTrackedCharacter && army.Commander.ID == char_id)
                 {
                     Program.Logger.Debug($"Commander {char_id} found in army {army.ID}.");
                     return (true, true, army.Commander, false, null, army);
@@ -389,7 +416,7 @@ namespace CrusaderWars.data.battle_results
                     foreach (Army mergedArmy in army.MergedArmies)
                     {
                         if (mergedArmy == null) continue; // Added null check for mergedArmy
-                        if (mergedArmy.Commander != null && mergedArmy.Commander.ID == char_id)
+                        if (mergedArmy.Commander != null && mergedArmy.Commander.IsTrackedCharacter && mergedArmy.Commander.ID == char_id)
                         {
                             Program.Logger.Debug(
                                 $"Commander {char_id} found in merged army {mergedArmy.ID} (part of main army {army.ID}).");

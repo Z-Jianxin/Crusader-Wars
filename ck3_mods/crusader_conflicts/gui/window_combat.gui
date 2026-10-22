@@ -998,7 +998,7 @@
 		############################################################
 		button = { name = Debug
 			visible = no
-			tooltip = "debug button"
+			raw_tooltip = "debug button"
 			parentanchor = center
 			position = { 100 20 }
 			texture = "gfx/interface/icons/map_icons/combat_map_icon.dds"
@@ -1057,330 +1057,6 @@
 			size = { 50 50 }
 
 			onclick = "[PdxGuiTriggerAllAnimations('start_CW')]"
-
-			state = {
-				name = "start_CW"
-				duration = 0.01
-				next = "log_year"
-				on_finish = "[ExecuteConsoleCommand('Log.ClearAll')]"
-
-			}
-
-			state = {
-				name = "log_year"
-				duration = 0.01
-				next = "log_month"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('DateYear:', Localize('global_date_year')))]"
-			}
-
-			state = {
-				name = "log_month"
-				duration = 0.01
-				next = "log_battle_name"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('DateMonth:', Localize('global_date_month')))]"
-			}
-
-			state = {
-				name = "log_battle_name"
-				duration = 0.01
-				next = "log_leftside_realm"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('BattleName:', CombatWindow.GetCombat.GetName))]"
-			}
-
-			state = {
-				name = "log_leftside_realm"
-				duration = 0.01
-				next = "log_rightside_realm"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftSideRealmFlagTooltip)]"
-			}
-
-			state = {
-				name = "log_rightside_realm"
-				duration = 0.01
-				next = "log_leftside_char_id"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightSideRealmFlagTooltip)]"
-			}
-
-			state = {
-				name = "log_leftside_char_id"
-				duration = 0.01
-				next = "log_leftside_char_culture"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',GetPlayer.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('PlayerCharacter_ID:', Localize('global_ids_var')))]"
-			}
-
-			state = {
-				name = "log_leftside_char_culture"
-				duration = 0.01
-				next = "log_leftside_owner_id"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',GetPlayer.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('PlayerCharacter_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			state = {
-				name = "log_leftside_owner_id"
-				duration = 0.01
-				next = "log_leftside_owner_culture"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetLeftSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Owner_ID:', Localize('global_ids_var')))]"
-			}
-
-			state = {
-				name = "log_leftside_owner_culture"
-				duration = 0.01
-				next = "log_rightside_owner_id"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetLeftSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Owner_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			state = {
-				name = "log_rightside_owner_id"
-				duration = 0.01
-				next = "log_rightside_owner_culture"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetRightSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Owner_ID:', Localize('global_ids_var')))]"
-			}
-
-			state = {
-				name = "log_rightside_owner_culture"
-				duration = 0.01
-				next = "log_leftside_divider"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetRightSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Owner_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-
-			#--------Crusader Conflicts Left-Side-Army---------
-
-			#Console Command Divider
-			state = {
-				name = "log_leftside_divider"
-				duration = 0.01
-				next = "log_leftside_culture"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Left-Side-Army---------'))]"
-			}
-
-			state = {
-				name = "log_leftside_culture"
-				duration = 0.01
-				next = "log_leftside_martial_skill"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Commander_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			state = {
-				name = "log_leftside_martial_skill"
-				duration = 0.01
-				next = "log_leftside_prowess_skill"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftSideCommander.GetCommanderAdvantageDesc)]"
-
-			}
-
-			state = {
-				name = "log_leftside_prowess_skill"
-				duration = 0.01
-				next = "log_leftside_rank"
-				on_start = "[GetScriptedGui('left_prowess').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_prowess',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Prowess:', Localize('player_prowess')))]"
-
-			}
-
-			state = {
-				name = "log_leftside_rank"
-				duration = 0.01
-				next = "player_knight_count"
-				on_start = "[GetScriptedGui('left_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_commander',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Rank:', Localize('player_rank')))]"
-
-			}
-
-			state = {
-				name = "player_knight_count"
-				duration = 0.01
-				next = "log_leftside_knight_effectiveness"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftKnightBreakdown)]"
-			}
-
-			state = {
-				name = "log_leftside_knight_effectiveness"
-				duration = 0.01
-				next = "log_rightside_divider"
-				on_finish = "[ExecuteConsoleCommand(Select_CString(StringIsEmpty(CombatWindow.GetLeftSideMainParticipant.GetKnightEffectivenessBreakdown), 'x', CombatWindow.GetLeftSideMainParticipant.GetKnightEffectivenessBreakdown))]"
-			}
-
-			#--------Crusader Conflicts Right-Side-Army---------
-			state = {
-				name = "log_rightside_divider"
-				duration = 0.01
-				next = "log_rightside_culture"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Right-Side-Army---------'))]"
-			}
-
-			state = {
-				name = "log_rightside_culture"
-				duration = 0.01
-				next = "log_rightside_martial_skill"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Commander_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			state = {
-				name = "log_rightside_martial_skill"
-				duration = 0.01
-				next = "log_rightside_prowess_skill"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightSideCommander.GetCommanderAdvantageDesc)]"
-
-			}
-
-			state = {
-				name = "log_rightside_prowess_skill"
-				duration = 0.01
-				next = "log_rightside_rank"
-				on_start = "[GetScriptedGui('right_prowess').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_prowess',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Prowess:', Localize('enemy_prowess')))]"
-
-			}
-
-			state = {
-				name = "log_rightside_rank"
-				duration = 0.01
-				next = "enemy_knight_count"
-				on_start = "[GetScriptedGui('right_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_commander',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Rank:', Localize('enemy_rank')))]"
-
-			}
-
-			state = {
-				name = "enemy_knight_count"
-				duration = 0.01
-				next = "log_rightside_knight_effectiveness"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightKnightBreakdown)]"
-			}
-
-			state = {
-				name = "log_rightside_knight_effectiveness"
-				duration = 0.01
-				next = "log_completed_divider"
-				on_finish = "[ExecuteConsoleCommand(Select_CString(StringIsEmpty(CombatWindow.GetRightSideMainParticipant.GetKnightEffectivenessBreakdown), 'x', CombatWindow.GetRightSideMainParticipant.GetKnightEffectivenessBreakdown))]"
-			}
-
-			state = {
-				name = "log_completed_divider"
-				duration = 0.01
-				next = "log_terrain"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Completed---------'))]"
-			}
-
-			state = {
-				name = "log_terrain"
-				duration = 0.01
-				next = "print_region"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetCombat.GetProvince.GetTerrain.GetName)]"
-			}
-
-			state = {
-				name = "print_region"
-				duration = 0.01
-				next = "print_province_id"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('Region:',CombatWindow.GetCombat.GetProvince.Custom('GetProvinceRegion')))]"
-			}
-
-			state = {
-				name = "print_province_id"
-				duration = 0.01
-				next = "log_winter"
-				on_start = "[GetScriptedGui('combat_data').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('combat_data',CombatWindow.GetCombat.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('ProvinceID:',Localize('province_id')))]"
-			}
-
-			state = {
-				name = "log_winter"
-				duration = 0.01
-				next = "print_player_id"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetCombat.GetProvince.GetWinterSeverityName)]"
-
-			}
-
-			state = {
-				name = "print_player_id"
-				duration = 0.01
-				next = "print_enemy_id"
-				#on_start = "[GetScriptedGui('print_id').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).End)]"
-				on_start = "[GetScriptedGui('left_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_commander',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_ID:', Localize('player_id')))]"
-			}
-
-			state = {
-				name = "print_enemy_id"
-				duration = 0.01
-				next = "print_player_name"
-				on_start = "[GetScriptedGui('right_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_commander',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_ID:', Localize('enemy_id')))]"
-			}
-
-			state = {
-				name = "print_player_name"
-				duration = 0.01
-				next = "print_enemy_name"
-				on_start = "[GetScriptedGui('left_name').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_name',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Name:', Localize('player_name')))]"
-			}
-
-			state = {
-				name = "print_enemy_name"
-				duration = 0.01
-				next = "print_special_building"
-				on_start = "[GetScriptedGui('right_name').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_name',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Name:', Localize('enemy_name')))]"
-			}
-
-			state = {
-				name = "print_special_building"
-				duration = 0.01
-				next = "print_modifiers_line"
-				on_start = "[GetScriptedGui('special_building').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('special_building',CombatWindow.GetCombat.GetProvince.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('SpecialBuilding:', Localize('building')))]"
-			}
-
-			state = {
-				name = "print_modifiers_line"
-				duration = 0.01
-				next = "print_modifiers"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Modifiers---------'))]"
-			}
-
-			state = {
-				name = "print_modifiers"
-				duration = 0.01
-				next = "ccstat_wait"
-				on_finish = "[PdxGuiTriggerAllAnimations('ccstat_begin')]"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetAdvantageDescription)]"
-			}
-
-			state = {
-				name = "ccstat_wait"
-				duration = 0.1
-				next = "ccstat_wait_check"
-			}
-			state = {
-				name = "ccstat_wait_check"
-				duration = 0.1
-				on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetVariableSystem.HasValue('ccstat_complete', 'yes'), 'log_keyword', 'ccstat_wait'))]"
-			}
-
-			state = {
-				name = "log_keyword"
-				duration = 0.01
-				next = "save_game"
-				on_finish = "[ExecuteConsoleCommand('BattleType:BATTLE')]"
-			}
-
-			state = {
-				name = save_game
-				on_finish = "[OnPauseMenu]"
-				on_finish = "[PdxGuiTriggerAllAnimations('create_readable_save_file')]"
-			}
-
 		}
 
 		############################################################
@@ -1399,329 +1075,6 @@
 			size = { 50 50 }
 
 			onclick = "[PdxGuiTriggerAllAnimations('start_CW')]"
-
-			state = {
-				name = "start_CW"
-				duration = 0.01
-				next = "log_year"
-				on_finish = "[ExecuteConsoleCommand('Log.ClearAll')]"
-
-			}
-
-			state = {
-				name = "log_year"
-				duration = 0.01
-				next = "log_month"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('DateYear:', Localize('global_date_year')))]"
-			}
-
-			state = {
-				name = "log_month"
-				duration = 0.01
-				next = "log_battle_name"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('DateMonth:', Localize('global_date_month')))]"
-			}
-
-			state = {
-				name = "log_battle_name"
-				duration = 0.01
-				next = "log_leftside_realm"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('BattleName:', CombatWindow.GetCombat.GetName))]"
-			}
-
-			state = {
-				name = "log_leftside_realm"
-				duration = 0.01
-				next = "log_rightside_realm"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftSideRealmFlagTooltip)]"
-			}
-
-			state = {
-				name = "log_rightside_realm"
-				duration = 0.01
-				next = "log_leftside_char_id"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightSideRealmFlagTooltip)]"
-			}
-
-			state = {
-				name = "log_leftside_char_id"
-				duration = 0.01
-				next = "log_leftside_char_culture"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',GetPlayer.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('PlayerCharacter_ID:', Localize('global_ids_var')))]"
-			}
-
-			state = {
-				name = "log_leftside_char_culture"
-				duration = 0.01
-				next = "log_leftside_owner_id"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',GetPlayer.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('PlayerCharacter_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			state = {
-				name = "log_leftside_owner_id"
-				duration = 0.01
-				next = "log_leftside_owner_culture"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetLeftSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Owner_ID:', Localize('global_ids_var')))]"
-			}
-
-			state = {
-				name = "log_leftside_owner_culture"
-				duration = 0.01
-				next = "log_rightside_owner_id"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetLeftSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Owner_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			state = {
-				name = "log_rightside_owner_id"
-				duration = 0.01
-				next = "log_rightside_owner_culture"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetRightSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Owner_ID:', Localize('global_ids_var')))]"
-			}
-
-			state = {
-				name = "log_rightside_owner_culture"
-				duration = 0.01
-				next = "log_leftside_divider"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetRightSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Owner_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			#--------Crusader Conflicts Left-Side-Army---------
-
-			#Console Command Divider
-			state = {
-				name = "log_leftside_divider"
-				duration = 0.01
-				next = "log_leftside_culture"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Left-Side-Army---------'))]"
-			}
-
-			state = {
-				name = "log_leftside_culture"
-				duration = 0.01
-				next = "log_leftside_martial_skill"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Commander_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-
-			state = {
-				name = "log_leftside_martial_skill"
-				duration = 0.01
-				next = "log_leftside_prowess_skill"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftSideCommander.GetCommanderAdvantageDesc)]"
-
-			}
-
-			state = {
-				name = "log_leftside_prowess_skill"
-				duration = 0.01
-				next = "log_leftside_rank"
-				on_start = "[GetScriptedGui('left_prowess').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_prowess',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Prowess:', Localize('player_prowess')))]"
-
-			}
-
-			state = {
-				name = "log_leftside_rank"
-				duration = 0.01
-				next = "player_knight_count"
-				on_start = "[GetScriptedGui('left_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_commander',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Rank:', Localize('player_rank')))]"
-
-			}
-
-			state = {
-				name = "player_knight_count"
-				duration = 0.01
-				next = "log_leftside_knight_effectiveness"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftKnightBreakdown)]"
-			}
-
-			state = {
-				name = "log_leftside_knight_effectiveness"
-				duration = 0.01
-				next = "log_rightside_divider"
-				on_finish = "[ExecuteConsoleCommand(Select_CString(StringIsEmpty(CombatWindow.GetLeftSideMainParticipant.GetKnightEffectivenessBreakdown), 'x', CombatWindow.GetLeftSideMainParticipant.GetKnightEffectivenessBreakdown))]"
-			}
-
-			#--------Crusader Conflicts Right-Side-Army---------
-			state = {
-				name = "log_rightside_divider"
-				duration = 0.01
-				next = "log_rightside_culture"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Right-Side-Army---------'))]"
-			}
-
-			state = {
-				name = "log_rightside_culture"
-				duration = 0.01
-				next = "log_rightside_martial_skill"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Commander_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			state = {
-				name = "log_rightside_martial_skill"
-				duration = 0.01
-				next = "log_rightside_prowess_skill"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightSideCommander.GetCommanderAdvantageDesc)]"
-
-			}
-
-			state = {
-				name = "log_rightside_prowess_skill"
-				duration = 0.01
-				next = "log_rightside_rank"
-				on_start = "[GetScriptedGui('right_prowess').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_prowess',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Prowess:', Localize('enemy_prowess')))]"
-
-			}
-
-			state = {
-				name = "log_rightside_rank"
-				duration = 0.01
-				next = "enemy_knight_count"
-				on_start = "[GetScriptedGui('right_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_commander',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Rank:', Localize('enemy_rank')))]"
-
-			}
-
-			state = {
-				name = "enemy_knight_count"
-				duration = 0.01
-				next = "log_rightside_knight_effectiveness"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightKnightBreakdown)]"
-			}
-
-			state = {
-				name = "log_rightside_knight_effectiveness"
-				duration = 0.01
-				next = "log_completed_divider"
-				on_finish = "[ExecuteConsoleCommand(Select_CString(StringIsEmpty(CombatWindow.GetRightSideMainParticipant.GetKnightEffectivenessBreakdown), 'x', CombatWindow.GetRightSideMainParticipant.GetKnightEffectivenessBreakdown))]"
-			}
-
-			state = {
-				name = "log_completed_divider"
-				duration = 0.01
-				next = "log_terrain"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Completed---------'))]"
-			}
-
-			state = {
-				name = "log_terrain"
-				duration = 0.01
-				next = "print_region"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetCombat.GetProvince.GetTerrain.GetName)]"
-			}
-
-			state = {
-				name = "print_region"
-				duration = 0.01
-				next = "print_province_id"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('Region:',CombatWindow.GetCombat.GetProvince.Custom('GetProvinceRegion')))]"
-			}
-
-			state = {
-				name = "print_province_id"
-				duration = 0.01
-				next = "log_winter"
-				on_start = "[GetScriptedGui('combat_data').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('combat_data',CombatWindow.GetCombat.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('ProvinceID:',Localize('province_id')))]"
-			}
-
-			state = {
-				name = "log_winter"
-				duration = 0.01
-				next = "print_player_id"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetCombat.GetProvince.GetWinterSeverityName)]"
-
-			}
-
-			state = {
-				name = "print_player_id"
-				duration = 0.01
-				next = "print_enemy_id"
-				#on_start = "[GetScriptedGui('print_id').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).End)]"
-				on_start = "[GetScriptedGui('left_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_commander',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_ID:', Localize('player_id')))]"
-			}
-
-			state = {
-				name = "print_enemy_id"
-				duration = 0.01
-				next = "print_player_name"
-				on_start = "[GetScriptedGui('right_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_commander',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_ID:', Localize('enemy_id')))]"
-			}
-
-			state = {
-				name = "print_player_name"
-				duration = 0.01
-				next = "print_enemy_name"
-				on_start = "[GetScriptedGui('left_name').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_name',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Name:', Localize('player_name')))]"
-			}
-
-			state = {
-				name = "print_enemy_name"
-				duration = 0.01
-				next = "print_special_building"
-				on_start = "[GetScriptedGui('right_name').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_name',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Name:', Localize('enemy_name')))]"
-			}
-
-			state = {
-				name = "print_special_building"
-				duration = 0.01
-				next = "print_modifiers_line"
-				on_start = "[GetScriptedGui('special_building').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('special_building',CombatWindow.GetCombat.GetProvince.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('SpecialBuilding:', Localize('building')))]"
-			}
-
-			state = {
-				name = "print_modifiers_line"
-				duration = 0.01
-				next = "print_modifiers"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Modifiers---------'))]"
-			}
-
-			state = {
-				name = "print_modifiers"
-				duration = 0.01
-				next = "ccstat_wait"
-				on_finish = "[PdxGuiTriggerAllAnimations('ccstat_begin')]"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetAdvantageDescription)]"
-			}
-
-			state = {
-				name = "ccstat_wait"
-				duration = 0.1
-				next = "ccstat_wait_check"
-			}
-			state = {
-				name = "ccstat_wait_check"
-				duration = 0.1
-				on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetVariableSystem.HasValue('ccstat_complete', 'yes'), 'log_keyword', 'ccstat_wait'))]"
-			}
-
-			state = {
-				name = "log_keyword"
-				duration = 0.01
-				next = "save_game"
-				on_finish = "[ExecuteConsoleCommand('BattleType:BATTLE')]"
-			}
-
-			state = {
-				name = save_game
-				on_finish = "[OnPauseMenu]"
-				on_finish = "[PdxGuiTriggerAllAnimations('create_readable_save_file')]"
-			}
 		}
 
 		############################################################
@@ -1740,329 +1093,6 @@
 			size = { 50 50 }
 
 			onclick = "[PdxGuiTriggerAllAnimations('start_CW')]"
-
-			state = {
-				name = "start_CW"
-				duration = 0.01
-				next = "log_year"
-				on_finish = "[ExecuteConsoleCommand('Log.ClearAll')]"
-
-			}
-
-			state = {
-				name = "log_year"
-				duration = 0.01
-				next = "log_month"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('DateYear:', Localize('global_date_year')))]"
-			}
-
-			state = {
-				name = "log_month"
-				duration = 0.01
-				next = "log_battle_name"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('DateMonth:', Localize('global_date_month')))]"
-			}
-
-			state = {
-				name = "log_battle_name"
-				duration = 0.01
-				next = "log_leftside_realm"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('BattleName:', CombatWindow.GetCombat.GetName))]"
-			}
-
-			state = {
-				name = "log_leftside_realm"
-				duration = 0.01
-				next = "log_rightside_realm"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftSideRealmFlagTooltip)]"
-			}
-
-			state = {
-				name = "log_rightside_realm"
-				duration = 0.01
-				next = "log_leftside_char_id"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightSideRealmFlagTooltip)]"
-			}
-
-			state = {
-				name = "log_leftside_char_id"
-				duration = 0.01
-				next = "log_leftside_char_culture"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',GetPlayer.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('PlayerCharacter_ID:', Localize('global_ids_var')))]"
-			}
-
-			state = {
-				name = "log_leftside_char_culture"
-				duration = 0.01
-				next = "log_leftside_owner_id"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',GetPlayer.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('PlayerCharacter_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			state = {
-				name = "log_leftside_owner_id"
-				duration = 0.01
-				next = "log_leftside_owner_culture"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetLeftSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Owner_ID:', Localize('global_ids_var')))]"
-			}
-
-			state = {
-				name = "log_leftside_owner_culture"
-				duration = 0.01
-				next = "log_rightside_owner_id"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetLeftSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Owner_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			state = {
-				name = "log_rightside_owner_id"
-				duration = 0.01
-				next = "log_rightside_owner_culture"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetRightSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Owner_ID:', Localize('global_ids_var')))]"
-			}
-
-			state = {
-				name = "log_rightside_owner_culture"
-				duration = 0.01
-				next = "log_leftside_divider"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetRightSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Owner_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			#--------Crusader Conflicts Left-Side-Army---------
-
-			#Console Command Divider
-			state = {
-				name = "log_leftside_divider"
-				duration = 0.01
-				next = "log_leftside_culture"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Left-Side-Army---------'))]"
-			}
-
-			state = {
-				name = "log_leftside_culture"
-				duration = 0.01
-				next = "log_leftside_martial_skill"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Commander_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-
-			state = {
-				name = "log_leftside_martial_skill"
-				duration = 0.01
-				next = "log_leftside_prowess_skill"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftSideCommander.GetCommanderAdvantageDesc)]"
-
-			}
-
-			state = {
-				name = "log_leftside_prowess_skill"
-				duration = 0.01
-				next = "log_leftside_rank"
-				on_start = "[GetScriptedGui('left_prowess').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_prowess',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Prowess:', Localize('player_prowess')))]"
-
-			}
-
-			state = {
-				name = "log_leftside_rank"
-				duration = 0.01
-				next = "player_knight_count"
-				on_start = "[GetScriptedGui('left_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_commander',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Rank:', Localize('player_rank')))]"
-
-			}
-
-			state = {
-				name = "player_knight_count"
-				duration = 0.01
-				next = "log_leftside_knight_effectiveness"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftKnightBreakdown)]"
-			}
-
-			state = {
-				name = "log_leftside_knight_effectiveness"
-				duration = 0.01
-				next = "log_rightside_divider"
-				on_finish = "[ExecuteConsoleCommand(Select_CString(StringIsEmpty(CombatWindow.GetLeftSideMainParticipant.GetKnightEffectivenessBreakdown), 'x', CombatWindow.GetLeftSideMainParticipant.GetKnightEffectivenessBreakdown))]"
-			}
-
-			#--------Crusader Conflicts Right-Side-Army---------
-			state = {
-				name = "log_rightside_divider"
-				duration = 0.01
-				next = "log_rightside_culture"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Right-Side-Army---------'))]"
-			}
-
-			state = {
-				name = "log_rightside_culture"
-				duration = 0.01
-				next = "log_rightside_martial_skill"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Commander_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			state = {
-				name = "log_rightside_martial_skill"
-				duration = 0.01
-				next = "log_rightside_prowess_skill"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightSideCommander.GetCommanderAdvantageDesc)]"
-
-			}
-
-			state = {
-				name = "log_rightside_prowess_skill"
-				duration = 0.01
-				next = "log_rightside_rank"
-				on_start = "[GetScriptedGui('right_prowess').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_prowess',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Prowess:', Localize('enemy_prowess')))]"
-
-			}
-
-			state = {
-				name = "log_rightside_rank"
-				duration = 0.01
-				next = "enemy_knight_count"
-				on_start = "[GetScriptedGui('right_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_commander',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Rank:', Localize('enemy_rank')))]"
-
-			}
-
-			state = {
-				name = "enemy_knight_count"
-				duration = 0.01
-				next = "log_rightside_knight_effectiveness"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightKnightBreakdown)]"
-			}
-
-			state = {
-				name = "log_rightside_knight_effectiveness"
-				duration = 0.01
-				next = "log_completed_divider"
-				on_finish = "[ExecuteConsoleCommand(Select_CString(StringIsEmpty(CombatWindow.GetRightSideMainParticipant.GetKnightEffectivenessBreakdown), 'x', CombatWindow.GetRightSideMainParticipant.GetKnightEffectivenessBreakdown))]"
-			}
-
-			state = {
-				name = "log_completed_divider"
-				duration = 0.01
-				next = "log_terrain"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Completed---------'))]"
-			}
-
-			state = {
-				name = "log_terrain"
-				duration = 0.01
-				next = "print_region"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetCombat.GetProvince.GetTerrain.GetName)]"
-			}
-
-			state = {
-				name = "print_region"
-				duration = 0.01
-				next = "print_province_id"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('Region:',CombatWindow.GetCombat.GetProvince.Custom('GetProvinceRegion')))]"
-			}
-
-			state = {
-				name = "print_province_id"
-				duration = 0.01
-				next = "log_winter"
-				on_start = "[GetScriptedGui('combat_data').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('combat_data',CombatWindow.GetCombat.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('ProvinceID:',Localize('province_id')))]"
-			}
-
-			state = {
-				name = "log_winter"
-				duration = 0.01
-				next = "print_player_id"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetCombat.GetProvince.GetWinterSeverityName)]"
-
-			}
-
-			state = {
-				name = "print_player_id"
-				duration = 0.01
-				next = "print_enemy_id"
-				#on_start = "[GetScriptedGui('print_id').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).End)]"
-				on_start = "[GetScriptedGui('left_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_commander',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_ID:', Localize('player_id')))]"
-			}
-
-			state = {
-				name = "print_enemy_id"
-				duration = 0.01
-				next = "print_player_name"
-				on_start = "[GetScriptedGui('right_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_commander',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_ID:', Localize('enemy_id')))]"
-			}
-
-			state = {
-				name = "print_player_name"
-				duration = 0.01
-				next = "print_enemy_name"
-				on_start = "[GetScriptedGui('left_name').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_name',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Name:', Localize('player_name')))]"
-			}
-
-			state = {
-				name = "print_enemy_name"
-				duration = 0.01
-				next = "print_special_building"
-				on_start = "[GetScriptedGui('right_name').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_name',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Name:', Localize('enemy_name')))]"
-			}
-
-			state = {
-				name = "print_special_building"
-				duration = 0.01
-				next = "print_modifiers_line"
-				on_start = "[GetScriptedGui('special_building').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('special_building',CombatWindow.GetCombat.GetProvince.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('SpecialBuilding:', Localize('building')))]"
-			}
-
-			state = {
-				name = "print_modifiers_line"
-				duration = 0.01
-				next = "print_modifiers"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Modifiers---------'))]"
-			}
-
-			state = {
-				name = "print_modifiers"
-				duration = 0.01
-				next = "ccstat_wait"
-				on_finish = "[PdxGuiTriggerAllAnimations('ccstat_begin')]"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetAdvantageDescription)]"
-			}
-
-			state = {
-				name = "ccstat_wait"
-				duration = 0.1
-				next = "ccstat_wait_check"
-			}
-			state = {
-				name = "ccstat_wait_check"
-				duration = 0.1
-				on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetVariableSystem.HasValue('ccstat_complete', 'yes'), 'log_keyword', 'ccstat_wait'))]"
-			}
-
-			state = {
-				name = "log_keyword"
-				duration = 0.01
-				next = "save_game"
-				on_finish = "[ExecuteConsoleCommand('BattleType:BATTLE')]"
-			}
-
-			state = {
-				name = save_game
-				on_finish = "[OnPauseMenu]"
-				on_finish = "[PdxGuiTriggerAllAnimations('create_readable_save_file')]"
-			}
 		}
 
 		############################################################
@@ -2081,335 +1111,6 @@
 			size = { 50 50 }
 
 			onclick = "[PdxGuiTriggerAllAnimations('start_CW')]"
-
-			state = {
-				name = "start_CW"
-				duration = 0.01
-				next = "log_year"
-				on_finish = "[ExecuteConsoleCommand('Log.ClearAll')]"
-
-			}
-
-			state = {
-				name = "log_year"
-				duration = 0.01
-				next = "log_month"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('DateYear:', Localize('global_date_year')))]"
-			}
-
-			state = {
-				name = "log_month"
-				duration = 0.01
-				next = "log_battle_name"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('DateMonth:', Localize('global_date_month')))]"
-			}
-
-			state = {
-				name = "log_battle_name"
-				duration = 0.01
-				next = "log_leftside_realm"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('BattleName:', CombatWindow.GetCombat.GetName))]"
-			}
-
-			state = {
-				name = "log_leftside_realm"
-				duration = 0.01
-				next = "log_rightside_realm"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftSideRealmFlagTooltip)]"
-			}
-
-			state = {
-				name = "log_rightside_realm"
-				duration = 0.01
-				next = "log_leftside_char_id"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightSideRealmFlagTooltip)]"
-			}
-
-			state = {
-				name = "log_leftside_char_id"
-				duration = 0.01
-				next = "log_leftside_char_culture"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',GetPlayer.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('PlayerCharacter_ID:', Localize('global_ids_var')))]"
-			}
-
-			state = {
-				name = "log_leftside_char_culture"
-				duration = 0.01
-				next = "log_leftside_owner_id"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',GetPlayer.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('PlayerCharacter_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			state = {
-				name = "log_leftside_owner_id"
-				duration = 0.01
-				next = "log_leftside_owner_culture"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetLeftSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Owner_ID:', Localize('global_ids_var')))]"
-			}
-
-			state = {
-				name = "log_leftside_owner_culture"
-				duration = 0.01
-				next = "log_rightside_owner_id"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetLeftSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Owner_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			state = {
-				name = "log_rightside_owner_id"
-				duration = 0.01
-				next = "log_rightside_owner_culture"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetRightSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Owner_ID:', Localize('global_ids_var')))]"
-			}
-
-			state = {
-				name = "log_rightside_owner_culture"
-				duration = 0.01
-				next = "log_leftside_divider"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetRightSideMainParticipant.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Owner_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			#--------Crusader Conflicts Left-Side-Army---------
-
-			#Console Command Divider
-			state = {
-				name = "log_leftside_divider"
-				duration = 0.01
-				next = "log_leftside_culture"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Left-Side-Army---------'))]"
-			}
-
-			state = {
-				name = "log_leftside_culture"
-				duration = 0.01
-				next = "log_leftside_martial_skill"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Commander_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-
-			state = {
-				name = "log_leftside_martial_skill"
-				duration = 0.01
-				next = "log_leftside_prowess_skill"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftSideCommander.GetCommanderAdvantageDesc)]"
-
-			}
-
-			state = {
-				name = "log_leftside_prowess_skill"
-				duration = 0.01
-				next = "log_leftside_rank"
-				on_start = "[GetScriptedGui('left_prowess').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_prowess',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Prowess:', Localize('player_prowess')))]"
-
-			}
-
-			state = {
-				name = "log_leftside_rank"
-				duration = 0.01
-				next = "player_knight_count"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Rank:', Localize('player_rank')))]"
-
-			}
-
-			state = {
-				name = "player_knight_count"
-				duration = 0.01
-				next = "log_leftside_knight_effectiveness"
-				on_start = "[GetScriptedGui('left_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_commander',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftKnightBreakdown)]"
-			}
-
-			state = {
-				name = "log_leftside_knight_effectiveness"
-				duration = 0.01
-				next = "log_rightside_divider"
-				on_finish = "[ExecuteConsoleCommand(Select_CString(StringIsEmpty(CombatWindow.GetLeftSideMainParticipant.GetKnightEffectivenessBreakdown), 'x', CombatWindow.GetLeftSideMainParticipant.GetKnightEffectivenessBreakdown))]"
-			}
-
-			#--------Crusader Conflicts Right-Side-Army---------
-			state = {
-				name = "log_rightside_divider"
-				duration = 0.01
-				next = "log_rightside_culture"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Right-Side-Army---------'))]"
-			}
-
-			state = {
-				name = "log_rightside_culture"
-				duration = 0.01
-				next = "log_rightside_martial_skill"
-				on_start = "[GetScriptedGui('ids_string_variable').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).AddScope('ids_string_variable',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Commander_Culture:', Localize('global_culture_ids_var')))]"
-			}
-
-			state = {
-				name = "log_rightside_martial_skill"
-				duration = 0.01
-				next = "log_rightside_prowess_skill"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightSideCommander.GetCommanderAdvantageDesc)]"
-
-			}
-
-			state = {
-				name = "log_rightside_prowess_skill"
-				duration = 0.01
-				next = "log_rightside_rank"
-				on_start = "[GetScriptedGui('right_prowess').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_prowess',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Prowess:', Localize('enemy_prowess')))]"
-
-			}
-
-			state = {
-				name = "log_rightside_rank"
-				duration = 0.01
-				next = "enemy_knight_count"
-				on_start = "[GetScriptedGui('right_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_commander',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Rank:', Localize('enemy_rank')))]"
-
-			}
-
-			state = {
-				name = "enemy_knight_count"
-				duration = 0.01
-				next = "log_rightside_knight_effectiveness"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightKnightBreakdown)]"
-			}
-
-			state = {
-				name = "log_rightside_knight_effectiveness"
-				duration = 0.01
-				next = "log_completed_divider"
-				on_finish = "[ExecuteConsoleCommand(Select_CString(StringIsEmpty(CombatWindow.GetRightSideMainParticipant.GetKnightEffectivenessBreakdown), 'x', CombatWindow.GetRightSideMainParticipant.GetKnightEffectivenessBreakdown))]"
-			}
-
-			state = {
-				name = "log_completed_divider"
-				duration = 0.01
-				next = "log_terrain"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Completed---------'))]"
-			}
-
-			state = {
-				name = "log_terrain"
-				duration = 0.01
-				next = "print_region"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetCombat.GetProvince.GetTerrain.GetName)]"
-			}
-
-			state = {
-				name = "print_region"
-				duration = 0.01
-				next = "print_province_id"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('Region:',CombatWindow.GetCombat.GetProvince.Custom('GetProvinceRegion')))]"
-			}
-
-			state = {
-				name = "print_province_id"
-				duration = 0.01
-				next = "log_winter"
-				on_start = "[GetScriptedGui('combat_data').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('combat_data',CombatWindow.GetCombat.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('ProvinceID:',Localize('province_id')))]"
-			}
-			state = {
-				name = "log_winter"
-				duration = 0.01
-				next = "log_province_style"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetCombat.GetProvince.GetWinterSeverityName)]"
-
-			}
-			state = {
-				name = "log_province_style"
-				duration = 0.01
-				next = "print_player_id"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetCombat.GetProvince.GetCulture.GetBuildingGfxName)]"
-
-			}
-
-			state = {
-				name = "print_player_id"
-				duration = 0.01
-				next = "print_enemy_id"
-				#on_start = "[GetScriptedGui('print_id').Execute( GuiScope.SetRoot( GetPlayer.MakeScope ).End)]"
-				on_start = "[GetScriptedGui('left_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_commander',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_ID:', Localize('player_id')))]"
-			}
-
-			state = {
-				name = "print_enemy_id"
-				duration = 0.01
-				next = "print_player_name"
-				on_start = "[GetScriptedGui('right_commander').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_commander',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_ID:', Localize('enemy_id')))]"
-			}
-
-			state = {
-				name = "print_player_name"
-				duration = 0.01
-				next = "print_enemy_name"
-				on_start = "[GetScriptedGui('left_name').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('left_name',CombatWindow.GetLeftSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Name:', Localize('player_name')))]"
-			}
-
-			state = {
-				name = "print_enemy_name"
-				duration = 0.01
-				next = "print_special_building"
-				on_start = "[GetScriptedGui('right_name').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('right_name',CombatWindow.GetRightSideCommander.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Name:', Localize('enemy_name')))]"
-			}
-
-			state = {
-				name = "print_special_building"
-				duration = 0.01
-				next = "print_modifiers_line"
-				on_start = "[GetScriptedGui('special_building').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('special_building',CombatWindow.GetCombat.GetProvince.MakeScope).End)]"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('SpecialBuilding:', Localize('building')))]"
-			}
-
-			state = {
-				name = "print_modifiers_line"
-				duration = 0.01
-				next = "print_modifiers"
-				on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Modifiers---------'))]"
-			}
-
-			state = {
-				name = "print_modifiers"
-				duration = 0.01
-				next = "ccstat_wait"
-				on_finish = "[PdxGuiTriggerAllAnimations('ccstat_begin')]"
-				on_finish = "[ExecuteConsoleCommand(CombatWindow.GetAdvantageDescription)]"
-			}
-
-			state = {
-				name = "ccstat_wait"
-				duration = 0.1
-				next = "ccstat_wait_check"
-			}
-			state = {
-				name = "ccstat_wait_check"
-				duration = 0.1
-				on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetVariableSystem.HasValue('ccstat_complete', 'yes'), 'log_keyword', 'ccstat_wait'))]"
-			}
-
-			state = {
-				name = "log_keyword"
-				duration = 0.01
-				next = "save_game"
-				on_finish = "[ExecuteConsoleCommand('BattleType:BATTLE')]"
-			}
-
-			state = {
-				name = save_game
-				on_finish = "[OnPauseMenu]"
-				on_finish = "[PdxGuiTriggerAllAnimations('create_readable_save_file')]"
-			}
 		}
 
 
@@ -2470,7 +1171,502 @@
 
 		############################################################
 		############################################################
+
+        widget = {
+            name = cchandoff_battle
+            size = { 0 0 }
+            alwaystransparent = yes
+            state = {
+            name = "start_CW"
+            duration = 0.1
+            on_finish = "[GetVariableSystem.Set('cchandoff_battle_active', 'preparing')]"
+            }
+
+            state = {
+            name = "log_year"
+            duration = 0.1
+            next = "log_month"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('DateYear:', IntToString(GetCurrentDate.GetYear)))]"
+            }
+
+            state = {
+            name = "log_month"
+            duration = 0.1
+            next = "log_battle_name"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('DateMonth:', IntToString(GetCurrentDate.GetMonthOfYear)))]"
+            }
+
+            state = {
+            name = "log_battle_name"
+            duration = 0.1
+            next = "log_leftside_realm"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('BattleName:', CombatWindow.GetCombat.GetName))]"
+            }
+
+            state = {
+            name = "log_leftside_realm"
+            duration = 0.1
+            next = "log_rightside_realm"
+            on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftSideRealmFlagTooltip)]"
+            }
+
+            state = {
+            name = "log_rightside_realm"
+            duration = 0.1
+            next = "log_leftside_char_id"
+            on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightSideRealmFlagTooltip)]"
+            }
+
+            state = {
+            name = "log_leftside_char_id"
+            duration = 0.1
+            next = "log_leftside_char_culture"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('PlayerCharacter_ID:', UIntToString(GetPlayer.GetID)))]"
+            }
+
+            state = {
+            name = "log_leftside_char_culture"
+            duration = 0.1
+            next = "log_leftside_owner_id"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('PlayerCharacter_Culture:', UIntToString(GetPlayer.GetCulture.GetID)))]"
+            }
+
+            state = {
+            name = "log_leftside_owner_id"
+            duration = 0.1
+            next = "log_leftside_owner_culture"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Owner_ID:', UIntToString(CombatWindow.GetLeftSideMainParticipant.GetID)))]"
+            }
+
+            state = {
+            name = "log_leftside_owner_culture"
+            duration = 0.1
+            next = "log_rightside_owner_id"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Owner_Culture:', UIntToString(CombatWindow.GetLeftSideMainParticipant.GetCulture.GetID)))]"
+            }
+
+            state = {
+            name = "log_rightside_owner_id"
+            duration = 0.1
+            next = "log_rightside_owner_culture"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Owner_ID:', UIntToString(CombatWindow.GetRightSideMainParticipant.GetID)))]"
+            }
+
+            state = {
+            name = "log_rightside_owner_culture"
+            duration = 0.1
+            next = "log_leftside_divider"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Owner_Culture:', UIntToString(CombatWindow.GetRightSideMainParticipant.GetCulture.GetID)))]"
+            }
+
+
+            #--------Crusader Conflicts Left-Side-Army---------
+
+            #Console Command Divider
+            state = {
+            name = "log_leftside_divider"
+            duration = 0.1
+            next = "log_leftside_culture"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Left-Side-Army---------'))]"
+            }
+            state = {
+                name = "log_leftside_culture"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetLeftSideCommander.IsValid, 'log_leftside_culture_present', 'log_leftside_culture_absent'))]"
+            }
+            state = {
+                name = "log_leftside_culture_present"
+                duration = 0.1
+                next = "log_leftside_martial_skill"
+                on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Commander_Culture:', UIntToString(CombatWindow.GetLeftSideCommander.GetCulture.GetID)))]"
+            }
+            state = {
+                name = "log_leftside_culture_absent"
+                duration = 0.1
+                next = "log_leftside_martial_skill"
+                on_finish = "[ExecuteConsoleCommand('LeftSide_Commander_Culture:0')]"
+            }
+            state = {
+                name = "log_leftside_martial_skill"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetLeftSideCommander.IsValid, 'log_leftside_martial_skill_present', 'log_leftside_martial_skill_absent'))]"
+            }
+            state = {
+                name = "log_leftside_martial_skill_present"
+                duration = 0.1
+                next = "log_leftside_prowess_skill"
+                on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftSideCommander.GetCommanderAdvantageDesc)]"
+            }
+            state = {
+                name = "log_leftside_martial_skill_absent"
+                duration = 0.1
+                next = "log_leftside_prowess_skill"
+                on_finish = "[ExecuteConsoleCommand('Uncommanded army')]"
+            }
+
+            state = {
+                name = "log_leftside_prowess_skill"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetLeftSideCommander.IsValid, 'log_leftside_prowess_skill_present', 'log_leftside_prowess_skill_absent'))]"
+            }
+            state = {
+                name = "log_leftside_prowess_skill_present"
+                duration = 0.1
+                next = "log_leftside_rank"
+                on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Prowess:', IntToString(CombatWindow.GetLeftSideCommander.GetProwess)))]"
+            }
+            state = {
+                name = "log_leftside_prowess_skill_absent"
+                duration = 0.1
+                next = "log_leftside_rank"
+                on_finish = "[ExecuteConsoleCommand('LeftSide_Prowess:0')]"
+            }
+
+            state = {
+                name = "log_leftside_rank"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetLeftSideCommander.IsValid, 'log_leftside_rank_present', 'log_leftside_rank_absent'))]"
+            }
+            state = {
+                name = "log_leftside_rank_present"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetLeftSideCommander.GetPrimaryTitle.IsValid, 'log_leftside_rank_landed', 'log_leftside_rank_absent'))]"
+            }
+            state = {
+                name = "log_leftside_rank_landed"
+                duration = 0.1
+                next = "player_knight_count"
+                on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Rank:', IntToString(CombatWindow.GetLeftSideCommander.GetPrimaryTitle.GetTierFrame)))]"
+            }
+            state = {
+                name = "log_leftside_rank_absent"
+                duration = 0.1
+                next = "player_knight_count"
+                on_finish = "[ExecuteConsoleCommand('LeftSide_Rank:0')]"
+            }
+
+
+            state = {
+            name = "player_knight_count"
+            duration = 0.1
+            next = "log_leftside_knight_effectiveness"
+            on_finish = "[ExecuteConsoleCommand(CombatWindow.GetLeftKnightBreakdown)]"
+            }
+
+            state = {
+            name = "log_leftside_knight_effectiveness"
+            duration = 0.1
+            next = "log_rightside_divider"
+            on_finish = "[ExecuteConsoleCommand(Select_CString(StringIsEmpty(CombatWindow.GetLeftSideMainParticipant.GetKnightEffectivenessBreakdown), 'x', CombatWindow.GetLeftSideMainParticipant.GetKnightEffectivenessBreakdown))]"
+            }
+
+            #--------Crusader Conflicts Right-Side-Army---------
+            state = {
+            name = "log_rightside_divider"
+            duration = 0.1
+            next = "log_rightside_culture"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Right-Side-Army---------'))]"
+            }
+            state = {
+                name = "log_rightside_culture"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetRightSideCommander.IsValid, 'log_rightside_culture_present', 'log_rightside_culture_absent'))]"
+            }
+            state = {
+                name = "log_rightside_culture_present"
+                duration = 0.1
+                next = "log_rightside_martial_skill"
+                on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Commander_Culture:', UIntToString(CombatWindow.GetRightSideCommander.GetCulture.GetID)))]"
+            }
+            state = {
+                name = "log_rightside_culture_absent"
+                duration = 0.1
+                next = "log_rightside_martial_skill"
+                on_finish = "[ExecuteConsoleCommand('RightSide_Commander_Culture:0')]"
+            }
+            state = {
+                name = "log_rightside_martial_skill"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetRightSideCommander.IsValid, 'log_rightside_martial_skill_present', 'log_rightside_martial_skill_absent'))]"
+            }
+            state = {
+                name = "log_rightside_martial_skill_present"
+                duration = 0.1
+                next = "log_rightside_prowess_skill"
+                on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightSideCommander.GetCommanderAdvantageDesc)]"
+            }
+            state = {
+                name = "log_rightside_martial_skill_absent"
+                duration = 0.1
+                next = "log_rightside_prowess_skill"
+                on_finish = "[ExecuteConsoleCommand('Uncommanded army')]"
+            }
+
+            state = {
+                name = "log_rightside_prowess_skill"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetRightSideCommander.IsValid, 'log_rightside_prowess_skill_present', 'log_rightside_prowess_skill_absent'))]"
+            }
+            state = {
+                name = "log_rightside_prowess_skill_present"
+                duration = 0.1
+                next = "log_rightside_rank"
+                on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Prowess:', IntToString(CombatWindow.GetRightSideCommander.GetProwess)))]"
+            }
+            state = {
+                name = "log_rightside_prowess_skill_absent"
+                duration = 0.1
+                next = "log_rightside_rank"
+                on_finish = "[ExecuteConsoleCommand('RightSide_Prowess:0')]"
+            }
+
+            state = {
+                name = "log_rightside_rank"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetRightSideCommander.IsValid, 'log_rightside_rank_present', 'log_rightside_rank_absent'))]"
+            }
+            state = {
+                name = "log_rightside_rank_present"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetRightSideCommander.GetPrimaryTitle.IsValid, 'log_rightside_rank_landed', 'log_rightside_rank_absent'))]"
+            }
+            state = {
+                name = "log_rightside_rank_landed"
+                duration = 0.1
+                next = "enemy_knight_count"
+                on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Rank:', IntToString(CombatWindow.GetRightSideCommander.GetPrimaryTitle.GetTierFrame)))]"
+            }
+            state = {
+                name = "log_rightside_rank_absent"
+                duration = 0.1
+                next = "enemy_knight_count"
+                on_finish = "[ExecuteConsoleCommand('RightSide_Rank:0')]"
+            }
+
+
+            state = {
+            name = "enemy_knight_count"
+            duration = 0.1
+            next = "log_rightside_knight_effectiveness"
+            on_finish = "[ExecuteConsoleCommand(CombatWindow.GetRightKnightBreakdown)]"
+            }
+
+            state = {
+            name = "log_rightside_knight_effectiveness"
+            duration = 0.1
+            next = "log_completed_divider"
+            on_finish = "[ExecuteConsoleCommand(Select_CString(StringIsEmpty(CombatWindow.GetRightSideMainParticipant.GetKnightEffectivenessBreakdown), 'x', CombatWindow.GetRightSideMainParticipant.GetKnightEffectivenessBreakdown))]"
+            }
+
+            state = {
+            name = "log_completed_divider"
+            duration = 0.1
+            next = "log_terrain"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Completed---------'))]"
+            }
+
+            state = {
+            name = "log_terrain"
+            duration = 0.1
+            next = "log_terrain_key"
+            on_finish = "[ExecuteConsoleCommand(CombatWindow.GetCombat.GetProvince.GetTerrain.GetName)]"
+            }
+            state = {
+            name = "log_terrain_key"
+            duration = 0.1
+            next = "print_region"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('TerrainKey:', CombatWindow.GetCombat.GetProvince.GetTerrainKey))]"
+            }
+
+            state = {
+            name = "print_region"
+            duration = 0.1
+            next = "print_province_id"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('Region:',CombatWindow.GetCombat.GetProvince.Custom('GetProvinceRegion')))]"
+            }
+
+            state = {
+            name = "print_province_id"
+            duration = 0.1
+            next = "log_winter"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('ProvinceID:', UIntToString(CombatWindow.GetCombat.GetProvince.GetID)))]"
+            }
+
+            state = {
+            name = "log_winter"
+            duration = 0.1
+            next = "print_player_id"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('WinterSeverity:', Select_CString(StringIsEmpty(CombatWindow.GetCombat.GetProvince.GetWinterSeverityName), 'none', CombatWindow.GetCombat.GetProvince.GetWinterSeverityName)))]"
+            }
+            state = {
+                name = "print_player_id"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetLeftSideCommander.IsValid, 'print_player_id_present', 'print_player_id_absent'))]"
+            }
+            state = {
+                name = "print_player_id_present"
+                duration = 0.1
+                next = "print_enemy_id"
+                on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_ID:', UIntToString(CombatWindow.GetLeftSideCommander.GetID)))]"
+            }
+            state = {
+                name = "print_player_id_absent"
+                duration = 0.1
+                next = "print_enemy_id"
+                on_finish = "[ExecuteConsoleCommand('LeftSide_ID:4294967295')]"
+            }
+            state = {
+                name = "print_enemy_id"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetRightSideCommander.IsValid, 'print_enemy_id_present', 'print_enemy_id_absent'))]"
+            }
+            state = {
+                name = "print_enemy_id_present"
+                duration = 0.1
+                next = "print_player_name"
+                on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_ID:', UIntToString(CombatWindow.GetRightSideCommander.GetID)))]"
+            }
+            state = {
+                name = "print_enemy_id_absent"
+                duration = 0.1
+                next = "print_player_name"
+                on_finish = "[ExecuteConsoleCommand('RightSide_ID:4294967295')]"
+            }
+
+            state = {
+                name = "print_player_name"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetLeftSideCommander.IsValid, 'print_player_name_present', 'print_player_name_absent'))]"
+            }
+            state = {
+                name = "print_player_name_present"
+                duration = 0.1
+                next = "print_enemy_name"
+                on_finish = "[ExecuteConsoleCommand(Concatenate('LeftSide_Name:', CombatWindow.GetLeftSideCommander.GetFullNameNoTooltip))]"
+            }
+            state = {
+                name = "print_player_name_absent"
+                duration = 0.1
+                next = "print_enemy_name"
+                on_finish = "[ExecuteConsoleCommand('LeftSide_Name:Uncommanded army')]"
+            }
+            state = {
+                name = "print_enemy_name"
+                duration = 0.1
+                on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetRightSideCommander.IsValid, 'print_enemy_name_present', 'print_enemy_name_absent'))]"
+            }
+            state = {
+                name = "print_enemy_name_present"
+                duration = 0.1
+                next = "print_special_building"
+                on_finish = "[ExecuteConsoleCommand(Concatenate('RightSide_Name:', CombatWindow.GetRightSideCommander.GetFullNameNoTooltip))]"
+            }
+            state = {
+                name = "print_enemy_name_absent"
+                duration = 0.1
+                next = "print_special_building"
+                on_finish = "[ExecuteConsoleCommand('RightSide_Name:Uncommanded army')]"
+            }
+
+
+            state = {
+            name = "print_special_building"
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(CombatWindow.GetCombat.GetProvince.GetHolding.GetSpecialBuildingType.IsValid, 'cchandoff_building_present', 'cchandoff_building_none'))]"
+            }
+
+            state = {
+            name = "print_modifiers_line"
+            duration = 0.1
+            next = "print_modifiers"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('---------', 'Modifiers---------'))]"
+            }
+
+            state = {
+            name = "print_modifiers"
+            duration = 0.1
+            next = "cchandoff_start_stats"
+            on_finish = "[ExecuteConsoleCommand(CombatWindow.GetAdvantageDescription)]"
+            }
+
+            state = {
+            name = "ccstat_wait"
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation('ccstat_wait_check')]"
+            }
+            state = {
+            name = "ccstat_wait_check"
+            duration = 0.1
+            on_finish = "[PdxGuiWidget.TriggerAnimation(Select_CString(GetVariableSystem.HasValue('ccstat_complete', 'yes'), 'log_keyword', 'ccstat_wait'))]"
+            }
+
+            state = {
+            name = "log_keyword"
+            duration = 0.1
+            next = "cchandoff_end"
+            on_finish = "[ExecuteConsoleCommand('BattleType:BATTLE')]"
+            }
+
+            state = {
+            name = save_game
+            on_finish = "[OnPauseMenu]"
+            on_finish = "[PdxGuiTriggerAllAnimations('create_readable_save_file')]"
+            }
+            state = {
+            name = cchandoff_pause
+            trigger_when = "[And(GetVariableSystem.HasValue('cchandoff_battle_active', 'preparing'), Not(IsGamePaused))]"
+            duration = 0.1
+            on_finish = "[OnPause]"
+            }
+            state = {
+            name = cchandoff_clear
+            trigger_when = "[And(GetVariableSystem.HasValue('cchandoff_battle_active', 'preparing'), IsGamePaused)]"
+            duration = 0.1
+            next = cchandoff_begin
+            on_start = "[GetVariableSystem.Set('cchandoff_battle_active', 'exporting')]"
+            on_finish = "[ExecuteConsoleCommand('Log.ClearAll')]"
+            }
+            state = {
+            name = "cchandoff_begin"
+            duration = 0.1
+            next = "log_year"
+            on_finish = "[ExecuteConsoleCommand('CCHANDOFF|v1|BEGIN')]"
+            }
+
+            state = {
+            name = "cchandoff_building_present"
+            duration = 0.1
+            next = "print_modifiers_line"
+            on_finish = "[ExecuteConsoleCommand(Concatenate('SpecialBuilding:', CombatWindow.GetCombat.GetProvince.GetHolding.GetSpecialBuildingType.GetKey))]"
+            }
+            state = {
+            name = "cchandoff_building_none"
+            duration = 0.1
+            next = "print_modifiers_line"
+            on_finish = "[ExecuteConsoleCommand('SpecialBuilding:none')]"
+            }
+            state = {
+            name = "cchandoff_start_stats"
+            duration = 0.1
+            next = "ccstat_wait"
+            on_finish = "[PdxGuiTriggerAllAnimations('ccstat_begin')]"
+            }
+            state = {
+            name = "cchandoff_end"
+            duration = 0.1
+            next = "cchandoff_done"
+            on_finish = "[ExecuteConsoleCommand('CCHANDOFF|v1|END')]"
+            }
+            state = {
+            name = "cchandoff_done"
+            duration = 0.1
+            next = "save_game"
+            on_finish = "[GetVariableSystem.Clear('cchandoff_battle_active')]"
+            }
+        }
+
 		cc_stat_export = {}
+		cc_stat_levy_export = {}
 
 		###   END ALL CRUSADER CONFLICTS EDITS TO window_combat.gui   ###
 		############################################################

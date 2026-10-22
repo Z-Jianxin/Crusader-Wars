@@ -112,7 +112,7 @@ namespace CrusaderWars.locs
                     //BATTLE NAME
                     if (line.Contains("battles_localised_name_tut_tutorial_battle"))
                     {
-                        line = $"battles_localised_name_tut_tutorial_battle\t{Name}\ttrue";
+                        line = UnitsCardsNames.ReplaceUnitNameTsv("battles_localised_name_tut_tutorial_battle\tBattle\ttrue", Name);
                     }
 
                     //BATTLE DETAILS
@@ -128,7 +128,7 @@ namespace CrusaderWars.locs
                                            "\\\\n" +
                                           $"Total Soldiers: {player_total_soldiers}" + "\\\\t||\\\\t" + $"Total Soldiers: {enemy_total_soldiers}";
 
-                        line = Regex.Replace(line, @"\t(?<BattleName>.+)\t", $"\t{new_text}\t");
+                        line = UnitsCardsNames.ReplaceUnitNameTsv(line, new_text);
                     }
                     new_data += line + "\n";
                 }

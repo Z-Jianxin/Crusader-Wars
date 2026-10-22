@@ -39,3 +39,24 @@ cc_stat_probe_cleanup = {
         debug_log = "CCPROBE|boost_removed"
     }
 }
+
+cc_stat_levy_apply = {
+    effect = {
+        add_character_modifier = { modifier = cc_stat_probe_levy_debuff days = 30 }
+        scriptedtests_recalculate_character_modifier = yes
+        force_character_skill_recalculation = yes
+        if = {
+            limit = { has_character_modifier = cc_stat_probe_levy_debuff }
+            debug_log = "CCLEVYTEST|debuff_present"
+        }
+        else = { debug_log = "CCLEVYTEST|FAIL|modifier_not_loaded" }
+    }
+}
+cc_stat_levy_clear = {
+    effect = {
+        remove_character_modifier = cc_stat_probe_levy_debuff
+        scriptedtests_recalculate_character_modifier = yes
+        force_character_skill_recalculation = yes
+        debug_log = "CCLEVYTEST|debuff_removed"
+    }
+}

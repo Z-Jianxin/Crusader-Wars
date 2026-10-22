@@ -1,0 +1,82 @@
+﻿# Disposable probe: compare the explicit empty type against native LevyView.
+# EmptyScope is a documented global TopScope; no nonexistent database key is used.
+window = {
+    name = "cc_levy_probe"
+    datacontext = "[EmptyScope.GetRootScope.Regiment]"
+    datacontext = "[Regiment.GetMAAType]"
+    size = { 0 0 }
+    alpha = 0
+    alwaystransparent = yes
+    state = {
+        name = cc_levy_0
+        trigger_when = "[GetPlayer.IsValid]"
+        duration = 0.1
+        next = cc_levy_1
+        on_finish = "[ExecuteConsoleCommand('CCLEVYKEY|BEGIN')]"
+    }
+    state = {
+        name = cc_levy_1
+        duration = 0.1
+        next = cc_levy_2
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCLEVYKEY|owner|', UIntToString(GetPlayer.GetID)))]"
+    }
+    state = {
+        name = cc_levy_2
+        duration = 0.1
+        next = cc_levy_3
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCLEVYKEY|control|base_damage|', CCProbeDecimal(GetMaA('armored_footmen').GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'damage'))))]"
+    }
+    state = {
+        name = cc_levy_3
+        duration = 0.1
+        next = cc_levy_4
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCLEVYKEY|control|base_toughness|', CCProbeDecimal(GetMaA('armored_footmen').GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'toughness'))))]"
+    }
+    state = {
+        name = cc_levy_4
+        duration = 0.1
+        next = cc_levy_5
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCLEVYKEY|control|owner_damage|', CCProbeDecimal(GetMaA('armored_footmen').GetStat(GetPlayer, GetNullProvince, GetNullLandedTitle, 'damage'))))]"
+    }
+    state = {
+        name = cc_levy_5
+        duration = 0.1
+        next = cc_levy_6
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCLEVYKEY|control|owner_toughness|', CCProbeDecimal(GetMaA('armored_footmen').GetStat(GetPlayer, GetNullProvince, GetNullLandedTitle, 'toughness'))))]"
+    }
+    state = {
+        name = cc_levy_6
+        duration = 0.1
+        next = cc_levy_7
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCLEVYKEY|empty_scope|valid|', Select_CString(MenAtArmsType.IsValid, 'yes', 'no')))]"
+    }
+    state = {
+        name = cc_levy_7
+        duration = 0.1
+        next = cc_levy_8
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCLEVYKEY|empty_scope|base_damage|', CCProbeDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'damage'))))]"
+    }
+    state = {
+        name = cc_levy_8
+        duration = 0.1
+        next = cc_levy_9
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCLEVYKEY|empty_scope|base_toughness|', CCProbeDecimal(MenAtArmsType.GetStat(GetNullCharacter, GetNullProvince, GetNullLandedTitle, 'toughness'))))]"
+    }
+    state = {
+        name = cc_levy_9
+        duration = 0.1
+        next = cc_levy_10
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCLEVYKEY|empty_scope|owner_damage|', CCProbeDecimal(MenAtArmsType.GetStat(GetPlayer, GetNullProvince, GetNullLandedTitle, 'damage'))))]"
+    }
+    state = {
+        name = cc_levy_10
+        duration = 0.1
+        next = cc_levy_11
+        on_finish = "[ExecuteConsoleCommand(Concatenate('CCLEVYKEY|empty_scope|owner_toughness|', CCProbeDecimal(MenAtArmsType.GetStat(GetPlayer, GetNullProvince, GetNullLandedTitle, 'toughness'))))]"
+    }
+    state = {
+        name = cc_levy_11
+        duration = 0.1
+        on_finish = "[ExecuteConsoleCommand('CCLEVYKEY|END')]"
+    }
+}

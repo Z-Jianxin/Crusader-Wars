@@ -61,6 +61,15 @@ ccf_test.2 = {
     hidden = yes
     immediate = {
         remove_variable = ccf_fixture_ally
+        remove_variable = ccf_fixture_war
+        var:ccf_fixture_enemy ?= { save_scope_as = ccf_fixture_enemy }
+        every_character_war = {
+            limit = {
+                primary_defender = root
+                primary_attacker = scope:ccf_fixture_enemy
+            }
+            root = { set_variable = { name = ccf_fixture_war value = prev } }
+        }
         every_vassal = {
             limit = {
                 is_adult = yes
@@ -71,14 +80,15 @@ ccf_test.2 = {
         if = {
             limit = {
                 has_variable = ccf_fixture_ally
-                exists = var:ccf_fixture_army.involved_combat_side.combat.combat_war
-                var:ccf_fixture_army.involved_combat_side.combat.combat_war = {
-                    primary_defender = root
-                }
+                has_variable = ccf_fixture_war
+                exists = var:ccf_fixture_army.involved_combat_side
             }
             var:ccf_fixture_ally = { save_scope_as = ccf_fixture_ally }
-            var:ccf_fixture_army.involved_combat_side.combat.combat_war = {
-                add_defender = scope:ccf_fixture_ally
+            var:ccf_fixture_war = {
+                if = {
+                    limit = { NOT = { any_war_defender = { this = scope:ccf_fixture_ally } } }
+                    add_defender = scope:ccf_fixture_ally
+                }
             }
             scope:ccf_fixture_ally = {
                 spawn_army = {
@@ -98,6 +108,81 @@ ccf_test.2 = {
             debug_log = "CCFIXTURE|ally_added"
             debug_log_scopes = yes
         }
-        else = { debug_log = "CCFIXTURE|ERROR|Allied fixture requires an active defensive combat from ccf_test.1 and an adult vassal" }
+        else = {
+            debug_log = "CCFIXTURE|ERROR|Allied fixture requires the saved player army in combat, a defensive war against the saved enemy, and an adult vassal"
+            debug_log_scopes = yes
+        }
+    }
+}
+
+# Station a regular player regiment through the native UI before invoking.
+ccf_test.3 = {
+    type = character_event
+    hidden = yes
+    immediate = {
+        remove_variable = ccf_fixture_station_regiment
+        remove_variable = ccf_fixture_station_province
+        every_maa_regiment = {
+            limit = {
+                exists = regiment_station
+                NOT = { root = { has_variable = ccf_fixture_station_regiment } }
+            }
+            save_scope_as = ccf_fixture_station_regiment
+            regiment_station = { save_scope_as = ccf_fixture_station_province }
+            root = {
+                set_variable = { name = ccf_fixture_station_regiment value = scope:ccf_fixture_station_regiment }
+                set_variable = { name = ccf_fixture_station_province value = scope:ccf_fixture_station_province }
+                set_variable = { name = cc_stat_probe_regiment value = scope:ccf_fixture_station_regiment }
+            }
+        }
+        if = {
+            limit = { has_variable = ccf_fixture_station_province }
+            var:ccf_fixture_station_province = {
+                add_province_modifier = { modifier = cc_stat_probe_station_boost days = 30 }
+            }
+            debug_log = "CCFIXTURE|station_boost_applied"
+            debug_log_scopes = yes
+        }
+        else = { debug_log = "CCFIXTURE|ERROR|Station a regular player MAA regiment in the native UI first" }
+    }
+}
+
+ccf_test.4 = {
+    type = character_event
+    hidden = yes
+    immediate = {
+        var:ccf_fixture_station_province ?= {
+            remove_province_modifier = cc_stat_probe_station_boost
+        }
+        debug_log = "CCFIXTURE|station_boost_removed"
+    }
+}
+
+# A separate army with no MAA, for exact-owner levy coverage and fallback tests.
+ccf_test.5 = {
+    type = character_event
+    hidden = yes
+    immediate = {
+        if = {
+            limit = {
+                has_variable = ccf_fixture_ally
+                exists = var:ccf_fixture_army.involved_combat_side
+            }
+            var:ccf_fixture_ally = {
+                spawn_army = {
+                    name = ccf_fixture_army_name
+                    levies = 750
+                    location = capital_province
+                    origin = capital_province
+                    uses_supply = no
+                    save_scope_as = ccf_fixture_levy_army
+                }
+            }
+            scope:ccf_fixture_levy_army = { set_army_location = root.capital_province }
+            set_variable = { name = ccf_fixture_levy_army value = scope:ccf_fixture_levy_army }
+            debug_log = "CCFIXTURE|pure_levy_army_added"
+            debug_log_scopes = yes
+        }
+        else = { debug_log = "CCFIXTURE|ERROR|Add an allied army first while the saved battle exists" }
     }
 }

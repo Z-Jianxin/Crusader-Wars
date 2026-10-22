@@ -12,5 +12,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2" />
     <Compile Include="../../CrusaderWars/stat_fidelity/StatExport.cs" Link="StatExport.cs" />
     <Compile Include="../../CrusaderWars/stat_fidelity/SnapshotEvidence.cs" Link="SnapshotEvidence.cs" />
+    <Compile Include="../../CrusaderWars/stat_fidelity/KnightBudget.cs" Link="KnightBudget.cs" />
+    <Compile Include="../../CrusaderWars/stat_fidelity/HandoffLog.cs" Link="HandoffLog.cs" />
   </ItemGroup>
 </Project>

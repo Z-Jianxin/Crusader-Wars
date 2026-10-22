@@ -41,6 +41,15 @@ namespace CrusaderWars
         public bool hasFallen { get; private set; }
         public bool IsSlain { get; set; } = false;
         public bool IsPrisoner { get; set; } = false;
+        public bool IsTrackedCharacter { get; private set; } = true;
+
+        public static CommanderSystem CreateUntrackedGeneral(string armyId, Culture culture)
+        {
+            var general = new CommanderSystem("Uncommanded army", "cc_untracked_" + armyId, 0, 0, 1, false);
+            general.IsTrackedCharacter = false;
+            general.ChangeCulture(culture);
+            return general;
+        }
         private bool MainCommander { get; set; }
         private Accolade? Accolade { get; set; }
         private bool IsAccoladeCommander { get; set; }
@@ -337,6 +346,7 @@ namespace CrusaderWars
 
         public void HasGeneralFallen(string path_attila_log)
         {
+            if (!IsTrackedCharacter) { hasFallen = false; IsSlain = false; IsPrisoner = false; return; }
             using (FileStream logFile = File.Open(path_attila_log, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (StreamReader reader = new StreamReader(logFile))
             {
@@ -359,6 +369,7 @@ namespace CrusaderWars
 
         public (bool isSlain, bool isCaptured, string newTraits) Health(string traits_line, bool wasOnLosingSide)
         {
+            if (!IsTrackedCharacter) return (false, false, traits_line);
             if (hasFallen)
             {
                 // Get percentages from options

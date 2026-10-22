@@ -42,6 +42,51 @@ public sealed class BackendTests
     }
 
     [Fact]
+    public void VisualVariantsFollowLandKeyWhenRecruitmentKeyDiffers()
+    {
+        var source = Fixture();
+        // A row for an unrelated land unit whose key happens to equal the recruitment key
+        // must not be substituted for the selected unit's actual visual definition.
+        source.Merge(Table("unit_variants_tables", new[] { "unit", "faction", "name", "variant", "unit_card" },
+            new[] { "spears", "", "unrelated_name", "unrelated_mesh", "unrelated_card" }));
+        var builder = new StatVariantBuilder(source);
+        string key = builder.Add(new("visual-identity", "spears", 1, 1));
+        var variant = Assert.Single(builder.Tables.Single(t => t.Name == "unit_variants_tables").Rows);
+        Assert.Equal(key, variant["unit"]);
+        Assert.Equal("original_mesh", variant["variant"]);
+    }
+
+    [Fact]
+    public void PreparedQueriesDoNotAssertMountedHealthAndNamesDoNotLeakBetweenBattles()
+    {
+        var source = Fixture();
+        var prepared = new PreparedAttilaDatabase(source, Array.Empty<string>(), () => { });
+        var stats = prepared.Query("spears");
+        Assert.Equal(25, stats.TotalMeleeDamage);
+        Assert.Equal(80, stats.EffectiveInfantryHitPoints);
+        Assert.True(stats.HasMissileWeapon);
+        source.Require("land_units_tables", "spears_land")["mount"] = "horse";
+        Assert.Null(prepared.Query("spears").EffectiveInfantryHitPoints);
+        Assert.False(prepared.Query("spears").CanScaleHitPoints);
+        source.Require("land_units_tables", "spears_land")["mount"] = "";
+        string directory = Scratch();
+        try
+        {
+            string first = Path.Combine(directory, "first"), second = Path.Combine(directory, "second");
+            Table("Loc", new[] { "key", "text", "tooltip" }, new[] { "land_units_onscreen_name_spears_land", "Battle-specific name", "true" })
+                .Write(Path.Combine(first, "text", "db", "battle_names.loc.tsv"));
+            var profiles = new[] { new UnitStatProfile("one", "spears", 1, 1) };
+            prepared.Generate(profiles, first);
+            prepared.Generate(profiles, second);
+            Assert.Equal("Battle-specific name", TsvTable.Read(Path.Combine(first, "text", "db", "cc_stat_fidelity.loc.tsv")).Rows[0]["text"]);
+            Assert.Equal("Spearmen", TsvTable.Read(Path.Combine(second, "text", "db", "cc_stat_fidelity.loc.tsv")).Rows[0]["text"]);
+            var stale = new PreparedAttilaDatabase(source, Array.Empty<string>(), () => throw new InvalidOperationException("changed"));
+            Assert.Throws<InvalidOperationException>(() => stale.Generate(profiles, second));
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
+    [Fact]
     public void HighPriorityRowsWinAndSchemaMismatchFails()
     {
         var db = Fixture();
@@ -80,6 +125,51 @@ public sealed class BackendTests
             var result = TsvTable.Read(file);
             Assert.Equal(original.Columns, result.Columns); Assert.Equal(original.Version, result.Version);
             Assert.Equal(original.Rows[0]["text"], result.Rows[0]["text"]);
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
+    [Fact]
+    public void NativeLocalizationPreservesMultilineUnicodeAndRejectsCorruption()
+    {
+        string directory = Scratch();
+        try
+        {
+            string file = Path.Combine(directory, "source.loc");
+            string value = "Soldiers \"elite\"\r\nsecond\tline \u519b\u961f";
+            using (var writer = new BinaryWriter(File.Create(file)))
+            {
+                writer.Write((ushort)0xFEFF); writer.Write(System.Text.Encoding.ASCII.GetBytes("LOC"));
+                writer.Write((byte)0); writer.Write(1); writer.Write((uint)1);
+                foreach (string text in new[] { "land_units_onscreen_name_test", value })
+                { writer.Write((ushort)text.Length); writer.Write(System.Text.Encoding.Unicode.GetBytes(text)); }
+                writer.Write((byte)1);
+            }
+            var table = LocBinaryReader.Read(file);
+            Assert.Equal(value, Assert.Single(table.Rows)["text"]);
+            string tsv = Path.Combine(directory, "recovered.loc.tsv"); table.Write(tsv);
+            Assert.Equal(value, TsvTable.Read(tsv).Rows[0]["text"]);
+            File.AppendAllText(file, "unexpected");
+            Assert.Throws<InvalidDataException>(() => LocBinaryReader.Read(file));
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
+    [InstalledLocalizationPackFact]
+    public void InstalledMultilineLocalizationRecoversLosslessly()
+    {
+        string directory = Scratch();
+        try
+        {
+            var db = StatFidelityBackend.LoadPacks(Environment.GetEnvironmentVariable("CC_RPFM")!,
+                Environment.GetEnvironmentVariable("CC_SCHEMA")!,
+                new[] { Environment.GetEnvironmentVariable("CC_TEST_LOC_PACK")! }, Path.Combine(directory, "cache"));
+            var row = db.Require("Loc", "effect_bundles_localised_description_bundle_supplies_0");
+            Assert.True(row["text"].Contains('\r') || row["text"].Contains('\n'));
+            string raw = Assert.Single(Directory.GetFiles(directory, "effect_bundles_supply_system.loc", SearchOption.AllDirectories));
+            var original = LocBinaryReader.Read(raw).Rows.Single(r => r["key"] == row["key"]);
+            Assert.Equal(original["text"], row["text"]);
+            Assert.Equal("true", row["tooltip"]);
         }
         finally { Directory.Delete(directory, true); }
     }
@@ -151,7 +241,7 @@ public sealed class BackendTests
     }
 
     [Fact]
-    public void UnverifiedMountedToughnessFailsRatherThanClaimingRiderHpIsEnough()
+    public void UnsupportedMountShapesFailAndNeutralHpComponentsStayExact()
     {
         var db = Fixture();
         db.Require("land_units_tables", "spears_land")["mount"] = "horse";
@@ -162,6 +252,59 @@ public sealed class BackendTests
         Assert.NotNull(damageOnly.Add(new("cavalry_damage", "spears", 2, 1)));
         Assert.Equal("60", damageOnly.Tables.Single(t => t.Name == "battle_entities_tables").Rows[0]["hit_points"]);
         Assert.Equal("20", damageOnly.Tables.Single(t => t.Name == "land_units_tables").Rows[0]["bonus_hit_points"]);
+    }
+
+    [Fact]
+    public void OrdinaryCavalryScalesPrivateComponentsWithExactMountedAndDismountedTotals()
+    {
+        var source = CavalryFixture();
+        var prepared = new PreparedAttilaDatabase(source, Array.Empty<string>(), () => { });
+        var stats = prepared.Query("spears");
+        Assert.True(stats.CanScaleHitPoints);
+        Assert.Null(stats.EffectiveInfantryHitPoints);
+        Assert.Equal(125, stats.MountHitPoints);
+        Assert.Equal(232, stats.EffectiveHitPoints);
+        foreach (double factor in new[] { 2.0, .5, 1.3 })
+        {
+            var builder = new StatVariantBuilder(source);
+            string key = builder.Add(new("mounted", "spears", 1, factor));
+            var land = Assert.Single(builder.Tables.Single(t => t.Name == "land_units_tables").Rows);
+            var mount = Assert.Single(builder.Tables.Single(t => t.Name == "mounts_tables").Rows);
+            var entities = builder.Tables.Single(t => t.Name == "battle_entities_tables");
+            int manHp = int.Parse(entities.Rows.Single(r => r["key"] == land["man_entity"])["hit_points"]);
+            int bonus = int.Parse(land["bonus_hit_points"]);
+            int mountHp = int.Parse(entities.Rows.Single(r => r["key"] == mount["entity"])["hit_points"]);
+            Assert.Equal((int)Math.Round(232 * factor, MidpointRounding.AwayFromZero), manHp + bonus + mountHp);
+            Assert.Equal((int)Math.Round(107 * factor, MidpointRounding.AwayFromZero), manHp + bonus);
+            Assert.Equal((int)Math.Round(90 * factor, MidpointRounding.AwayFromZero), manHp);
+            Assert.Equal(key + "_mount", land["mount"]);
+            Assert.Equal("source_animation", mount["animation"]);
+        }
+        Assert.Equal("90", source.Require("battle_entities_tables", "man")["hit_points"]);
+        Assert.Equal("125", source.Require("battle_entities_tables", "horse_entity")["hit_points"]);
+        Assert.Equal("17", source.Require("land_units_tables", "spears_land")["bonus_hit_points"]);
+        var neutral = new StatVariantBuilder(source);
+        neutral.Add(new("neutral", "spears", 1, 1));
+        Assert.DoesNotContain(neutral.Tables, t => t.Name == "mounts_tables");
+        Assert.Equal("horse", neutral.Tables.Single(t => t.Name == "land_units_tables").Rows[0]["mount"]);
+        Assert.Equal("90", neutral.Tables.Single(t => t.Name == "battle_entities_tables").Rows[0]["hit_points"]);
+        Assert.Equal("17", neutral.Tables.Single(t => t.Name == "land_units_tables").Rows[0]["bonus_hit_points"]);
+    }
+
+    [Fact]
+    public void UnsupportedCrewShapesAndMissingMountReferencesCannotPublishHpVariants()
+    {
+        var multiRider = CavalryFixture();
+        multiRider.Require("land_units_tables", "spears_land")["num_mounts"] = "40";
+        Assert.Throws<InvalidOperationException>(() => new StatVariantBuilder(multiRider).Add(new("multi", "spears", 1, 2)));
+        Assert.Null(new PreparedAttilaDatabase(multiRider, Array.Empty<string>(), () => { }).Query("spears").EffectiveHitPoints);
+        foreach (string field in new[] { "engine", "animal", "chariot", "articulated_record" })
+        {
+            var special = CavalryFixture(); special.Require("land_units_tables", "spears_land")[field] = "special";
+            Assert.Throws<InvalidOperationException>(() => new StatVariantBuilder(special).Add(new(field, "spears", 1, 2)));
+        }
+        var missing = CavalryFixture(); missing.Require("land_units_tables", "spears_land")["mount"] = "absent";
+        Assert.Throws<InvalidOperationException>(() => new StatVariantBuilder(missing).Add(new("missing", "spears", 1, 2)));
     }
 
     // Opt-in real RPFM/AD919 integration: set CC_RPFM, CC_SCHEMA and CC_TEST_PACK.
@@ -227,16 +370,27 @@ public sealed class BackendTests
     private static AttilaDatabase Fixture()
     {
         var db = new AttilaDatabase();
-        db.Merge(Table("main_units_tables", new[] { "unit", "land_unit", "is_naval", "unique_index", "in_encyclopedia" }, new[] { "spears", "spears_land", "false", "1", "true" }));
-        db.Merge(Table("land_units_tables", new[] { "key", "man_entity", "bonus_hit_points", "primary_melee_weapon", "primary_missile_weapon", "engine" }, new[] { "spears_land", "man", "20", "spear", "bow", "" }));
+        db.Merge(Table("main_units_tables", new[] { "unit", "land_unit", "is_naval", "unique_index", "in_encyclopedia", "num_men" }, new[] { "spears", "spears_land", "false", "1", "true", "160" }));
+        db.Merge(Table("land_units_tables", new[] { "key", "man_entity", "bonus_hit_points", "primary_melee_weapon", "primary_missile_weapon", "engine", "mount", "num_mounts", "category", "animal", "chariot", "articulated_record" }, new[] { "spears_land", "man", "20", "spear", "bow", "", "", "0", "inf_melee", "", "", "" }));
         db.Merge(Table("battle_entities_tables", new[] { "key", "hit_points" }, new[] { "man", "60" }));
         db.Merge(Table("melee_weapons_tables", new[] { "key", "damage", "ap_damage" }, new[] { "spear", "20", "5" }));
         db.Merge(Table("missile_weapons_tables", new[] { "key", "default_projectile" }, new[] { "bow", "arrow" }));
         db.Merge(Table("projectiles_tables", new[] { "key", "damage", "ap_damage" }, new[] { "arrow", "12", "4" }, new[] { "fire_arrow", "8", "2" }));
         db.Merge(Table("missile_weapons_to_projectiles_tables", new[] { "missile_weapon", "projectile" }, new[] { "bow", "arrow" }, new[] { "bow", "fire_arrow" }));
-        db.Merge(Table("unit_variants_tables", new[] { "unit", "faction", "name", "variant", "unit_card" }, new[] { "spears", "", "original_name", "original_mesh", "original_card" }));
+        db.Merge(Table("unit_variants_tables", new[] { "unit", "faction", "name", "variant", "unit_card" }, new[] { "spears_land", "", "original_name", "original_mesh", "original_card" }));
         db.Merge(Table("land_units_to_unit_abilites_junctions_tables", new[] { "land_unit", "ability" }, new[] { "spears_land", "shield_wall" }));
         db.Merge(Table("Loc", new[] { "key", "text", "tooltip" }, new[] { "land_units_onscreen_name_spears_land", "Spearmen", "true" }));
+        return db;
+    }
+
+    private static AttilaDatabase CavalryFixture()
+    {
+        var db = Fixture();
+        var land = db.Require("land_units_tables", "spears_land");
+        land["mount"] = "horse"; land["num_mounts"] = "160"; land["category"] = "cavalry"; land["bonus_hit_points"] = "17";
+        db.Require("battle_entities_tables", "man")["hit_points"] = "90";
+        db.Merge(Table("battle_entities_tables", new[] { "key", "hit_points" }, new[] { "horse_entity", "125" }));
+        db.Merge(Table("mounts_tables", new[] { "key", "entity", "animation" }, new[] { "horse", "horse_entity", "source_animation" }));
         return db;
     }
 }
@@ -247,5 +401,14 @@ public sealed class InstalledPackFactAttribute : FactAttribute
     {
         if (new[] { "CC_RPFM", "CC_SCHEMA", "CC_TEST_PACK" }.Any(name => string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(name))))
             Skip = "Set CC_RPFM, CC_SCHEMA and CC_TEST_PACK to run the real installed-pack integration check.";
+    }
+}
+
+public sealed class InstalledLocalizationPackFactAttribute : FactAttribute
+{
+    public InstalledLocalizationPackFactAttribute()
+    {
+        if (new[] { "CC_RPFM", "CC_SCHEMA", "CC_TEST_LOC_PACK" }.Any(name => string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(name))))
+            Skip = "Set CC_RPFM, CC_SCHEMA and CC_TEST_LOC_PACK to the installed Age of Justinian pack for its multiline localization regression.";
     }
 }

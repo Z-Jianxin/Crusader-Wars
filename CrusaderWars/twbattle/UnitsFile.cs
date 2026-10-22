@@ -128,6 +128,11 @@ namespace CrusaderWars
             }
 
             army.RemoveNullUnits();
+            if (StatFidelity.StatFidelitySession.HasBoundExport)
+                // The reader's individual character units are mapping placeholders.
+                // Only the actual generated general/knight formations belong in the
+                // battle roster and totals after conversion.
+                army.Units.RemoveAll(u => u.GetRegimentType() == RegimentType.Commander || u.GetRegimentType() == RegimentType.Knight);
 
             i = 0;
             int modifiers_xp = 0;
@@ -150,7 +155,7 @@ namespace CrusaderWars
                 int commander_soldiers = commander.GetUnitSoldiers();
 
                 Unit commander_unit = new Unit("General", commander_soldiers, commander.GetCultureObj(), RegimentType.Commander, false, army.Owner, commander.Rank);
-                commander_unit.SetCharacterID(commander.ID);
+                if (commander.IsTrackedCharacter) commander_unit.SetCharacterID(commander.ID);
                 commander_unit.SetAttilaFaction(UnitMappers_BETA.GetAttilaFaction(commander.GetCultureName(), commander.GetHeritageName()));
                 var (commanderKey, isSiege) = UnitMappers_BETA.GetUnitKey(commander_unit);
 
@@ -179,11 +184,16 @@ namespace CrusaderWars
                     if (commanderProfile.CommanderApplied)
                     {
                         commander_xp = 0;
-                        commander_unit.SetInitialSoldiers(StatFidelity.StatFidelitySession.Settings.CommanderBodyguardSoldiers);
-                        StatFidelity.StatFidelitySession.Note("Direct commander uses a fixed " + StatFidelity.StatFidelitySession.Settings.CommanderBodyguardSoldiers + "-body representation, zero XP and one star. This engine-required guard is not a CK3 prowess-derived combat budget; title/culture select its appearance.");
+                        commander_unit.SetUnitKey(commanderProfile.BaseUnitKey);
+                        commander_unit.SetInitialSoldiers(commanderProfile.RepresentedSoldiers ?? StatFidelity.StatFidelitySession.Settings.CommanderBodyguardSoldiers);
+                        StatFidelity.StatFidelitySession.Note(commanderProfile.KnightApplied
+                            ? "Fighting commander uses its one knight budget through " + commander_unit.GetSoldiers() + " retinue bodies, zero XP and one star; no duplicate knight object or fate roll."
+                            : "Direct commander uses a fixed " + StatFidelity.StatFidelitySession.Settings.CommanderBodyguardSoldiers + "-body representation, zero XP and one star. This engine-required guard is not a CK3 prowess-derived combat budget; title/culture select its appearance.");
                     }
                     BattleFile.AddGeneralUnit(commander, commanderProfile.UnitKey, general_script_name, commander_xp, Deployments.beta_GeDirection(army.CombatSide), commanderProfile.CommanderApplied,
-                        commanderProfile.CommanderApplied ? commander_unit.GetSoldiers() : null);
+                        commanderProfile.CommanderApplied ? commander_unit.GetSoldiers() : null, includeAccoladeAbilities: !commanderProfile.CommanderApplied);
+                    if (commanderProfile.CommanderApplied && commander.GetAccolade() != null)
+                        StatFidelity.StatFidelitySession.Note("Direct-stat general omits legacy accolade abilities; native bonuses are not stacked with an uncalibrated Total War ability.");
                     i++;
                 }
             }
@@ -225,7 +235,6 @@ namespace CrusaderWars
                 {
                     knightAttilaKey = knightProfile.UnitKey;
                     knights_unit.SetInitialSoldiers(fidelityKnightSoldiers);
-                    StatFidelity.StatFidelitySession.RegisterCalibratedKnightUnit(knights_unit.UniqueID);
                 }
                 if (string.IsNullOrEmpty(knightAttilaKey) || knightAttilaKey == UnitMappers_BETA.NOT_FOUND_KEY)
                 {
@@ -233,28 +242,35 @@ namespace CrusaderWars
                 }
                 else
                 {
-                    army.Units.Insert(1, knights_unit); // Insert near commander
-
-                    string knights_script_name;
-                    if (knightSystem.GetMajorCulture() != null)
-                        knights_script_name = $"{i}_{army.CombatSide}_army{army.ID}_TYPEknights_{knights_unit.UniqueID}_CULTURE{knightSystem.GetMajorCulture()?.ID ?? "unknown"}_";
-                    else
-                        knights_script_name = $"{i}_{army.CombatSide}_army{army.ID}_TYPEknights_{knights_unit.UniqueID}_CULTURE{army.Owner.GetCulture()?.ID ?? "unknown"}_";
-
-                    string? knightNameToDisplay = null;
-                    if (army.Commander == null && !army.Units.Any(u => u.KnightCommander != null))
+                    int totalKnightSoldiers = knightSystem.GetKnightsSoldiers();
+                    int maximum = knightProfile.MaximumFormationSoldiers ?? Math.Max(2, totalKnightSoldiers);
+                    int formationCount = totalKnightSoldiers == 0 ? 0 : (totalKnightSoldiers - 1) / maximum + 1;
+                    for (int formation = 0; formation < formationCount; formation++)
                     {
-                        var bestKnight = knightSystem.GetKnightsList()
-                                                            .OrderByDescending(k => k.GetProwess())
-                                                            .FirstOrDefault();
-                        if (bestKnight != null)
-                        {
-                            knightNameToDisplay = bestKnight.GetName();
-                        }
-                    }
+                        int represented = totalKnightSoldiers / formationCount + (formation < totalKnightSoldiers % formationCount ? 1 : 0);
+                        Unit formationUnit = formation == 0 ? knights_unit : new Unit("Knight", represented, knights_unit.GetObjCulture(), RegimentType.Knight, false, army.Owner, 0);
+                        formationUnit.SetInitialSoldiers(represented);
+                        formationUnit.SetUnitKey(knightStatsApplied ? knightProfile.BaseUnitKey : knightKey);
+                        formationUnit.SetOriginalAttilaKey(knightStatsApplied ? knightProfile.BaseUnitKey : knightKey);
+                        formationUnit.SetAttilaFaction(knights_unit.GetAttilaFaction());
+                        formationUnit.SetIsSiege(isSiegeKnight);
+                        if (knightStatsApplied) StatFidelity.StatFidelitySession.RegisterCalibratedKnightUnit(formationUnit.UniqueID);
+                        army.Units.Insert(Math.Min(1 + formation, army.Units.Count), formationUnit);
+                        string knights_script_name;
+                        if (knightSystem.GetMajorCulture() != null)
+                            knights_script_name = $"{i}_{army.CombatSide}_army{army.ID}_TYPEknights_{formationUnit.UniqueID}_CULTURE{knightSystem.GetMajorCulture()?.ID ?? "unknown"}_";
+                        else
+                            knights_script_name = $"{i}_{army.CombatSide}_army{army.ID}_TYPEknights_{formationUnit.UniqueID}_CULTURE{army.Owner.GetCulture()?.ID ?? "unknown"}_";
 
-                    BattleFile.AddKnightUnit(knightSystem, knightAttilaKey, knights_script_name, knightStatsApplied ? 0 : knightSystem.SetExperience(), Deployments.beta_GeDirection(army.CombatSide), knightNameToDisplay, !knightStatsApplied);
-                    i++;
+                        string? knightNameToDisplay = null;
+                        if (formation == 0 && army.Commander == null && !army.Units.Any(u => u.KnightCommander != null))
+                        {
+                            var bestKnight = knightSystem.GetKnightsList().OrderByDescending(k => k.GetProwess()).FirstOrDefault();
+                            if (bestKnight != null) knightNameToDisplay = bestKnight.GetName();
+                        }
+                        BattleFile.AddKnightUnit(knightSystem, knightAttilaKey, knights_script_name, knightStatsApplied ? 0 : knightSystem.SetExperience(), Deployments.beta_GeDirection(army.CombatSide), knightNameToDisplay, !knightStatsApplied, representedSoldiers: represented);
+                        i++;
+                    }
                 }
             }
 
@@ -280,7 +296,8 @@ namespace CrusaderWars
             if (army_xp > 9) { army_xp = 9; }
             // Commander-derived advantage replaces the legacy commander and commander-trait
             // XP contribution only on units for which that direct profile was emitted.
-            int direct_army_xp = Math.Max(0, Math.Min(9, modifiers_xp));
+            var sideModifiers = army.IsPlayer() ? CK3LogData.LeftSide.GetModifiers() : CK3LogData.RightSide.GetModifiers();
+            int direct_army_xp = Math.Max(0, Math.Min(9, sideModifiers?.GetXP(commanderAdvantageApplied: true) ?? 0));
 
             //##################
             //                 #

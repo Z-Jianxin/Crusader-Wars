@@ -17,13 +17,13 @@ namespace CrusaderWars.client
         private readonly CheckBox statFidelity = new CheckBox
         {
             Name = "OptionSelection_StatFidelityMode",
-            Text = "Preserve CK3 combat stats (experimental)",
+            Text = "CK3 combat stats (experimental)",
             Dock = DockStyle.Top,
             AutoSize = true,
             ForeColor = Color.White,
             Font = new Font("Segoe UI", 10F),
             Padding = new Padding(6),
-            AccessibleDescription = "Use exported CK3 damage, toughness and commander bonuses when available. Missing data is listed in the battle conversion report."
+            AccessibleDescription = "Uses native MAA and owner-levy bonuses, commander advantage, and knight prowess/efficiency to generate unit stats. Knight damage and health budgets use a same-army reference and may change represented body counts. Requires a complete current save/export and supported mapping. Absolute balance remains experimental; counters, terrain combat formulas, rolls and pursuit/screen are not reproduced."
         };
 
         public UC_UnitsOptions()

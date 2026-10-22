@@ -30,7 +30,38 @@ internal static class NativeControl
         new Script().LoadString(frontend);
         File.WriteAllText(frontPath, frontend, new UTF8Encoding(false));
         string battlePath = Path.Combine(payload, "script", "an_adrianople", "an_start.lua");
-        string battle = logger + "cc_native_control_log(\"native Adrianople battle script loaded\")\n" + File.ReadAllText(battlePath);
+        string nativeBattle = File.ReadAllText(battlePath);
+        string battle = logger + "cc_native_control_log(\"native Adrianople battle script loaded\")\n" + """
+function cc_native_control_guard(label, callback)
+    cc_native_control_log("ENTER " .. label)
+    local ok, result = xpcall(callback, function(err) return debug.traceback(tostring(err), 2) end)
+    if not ok then
+        cc_native_control_log("ERROR " .. label .. ": " .. tostring(result))
+        error(result)
+    end
+    cc_native_control_log("EXIT " .. label)
+    return result
+end
+cc_native_control_guard("native setup", function()
+
+""" + nativeBattle + """
+
+end)
+cc_native_control_log("native Adrianople battle script setup finished")
+for _, name in ipairs({ "Deployment_Phase", "End_Deployment_Phase", "Play_Cutscene_Intro", "Start_Battle" }) do
+    local original = _G[name]
+    local label = name
+    if type(original) == "function" then
+        _G[name] = function() return cc_native_control_guard(label, original) end
+    end
+end
+for _, phase in ipairs({ "Deployment", "Deployed", "VictoryCountdown", "Complete" }) do
+    local label = phase
+    bm:register_phase_change_callback(phase, function() cc_native_control_log("PHASE " .. label) end)
+end
+bm:repeat_callback(function() cc_native_control_log("battle timer tick") end, 5000, "cc_native_control_heartbeat")
+
+""";
         new Script().LoadString(battle);
         File.WriteAllText(battlePath, battle, new UTF8Encoding(false));
         string packPath = Path.Combine(output, "cc_stat_calibration.pack");
@@ -40,7 +71,7 @@ internal static class NativeControl
         if (!listing.Contains("an_start.lua") || !listing.Contains("frontend_hbs.lua") || listing.Contains("db/"))
             throw new InvalidDataException("Native control must contain only its two instrumented native scripts.");
         File.WriteAllText(Path.Combine(output, "used_mods_cc_calibration.txt"),
-            $"add_working_directory \"{output.Replace('\\', '/')}\";\nmod \"cc_stat_calibration.pack\";\n");
+            $"show_frontend_movies false;\nadd_working_directory \"{output.Replace('\\', '/')}\";\nmod \"cc_stat_calibration.pack\";\n");
         File.WriteAllText(Path.Combine(output, "manifest.json"), JsonSerializer.Serialize(new
         {
             kind = "native_historical_control", battle = "Adrianople", launch = "manual_historical_battle_menu",

@@ -1,4 +1,4 @@
-
+﻿
 # CC-231: Disable Siege Button when insufficient troops
 #
 # NOTE: The gate for the siege assault button is implemented directly in

@@ -463,6 +463,7 @@ namespace CrusaderWars
 
         private async Task CheckForUpdaterUpdateAsync()
         {
+            if (DevelopmentRuntime.Enabled) return;
             if (_updaterChecked) return;
             _updaterChecked = true;
 
@@ -542,6 +543,12 @@ namespace CrusaderWars
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         public async Task CheckAppVersion()
         {
+            if (DevelopmentRuntime.Enabled)
+            {
+                GetAppVersion();
+                Program.Logger.Debug("Development runtime: upstream application and updater replacement are disabled.");
+                return;
+            }
             await CheckForUpdaterUpdateAsync();
             Program.Logger.Debug("Checking app version...");
             if (!HasInternetConnection())
@@ -622,6 +629,12 @@ namespace CrusaderWars
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         public async Task CheckUnitMappersVersion()
         {
+            if (DevelopmentRuntime.Enabled)
+            {
+                GetUnitMappersVersion();
+                Program.Logger.Debug("Development runtime: upstream unit mapper replacement is disabled.");
+                return;
+            }
             await CheckForUpdaterUpdateAsync();
             Program.Logger.Debug("Checking unit mappers version...");
             if (!HasInternetConnection())

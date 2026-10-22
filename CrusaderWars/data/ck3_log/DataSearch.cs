@@ -207,6 +207,15 @@ namespace CrusaderWars
         public static void Search(string log)
         {
             Program.Logger.Debug("Starting CK3 log search...");
+            bool requireFramed = ModOptions.optionsValuesCollection.TryGetValue("StatFidelityMode", out string? fidelityMode) && (fidelityMode == "Enabled" || fidelityMode == "Validated");
+            StatFidelity.SelectedHandoff selected;
+            try { selected = StatFidelity.HandoffLog.SelectLatest(log, requireFramed); }
+            catch (InvalidDataException error) { throw StatFidelity.StatFidelitySession.InvalidateHandoff(error.Message); }
+            log = selected.Text;
+            TerrainGenerator.Clear();
+            TerrainGenerator.SetRegion("");
+            if (selected.IsFramed && (Date.Year.ToString(CultureInfo.InvariantCulture) != selected.Fields["DateYear"] ||
+                Date.Month.ToString(CultureInfo.InvariantCulture) != selected.Fields["DateMonth"])) Date.Reset();
             StatFidelity.StatFidelitySession.Begin(log);
             /*---------------------------------------------
              * ::::::::::::::::Army Ratio::::::::::::::::::
@@ -278,9 +287,14 @@ namespace CrusaderWars
             // Left Side
             if (string.IsNullOrEmpty(left_side_commander_id) || left_side_commander_id == "4294967295")
             {
+                if (StatFidelity.StatFidelitySession.Enabled && StatFidelity.StatFidelitySession.Export.Complete)
+                    left_side_commander_id = "none";
+                else
+                {
                 Program.Logger.Debug("Left side commander ID is missing or invalid. Using owner ID as fallback.");
                 left_side_commander_id = left_side_mainparticipant_id;
                 left_side_commander_culture_id = left_side_mainparticipant_culture_id;
+                }
             }
             else if (left_side_mainparticipant_id == "4294967295")
             {
@@ -292,9 +306,14 @@ namespace CrusaderWars
             // Right Side
             if (string.IsNullOrEmpty(right_side_commander_id) || right_side_commander_id == "4294967295")
             {
+                if (StatFidelity.StatFidelitySession.Enabled && StatFidelity.StatFidelitySession.Export.Complete)
+                    right_side_commander_id = "none";
+                else
+                {
                 Program.Logger.Debug("Right side commander ID is missing or invalid. Using owner ID as fallback.");
                 right_side_commander_id = right_side_mainparticipant_id;
                 right_side_commander_culture_id = right_side_mainparticipant_culture_id;
+                }
             }
             else if (right_side_mainparticipant_id == "4294967295")
             {
@@ -460,7 +479,8 @@ namespace CrusaderWars
                     }
                     else if (searchStarted)
                     {
-                        if (line.StartsWith("Keyword:"))
+                        if (line.StartsWith("Keyword:") || line.StartsWith("CCSTAT|") ||
+                            line.StartsWith("BattleType:") || line.StartsWith("CCHANDOFF|"))
                         {
                             break;
                         }
@@ -523,13 +543,13 @@ namespace CrusaderWars
             {
                 pattern = @"LeftSide_Prowess:(?<Num>\d+)";
                 rank = Int32.Parse(Regex.Match(log, @"LeftSide_Rank:(?<Name>.+)").Groups["Name"].Value);
-                name = Regex.Match(log, @"LeftSide_Name:(?<Name>.+)").Groups["Name"].Value;
+                name = Regex.Match(log, @"LeftSide_Name:(?<Name>.+)").Groups["Name"].Value.Trim();
             }
             else if (side is DataSearchSides.RightSide)
             {
                 pattern = @"RightSide_Prowess:(?<Num>\d+)";
                 rank = Int32.Parse(Regex.Match(log, @"RightSide_Rank:(?<Name>.+)").Groups["Name"].Value);
-                name = Regex.Match(log, @"RightSide_Name:(?<Name>.+)").Groups["Name"].Value;
+                name = Regex.Match(log, @"RightSide_Name:(?<Name>.+)").Groups["Name"].Value.Trim();
             }
 
             Match prowess_match = Regex.Match(army_data, pattern);
@@ -558,6 +578,18 @@ namespace CrusaderWars
         }
         static void RealmsNamesSearch(string log)
         {
+            // A current handoff that has no printable realm tooltip must not retain
+            // display names from a previous conversion in this app process.
+            CK3LogData.LeftSide.SetRealmName(string.Empty);
+            CK3LogData.RightSide.SetRealmName(string.Empty);
+            string header = log.Split("---------Left-Side-Army---------", StringSplitOptions.None)[0];
+            var currentTitles = Regex.Matches(header, @"TOOLTIP:LANDED_TITLE,?\d+\s+L;?\s+([^\r\n]+)");
+            if (currentTitles.Count >= 2)
+            {
+                CK3LogData.LeftSide.SetRealmName(Regex.Replace(currentTitles[0].Groups[1].Value, @"(\s*!)+$", "").Trim());
+                CK3LogData.RightSide.SetRealmName(Regex.Replace(currentTitles[1].Groups[1].Value, @"(\s*!)+$", "").Trim());
+                return;
+            }
             if (twbattle.BattleState.IsSiegeBattle)
             {
                 // New, specific logic for siege battles
@@ -678,6 +710,9 @@ namespace CrusaderWars
             string region_data = Regex.Match(terrain_data, @"Region:(.+)").Groups[1].Value;
             TerrainGenerator.SetRegion(region_data);
 
+            var explicitTerrain = Regex.Match(content, @"(?m)^TerrainKey:([a-z_]+)\s*$");
+            if (explicitTerrain.Success) return explicitTerrain.Groups[1].Value;
+
             string terrain = Regex.Match(terrain_data, @"TOOLTIP:TERRAIN,?(?<terrain>\w+)\s+L;?").Groups["terrain"].Value;
             return terrain;
         }
@@ -699,6 +734,8 @@ namespace CrusaderWars
 
         static string SearchForWinter(string content)
         {
+            var explicitWinter = Regex.Match(content, @"(?m)^WinterSeverity:([^\r\n]+)");
+            if (explicitWinter.Success) return explicitWinter.Groups[1].Value.Trim();
             string terrain_data = Regex.Match(content, "---------Completed---------([\\s\\S]*?)LeftSide_ID").Groups[1].Value;
 
             string[] AllWinter = new string[] {"Mild", "Normal", "Harsh" ,

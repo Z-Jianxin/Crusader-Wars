@@ -29,10 +29,13 @@ public sealed class StatVariantBuilder
             throw new InvalidOperationException($"Stat fidelity cannot change naval unit '{profile.BaseUnitKey}'.");
         string oldLandKey = originalMain["land_unit"];
         var originalLand = source.Require("land_units_tables", oldLandKey);
-        bool mountedOrSpecial = new[] { "mount", "animal", "chariot", "articulated_record" }
+        bool mounted = !string.IsNullOrWhiteSpace(originalLand.GetValueOrDefault("mount"));
+        bool special = new[] { "engine", "animal", "chariot", "articulated_record" }
             .Any(field => !string.IsNullOrWhiteSpace(originalLand.GetValueOrDefault(field)));
-        if (mountedOrSpecial && profile.HitPointMultiplier != 1)
-            throw new InvalidOperationException($"Stat fidelity cannot yet validate mounted/chariot/animal toughness for '{profile.BaseUnitKey}' (profile '{profile.Id}', requested factor {profile.HitPointMultiplier}). Mounted entity and rider casualty calibration is pending; this battle was not published.");
+        bool ordinaryMount = mounted && !special && originalLand.GetValueOrDefault("category") == "cavalry" &&
+            Integer(originalLand, "num_mounts") == Integer(originalMain, "num_men");
+        if ((special || (mounted && !ordinaryMount)) && profile.HitPointMultiplier != 1)
+            throw new InvalidOperationException($"Stat fidelity cannot validate multi-rider/chariot/animal/engine toughness for '{profile.BaseUnitKey}' (profile '{profile.Id}'). Only infantry and ordinary one-rider cavalry HP have engine evidence.");
         var land = Clone("land_units_tables", originalLand, "key", key);
         var main = Clone("main_units_tables", originalMain, "unit", key);
         main["land_unit"] = key;
@@ -50,11 +53,33 @@ public sealed class StatVariantBuilder
         land["man_entity"] = key + "_man";
         if (profile.HitPointMultiplier != 1)
         {
-            newEntity["hit_points"] = health.ToString(CultureInfo.InvariantCulture);
-            land["bonus_hit_points"] = "0";
+            if (ordinaryMount)
+            {
+                var originalMount = source.Require("mounts_tables", originalLand["mount"]);
+                var originalMountEntity = source.Require("battle_entities_tables", Required(originalMount, "entity"));
+                int mountedBase = checked(baseHealth + Integer(originalMountEntity, "hit_points"));
+                int mountedHealth = Scale(mountedBase, profile.HitPointMultiplier);
+                int manHealth = Scale(Integer(entity, "hit_points"), profile.HitPointMultiplier);
+                int mountHealth = checked(mountedHealth - health);
+                if (manHealth < 1 || mountHealth < 1)
+                    throw new InvalidOperationException($"Mounted profile '{profile.Id}' is below entity HP resolution after rounding.");
+                // Preserve proportional components while rounding BOTH composite mounted HP and
+                // dismounted (man+bonus) HP exactly. Residuals differ by at most integer rounding.
+                newEntity["hit_points"] = manHealth.ToString(CultureInfo.InvariantCulture);
+                land["bonus_hit_points"] = checked(health - manHealth).ToString(CultureInfo.InvariantCulture);
+                var mount = Clone("mounts_tables", originalMount, "key", key + "_mount");
+                var mountEntity = Clone("battle_entities_tables", originalMountEntity, "key", key + "_mount_entity");
+                mountEntity["hit_points"] = mountHealth.ToString(CultureInfo.InvariantCulture);
+                mount["entity"] = key + "_mount_entity";
+                land["mount"] = key + "_mount";
+            }
+            else
+            {
+                newEntity["hit_points"] = health.ToString(CultureInfo.InvariantCulture);
+                land["bonus_hit_points"] = "0";
+            }
         }
-        // Neutral/damage-only profiles preserve both HP fields exactly. Moving a mounted unit's
-        // bonus into the rider entity would assume unverified mount/rider bonus semantics.
+        // Neutral/damage-only profiles preserve all HP fields and their original mount reference.
 
         string meleeKey = Required(land, "primary_melee_weapon");
         var melee = Clone("melee_weapons_tables", source.Require("melee_weapons_tables", meleeKey), "key", key + "_melee");
@@ -71,7 +96,9 @@ public sealed class StatVariantBuilder
             land["engine"] = key + "_engine";
         }
 
-        var variants = source.Find("unit_variants_tables", "unit", profile.BaseUnitKey).ToList();
+        // Attila's unit_variants.unit foreign key targets land_units.key, not main_units.unit.
+        // Overhauls may use different recruitment and land keys even though vanilla often does not.
+        var variants = source.Find("unit_variants_tables", "unit", oldLandKey).ToList();
         if (variants.Count == 0) throw new InvalidOperationException($"Stat fidelity cannot resolve visual variants for '{profile.BaseUnitKey}'.");
         foreach (var variant in variants)
             // Keep variant/name/card assets and their colour relationships; only the unit FK changes.

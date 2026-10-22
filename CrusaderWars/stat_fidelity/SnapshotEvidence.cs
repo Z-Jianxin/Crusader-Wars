@@ -15,8 +15,21 @@ namespace CrusaderWars.StatFidelity
 
         public static bool Validate(TextReader living, string playerId, string snapshotId, string combatId, out string reason)
         {
+            if (!TryResolveCombat(living, playerId, snapshotId, out string savedCombat, out reason)) return false;
+            if (!Digits(combatId) || savedCombat != combatId)
+            {
+                reason = "Snapshot freshness rejected: saved ccstat_combat does not identify the selected combat.";
+                return false;
+            }
+            reason = "Snapshot serial and selected combat match the handoff save.";
+            return true;
+        }
+
+        public static bool TryResolveCombat(TextReader living, string playerId, string snapshotId, out string combatId, out string reason)
+        {
+            combatId = "";
             reason = "Snapshot freshness rejected: missing or invalid player, combat or snapshot identity.";
-            if (!Digits(playerId) || !Digits(combatId) || !snapshotId.StartsWith("snapshot-", StringComparison.Ordinal) ||
+            if (!Digits(playerId) || !snapshotId.StartsWith("snapshot-", StringComparison.Ordinal) ||
                 !long.TryParse(snapshotId.Substring(9), NumberStyles.None, CultureInfo.InvariantCulture, out long serial) || serial <= 0 || serial > long.MaxValue / SavedValueScale)
                 return false;
             string? block = ReadCharacter(living, playerId);
@@ -31,11 +44,14 @@ namespace CrusaderWars.StatFidelity
                 reason = "Snapshot freshness rejected: exported serial does not match the selected player's handoff save.";
                 return false;
             }
-            if (!TryVariable(block, "ccstat_combat", "combat", out string savedCombat) || savedCombat != combatId)
+            // CK3 1.20 writes combat scopes as "com". A real combat-0 snapshot
+            // serializes only type=com: the default identity=0 field is omitted.
+            if (!TryVariable(block, "ccstat_combat", "com", out string savedCombat) || !Digits(savedCombat))
             {
                 reason = "Snapshot freshness rejected: saved ccstat_combat does not identify the selected combat.";
                 return false;
             }
+            combatId = savedCombat;
             reason = "Snapshot serial and selected combat match the handoff save.";
             return true;
         }
@@ -89,8 +105,11 @@ namespace CrusaderWars.StatFidelity
             if (matches.Count != 1) return false;
             string data = matches[0].Groups["data"].Value;
             var type = Regex.Matches(data, @"\btype\s*=\s*([a-z_]+)", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
-            var value = Regex.Matches(data, @"\bidentity\s*=\s*(\d+)\b", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
-            if (type.Count != 1 || value.Count != 1 || type[0].Groups[1].Value != expectedType) return false;
+            var assignments = Regex.Matches(data, @"\bidentity\s*=", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+            var value = Regex.Matches(data, @"\bidentity\s*=\s*(\d+)(?=\s|$)", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+            if (type.Count != 1 || type[0].Groups[1].Value != expectedType) return false;
+            if (assignments.Count == 0 && expectedType == "com") { identity = "0"; return true; }
+            if (assignments.Count != 1 || value.Count != 1) return false;
             identity = value[0].Groups[1].Value;
             return true;
         }

@@ -17,6 +17,7 @@ public sealed class AttilaDatabase
         ["missile_weapons_tables"] = new[] { "key" },
         ["projectiles_tables"] = new[] { "key" },
         ["battle_entities_tables"] = new[] { "key" },
+        ["mounts_tables"] = new[] { "key" },
         ["battlefield_engines_tables"] = new[] { "key" },
         ["unit_variants_tables"] = new[] { "unit", "faction" },
         ["land_units_to_unit_abilites_junctions_tables"] = new[] { "land_unit", "ability" },

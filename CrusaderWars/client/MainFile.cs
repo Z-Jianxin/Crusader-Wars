@@ -193,7 +193,7 @@ namespace CrusaderWars
                 }
             }
 
-            labelVersion.Text = $"v{_appVersion.TrimStart('v')}";
+            labelVersion.Text = $"v{_appVersion.TrimStart('v')}" + DevelopmentRuntime.VersionSuffix;
 
             // Line 175 - Add null check
             _umVersion = _updater?.UMVersion; // Make nullable
@@ -608,7 +608,7 @@ namespace CrusaderWars
         static string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         static string debugLog_Path = documentsPath + "\\Paradox Interactive\\Crusader Kings III\\console_history.txt";
         string saveGames_Path = documentsPath + "\\Paradox Interactive\\Crusader Kings III\\save games";
-        private async void Form1_Load(object sender, EventArgs e)
+        private void Form1_Load(object sender, EventArgs e)
         {
             // Linux Setup Wizard Check
             if (new client.LinuxSetup.Services.LinuxEnvironmentDetector().IsRunningOnLinux())
@@ -800,17 +800,7 @@ namespace CrusaderWars
             infoLabel.MaximumSize = new Size(1000, 0);
             this.infoLabel.AutoSize = true;
 
-            Program.Logger.Debug("Starting updater checks...");
-            Program.Logger.Debug("Initiating app and unit mappers version checks.");
-            await _updater.CheckAppVersion();
-            // If an app update is found, the process will exit and the next line won't be reached.
-            await _updater.CheckUnitMappersVersion();
-            await CheckForUnitMapperUpdateAndRevalidate();
-            await CheckForCK3ModUpdatesAsync(); // MOVED TO Form1_Load
-
             Program.Logger.Debug("Form1_Load complete.");
-
-            ShowOneTimeNotifications();
         }
 
         /// <summary>
@@ -1067,6 +1057,13 @@ namespace CrusaderWars
 
         private void UpdatePreReleaseLinkState()
         {
+            if (DevelopmentRuntime.Enabled)
+            {
+                _preReleasePulseTimer?.Stop();
+                linkOptInPreReleases.Text = "Development runtime: automatic updates off";
+                linkOptInPreReleases.Enabled = false;
+                return;
+            }
             bool isOptedIn = ModOptions.GetOptInPreReleases();
             if (isOptedIn)
             {
@@ -1602,9 +1599,18 @@ namespace CrusaderWars
             }
         }
 
-        private void HomePage_Shown(object sender, EventArgs e)
+        private async void HomePage_Shown(object sender, EventArgs e)
         {
-            // Empty event handler to satisfy designer
+            // Start modal-capable checks after the owner is visible. Development
+            // guards (and offline checks) may complete synchronously; running them
+            // inside Load can block the first show behind a taskbar-less owned dialog.
+            Program.Logger.Debug($"HomePage shown: Visible={Visible}, Handle={Handle}, Bounds={Bounds}.");
+            Program.Logger.Debug("Initiating app and unit mappers version checks.");
+            await _updater.CheckAppVersion();
+            await _updater.CheckUnitMappersVersion();
+            await CheckForUnitMapperUpdateAndRevalidate();
+            await CheckForCK3ModUpdatesAsync();
+            if (!IsDisposed) ShowOneTimeNotifications();
         }
 
         List<Army> attacker_armies = null!;
@@ -3527,6 +3533,11 @@ namespace CrusaderWars
         [SupportedOSPlatform("windows")]
         private async Task<bool> CheckForCK3ModUpdatesAsync()
         {
+            if (DevelopmentRuntime.Enabled)
+            {
+                Program.Logger.Debug("Development runtime: automatic CK3 mod copying is disabled; the development playset uses its existing source descriptor.");
+                return true;
+            }
             Program.Logger.Debug("Checking for CK3 mod updates...");
             string sourceModsDir = @".\ck3_mods";
 

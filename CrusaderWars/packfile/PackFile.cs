@@ -21,7 +21,12 @@ namespace CrusaderWars
             if (StatFidelitySession.PendingProfiles.Count > 0)
             {
                 Program.Logger.Debug($"Generating {StatFidelitySession.PendingProfiles.Count} stat fidelity profiles...");
-                try { StatFidelityBackend.Generate(runtimeRoot, attila, StatFidelitySession.PendingProfiles); }
+                try
+                {
+                    if (StatFidelitySession.PreparedDatabase is PreparedAttilaDatabase prepared)
+                        prepared.Generate(StatFidelitySession.PendingProfiles, sources);
+                    else StatFidelityBackend.Generate(runtimeRoot, attila, StatFidelitySession.PendingProfiles);
+                }
                 catch (Exception ex)
                 {
                     StatFidelitySession.Note("Attila stat generation failed: " + ex.Message);

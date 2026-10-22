@@ -1,4 +1,4 @@
-control_toggle_1 = {
+﻿control_toggle_1 = {
 	scope = character
 
 	is_shown = {

@@ -147,7 +147,7 @@ namespace CrusaderWars.data.save_file
                     }
 
                     //Achievements
-                    if (line == "\tcan_get_achievements=no")
+                    if (line == "\tcan_get_achievements=no" && !StatFidelity.StatFidelitySession.Enabled)
                     {
                         streamWriter.WriteLine("\tcan_get_achievements=yes");
                         continue;

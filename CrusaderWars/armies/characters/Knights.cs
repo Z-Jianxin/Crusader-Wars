@@ -58,6 +58,7 @@ namespace CrusaderWars
         private KnightSystem? _knightSystem; // Added: Reference to parent KnightSystem
 
         public string GetName() { return Name; }
+        internal void SetName(string name) { if (!string.IsNullOrWhiteSpace(name)) Name = name; }
         public string GetID() { return ID; }
         public string GetCultureName() { return CultureObj?.GetCultureName() ?? "unknown_culture"; }
         public string GetHeritageName() { return CultureObj?.GetHeritageName() ?? "unknown_heritage"; }
@@ -427,6 +428,13 @@ namespace CrusaderWars
 
                 // Calculate the total strength of all knights
                 int totalStrength = Knights.Sum(knight => knight.GetSoldiers());
+                if (kills <= 0)
+                {
+                    foreach (var knight in Knights) knight.SetKills(0);
+                    return;
+                }
+                if (totalStrength <= 0)
+                    throw new InvalidOperationException("A zero-strength knight pool cannot receive battlefield kills.");
 
                 // Calculate proportional kills based on strength
                 int remainingKills = kills;

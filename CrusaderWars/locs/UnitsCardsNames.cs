@@ -302,7 +302,7 @@ namespace CrusaderWars.locs
 
                                     if (shouldReplace)
                                     {
-                                        line = Regex.Replace(line, @"\t(?<UnitName>.+)\t", $"\t{newName}\t");
+                                        line = ReplaceUnitNameTsv(line, newName);
                                     }
                                 }
                             }
@@ -324,6 +324,18 @@ namespace CrusaderWars.locs
             }
         }
 
+
+        internal static string ReplaceUnitNameTsv(string line, string name)
+        {
+            int firstTab = line.IndexOf('\t'), lastTab = line.LastIndexOf('\t');
+            if (firstTab < 1 || lastTab <= firstTab) throw new InvalidDataException("Unit-card localization needs key, text and tooltip columns.");
+            // A native name or localized title can contain quotes, tabs or a line
+            // break. Escape one TSV field rather than emitting extra records (or
+            // interpreting '$' in a name as a regex replacement instruction).
+            string escaped = name.IndexOfAny(new[] { '\t', '\r', '\n', '"' }) >= 0
+                ? "\"" + name.Replace("\"", "\"\"") + "\"" : name;
+            return line[..(firstTab + 1)] + escaped + line[lastTab..];
+        }
 
         static void SearchMAANamesInLocalizationFiles(List<Army> armies)
         {
@@ -486,6 +498,7 @@ namespace CrusaderWars.locs
 
         private static string GetCommanderDisplayName(CommanderSystem commander)
         {
+            if (!commander.IsTrackedCharacter) return commander.Name;
             if (commander.ID == DataSearch.Player_Character.GetID())
             {
                 return Reader.GetMetaPlayerName();

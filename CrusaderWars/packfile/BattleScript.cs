@@ -66,7 +66,7 @@ function remaining_soldiers()
             for (int i = 1; i <= left_side.Count; i++)
             {
                 var army = left_side[i - 1]; // Get army once
-                if (army?.Commander != null) // Null-conditional check for army and Commander
+                if (army?.Commander != null && army.Commander.IsTrackedCharacter)
                 {
                     Program.Logger.Debug($"Adding commander death check for left side army {army.ID?.ToString() ?? "unknown"}, commander {army.Commander.ID?.ToString() ?? "unknown"}");
                     scriptBuilder.AppendLine($"	if(not Stark_Army{i}:is_commander_alive()) then");
@@ -79,7 +79,7 @@ function remaining_soldiers()
             for (int i = 1; i <= right_side.Count; i++)
             {
                 var army = right_side[i - 1]; // Get army once
-                if (army?.Commander != null) // Null-conditional check for army and Commander
+                if (army?.Commander != null && army.Commander.IsTrackedCharacter)
                 {
                     Program.Logger.Debug($"Adding commander death check for right side army {army.ID?.ToString() ?? "unknown"}, commander {army.Commander.ID?.ToString() ?? "unknown"}");
                     scriptBuilder.AppendLine($"	if(not Bolton_Army{i}:is_commander_alive()) then");

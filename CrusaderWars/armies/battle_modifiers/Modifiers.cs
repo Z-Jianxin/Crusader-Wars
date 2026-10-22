@@ -25,10 +25,11 @@ namespace CrusaderWars.armies
             ReadModifiers(modifiers_text_side);
         }
 
-        public int GetXP()
+        public int GetXP(bool commanderAdvantageApplied = false)
         {
             int xp = 0;
-            if (isLiegeLeadingArmy) xp += 1;
+            // Native GetCommanderAdvantage already includes leading one's own troops.
+            if (isLiegeLeadingArmy && !commanderAdvantageApplied) xp += 1;
             if (isFightingHostileFaith) xp += 1;
 
             if (isRealmInDebt) xp -= 1;

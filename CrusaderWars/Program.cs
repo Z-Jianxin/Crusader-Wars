@@ -28,9 +28,11 @@ namespace CrusaderWars
         static void Main()
         {
             ShowWindow(GetConsoleWindow(), SW_HIDE);
+            System.IO.Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
             Logger.Debug("Application starting...");
             Logger.Debug(AppDomain.CurrentDomain.BaseDirectory);
-            System.IO.Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+            if (client.DevelopmentRuntime.Enabled)
+                Logger.Debug("Development runtime marker present. Normal versions are displayed; automatic upstream updates and CK3 mod copying are disabled.");
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
