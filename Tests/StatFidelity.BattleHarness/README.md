@@ -11,6 +11,8 @@ dotnet run --project Tests/StatFidelity.BattleHarness -- --help
 
 Run from the repository with paths to the installed Crusader Conflicts runtime, the captured handoff save, and the matching handoff log:
 
+Use `--settings '<captured settings directory>'` to overlay captured configuration in the isolated replay, and `--active-submods DahanChina` (comma-separated for multiple tags) to reproduce the battle's selected submods explicitly. The historical submod default remains empty; the harness's documented strict-evidence and scale defaults still apply.
+
 ```powershell
 dotnet run --project Tests/StatFidelity.BattleHarness -- `
   --runtime 'C:/installed/crusader-conflicts' `

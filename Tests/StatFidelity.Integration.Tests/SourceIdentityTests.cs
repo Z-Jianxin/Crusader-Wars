@@ -233,7 +233,7 @@ public sealed class SourceIdentityTests : IDisposable
             AddTable(db, "main_units_tables", new[] { "unit", "land_unit", "num_men", "is_naval" },
                 new[] { "levy", "levy", "100", "false" }, new[] { "guard", "guard", "100", "false" });
             AddTable(db, "land_units_tables", new[] { "key", "man_entity", "primary_melee_weapon", "category", "bonus_hit_points" },
-                new[] { "levy", "man", "levy_weapon", "infantry", "0" }, new[] { "guard", "man", "guard_weapon", "infantry", "0" });
+                new[] { "levy", "man", "levy_weapon", "inf_melee", "0" }, new[] { "guard", "man", "guard_weapon", "inf_melee", "0" });
             AddTable(db, "battle_entities_tables", new[] { "key", "hit_points" }, new[] { "man", "100" });
             AddTable(db, "melee_weapons_tables", new[] { "key", "damage", "ap_damage" }, new[] { "levy_weapon", "8", "4" }, new[] { "guard_weapon", "6", "4" });
             var prepared = (PreparedAttilaDatabase)typeof(PreparedAttilaDatabase).GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance).Single()

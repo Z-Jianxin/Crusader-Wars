@@ -217,6 +217,7 @@ namespace CrusaderWars
                 else
                     knights_unit = new Unit("Knight", knightSystem.GetKnightsSoldiers(), army.Owner.GetCulture(), RegimentType.Knight, false, army.Owner, 0);
 
+                knights_unit.SetIsPlayer(army.IsPlayer());
                 knights_unit.SetAttilaFaction(UnitMappers_BETA.GetAttilaFaction(knights_unit.GetCulture(), knights_unit.GetHeritage()));
                 var (knightKey, isSiegeKnight) = UnitMappers_BETA.GetUnitKey(knights_unit);
 
@@ -228,6 +229,15 @@ namespace CrusaderWars
 
                 knights_unit.SetUnitKey(knightKey);
                 knights_unit.SetIsSiege(isSiegeKnight);
+
+                string budgetRepresentation = StatFidelity.StatFidelitySession.ResolveKnightBudgetRepresentation(army, knights_unit, knightKey);
+                if (budgetRepresentation != knightKey)
+                {
+                    knightKey = budgetRepresentation;
+                    isSiegeKnight = false;
+                    knights_unit.SetUnitKey(knightKey);
+                    knights_unit.SetIsSiege(false);
+                }
 
                 string knightAttilaKey = knights_unit.GetAttilaUnitKey();
                 bool knightStatsApplied = StatFidelity.StatFidelitySession.TryApplyKnights(army, knightAttilaKey, out var knightProfile, out int fidelityKnightSoldiers);
@@ -575,16 +585,13 @@ namespace CrusaderWars
         }
 
 
-        static List<Unit> BETA_LevyComposition(Unit unit, Army army, List<(int percentage, string unit_key, string name, string max)> faction_levy_percentages, int army_xp, string factionUsed, int direct_army_xp)
+        // Resolve the effective local pool without allocating Units, drawing RNG or
+        // emitting battle XML. Knight calibration can inspect this same mapping
+        // before the general-first emission order reaches levy composition.
+        public static List<(int percentage, string unit_key, string name, string max, bool isSiege)> ResolveEffectiveLevyTemplates(
+            Army army, string factionName, IReadOnlyList<(int percentage, string unit_key, string name, string max)> faction_levy_percentages)
         {
             bool siegeEnginesInFieldBattles = !ModOptions.optionsValuesCollection.TryGetValue("SiegeEnginesInFieldBattles", out string? siegeEnginesOption) || siegeEnginesOption == "Enabled";
-            var composedUnits = new List<Unit>();
-            if (faction_levy_percentages == null || faction_levy_percentages.Count < 1)
-            {
-                Program.Logger.Debug("ERROR - LEVIES WITHOUT FACTION IN UNIT" + $"\nNUMBER OF SOLDIERS:{unit.GetSoldiers()}" + $"\nATTILA FACTION:{unit.GetAttilaFaction()}");
-                return composedUnits;
-            }
-
             // Apply manual and autofix replacements to the levy template list
             var corrected_levy_percentages = new List<(int percentage, string unit_key, string name, string max, bool isSiege)>();
             bool isPlayerAlliance = army.IsPlayer();
@@ -625,14 +632,25 @@ namespace CrusaderWars
 
             if (filtered_levy_percentages.Any())
             {
-                Program.Logger.Debug($"  BETA_LevyComposition ({army.CombatSide}): Filtered out MAA units from levy pool for faction '{unit.GetAttilaFaction()}'. Using filtered list.");
+                Program.Logger.Debug($"  BETA_LevyComposition ({army.CombatSide}): Filtered out MAA units from levy pool for faction '{factionName}'. Using filtered list.");
                 corrected_levy_percentages = filtered_levy_percentages;
             }
             else
             {
-                Program.Logger.Debug($"  BETA_LevyComposition ({army.CombatSide}): WARNING: No non-MAA levy units found for faction '{unit.GetAttilaFaction()}'. Using original (unfiltered) list as fallback.");
+                Program.Logger.Debug($"  BETA_LevyComposition ({army.CombatSide}): WARNING: No non-MAA levy units found for faction '{factionName}'. Using original (unfiltered) list as fallback.");
             }
+            return corrected_levy_percentages;
+        }
 
+        static List<Unit> BETA_LevyComposition(Unit unit, Army army, List<(int percentage, string unit_key, string name, string max)> faction_levy_percentages, int army_xp, string factionUsed, int direct_army_xp)
+        {
+            var composedUnits = new List<Unit>();
+            if (faction_levy_percentages == null || faction_levy_percentages.Count < 1)
+            {
+                Program.Logger.Debug("ERROR - LEVIES WITHOUT FACTION IN UNIT" + $"\nNUMBER OF SOLDIERS:{unit.GetSoldiers()}" + $"\nATTILA FACTION:{unit.GetAttilaFaction()}");
+                return composedUnits;
+            }
+            var corrected_levy_percentages = ResolveEffectiveLevyTemplates(army, unit.GetAttilaFaction(), faction_levy_percentages);
 
             //  SINGULAR UNIT
             //  select random levy type

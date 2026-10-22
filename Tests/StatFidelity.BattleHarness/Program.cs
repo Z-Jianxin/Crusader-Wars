@@ -33,6 +33,7 @@ internal static class Replay
                 Console.WriteLine("Copies inputs into a new output directory. Never launches games or overwrites a personal campaign. --attila additionally generates database TSV variants from installed packs, without loading a game.");
                 Console.WriteLine("--native-aar FILE --deployed-xml FILE --observed-fates FILE replays hash-bound actual results and original fate decisions into an isolated result save.");
                 Console.WriteLine("--ck3-user-dir DIR selects the source CK3 user directory for read-only active-mod/landed-title lookups; defaults to Documents/Paradox Interactive/Crusader Kings III.");
+                Console.WriteLine("--settings DIR overlays captured settings into the isolated replay; --active-submods TAG[,TAG] explicitly selects mapper submods (historical default: none).");
                 return 0;
             }
             string runtime = Path.GetFullPath(Required(flags, "runtime"));
@@ -45,6 +46,9 @@ internal static class Replay
                 throw new ArgumentException("--out must be outside the installed runtime, so copying assets cannot recurse into its own output.");
             if (!Directory.Exists(runtime) || !File.Exists(save) || !File.Exists(log)) throw new FileNotFoundException("The runtime, save and log inputs must exist.");
             string mapperTag = flags.GetValueOrDefault("mapper", "DefaultCK3");
+            var activeSubmods = flags.GetValueOrDefault("active-submods", "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Distinct(StringComparer.Ordinal).ToList();
+            string? capturedSettings = flags.TryGetValue("settings", out var settingsSource) ? Path.GetFullPath(settingsSource, originalDirectory) : null;
             Directory.CreateDirectory(output);
             stage = "isolate-inputs";
             CopyTree(Path.Combine(runtime, "data", "battle files"), Path.Combine(output, "data", "battle files"));
@@ -53,6 +57,7 @@ internal static class Replay
             CopyTree(Path.Combine(runtime, "data", "units_cards_names"), Path.Combine(output, "data", "units_cards_names"));
             CopyTree(Path.Combine(runtime, "unit mappers"), Path.Combine(output, "unit mappers"));
             CopyTree(Path.Combine(runtime, "settings"), Path.Combine(output, "settings"));
+            if (capturedSettings != null) CopyTree(capturedSettings, Path.Combine(output, "settings"), overwrite: true);
             Directory.CreateDirectory(Path.Combine(output, "data", "save_file_data", "temp"));
             Directory.CreateDirectory(Path.Combine(output, "data", "save_file_data", "gamestate_file"));
             Directory.CreateDirectory(Path.Combine(output, "inputs"));
@@ -60,7 +65,8 @@ internal static class Replay
             File.Copy(save, Path.Combine(output, "inputs", "handoff.ck3"));
             var manifest = new
             {
-                schemaVersion = 1, createdUtc = DateTime.UtcNow, runtime, save, log, mapperTag,
+                schemaVersion = 1, createdUtc = DateTime.UtcNow, runtime, save, log, mapperTag, activeSubmods, capturedSettings,
+                optionsSha256 = Hash(Path.Combine(output, "settings", "Options.xml")),
                 saveSha256 = Hash(Path.Combine(output, "inputs", "handoff.ck3")), logSha256 = Hash(Path.Combine(output, "inputs", "console.log")),
                 gameLaunched = false, campaignSaveWritten = false,
                 implementationVersion = typeof(StatFidelitySession).Assembly.GetName().Version?.ToString()
@@ -101,7 +107,8 @@ internal static class Replay
             DataSearch.Search(logText);
             if (BattleState.IsSiegeBattle) throw new NotSupportedException("This replay harness currently validates field battles only.");
             stage = "load-mapper";
-            var requiredPacks = UnitMappers_BETA.GetUnitMapperModFromTagAndTimePeriod(mapperTag, new List<string>());
+            CrusaderWars.mod_manager.SubmodManager.SetActiveSubmodsForPlaythrough(mapperTag, activeSubmods);
+            var requiredPacks = UnitMappers_BETA.GetUnitMapperModFromTagAndTimePeriod(mapperTag, activeSubmods);
             if (UnitMappers_BETA.GetLoadedUnitMapperName() == null) throw new InvalidOperationException("No mapper matches the log date and --mapper tag.");
             stage = "read-save";
             Reader.ReadFile(gamestate);
@@ -419,7 +426,7 @@ internal static class Replay
             if (args[i] is "--help" or "--export-only" or "--snapshot-only" or "--casualty-smoke") { result[args[i][2..]] = ""; continue; }
             if (!args[i].StartsWith("--") || i + 1 == args.Length) throw new ArgumentException("Expected --name value. Use --help.");
             string key = args[i][2..];
-            if (key is not ("runtime" or "save" or "log" or "out" or "mapper" or "attila" or "stat-settings" or "player-id" or "ck3-user-dir" or "stat-cache" or "development-controller" or "native-aar" or "deployed-xml" or "observed-fates")) throw new ArgumentException("Unknown option: " + key);
+            if (key is not ("runtime" or "save" or "log" or "out" or "mapper" or "attila" or "stat-settings" or "player-id" or "ck3-user-dir" or "stat-cache" or "development-controller" or "native-aar" or "deployed-xml" or "observed-fates" or "settings" or "active-submods")) throw new ArgumentException("Unknown option: " + key);
             if (!result.TryAdd(key, args[++i])) throw new ArgumentException("Repeated option: " + key);
         }
         return result;
@@ -427,7 +434,7 @@ internal static class Replay
     private static string Required(Dictionary<string, string> values, string name) => values.TryGetValue(name, out var value) ? value : throw new ArgumentException("Missing --" + name);
     private static string Hash(string path) { using var input = File.OpenRead(path); return Convert.ToHexString(SHA256.HashData(input)); }
     private static void WriteJson(string path, object value) => File.WriteAllText(path, JsonSerializer.Serialize(value, Json));
-    private static void CopyTree(string source, string destination)
+    private static void CopyTree(string source, string destination, bool overwrite = false)
     {
         if (!Directory.Exists(source)) throw new DirectoryNotFoundException(source);
         Directory.CreateDirectory(destination);
@@ -435,8 +442,8 @@ internal static class Replay
         {
             if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) throw new InvalidOperationException("Runtime asset links are not followed: " + path);
             string target = Path.Combine(destination, Path.GetFileName(path));
-            if (Directory.Exists(path)) CopyTree(path, target);
-            else File.Copy(path, target);
+            if (Directory.Exists(path)) CopyTree(path, target, overwrite);
+            else File.Copy(path, target, overwrite);
         }
     }
 }

@@ -480,6 +480,28 @@ namespace CrusaderWars.StatFidelity
             return true;
         }
 
+        public static string ResolveKnightBudgetRepresentation(Army army, Unit unit, string mappedKey)
+        {
+            if (!HasBoundExport || !Settings.EnableKnightCalibration || Settings.KnightBudgetMode != "Anchored" ||
+                PreparedDatabase == null || !preparedKnightArmies.Contains(army.ID) || !HasCompleteKnightEvidence(army) ||
+                !string.IsNullOrWhiteSpace(Settings.KnightTemplateOverride) || string.IsNullOrWhiteSpace(mappedKey) || mappedKey == UnitMappers_BETA.NOT_FOUND_KEY)
+                return mappedKey;
+            var original = PreparedDatabase.Query(mappedKey);
+            // Representation fallback only resolves ordinary missile hybrids. An
+            // unverified/special/naval template must still fail the strict planner,
+            // not silently become a conventional human formation.
+            if (original.IsNaval || original.HasSpecialEntity || !original.CanScaleHitPoints ||
+                original.EffectiveHitPoints is not > 0 || original.TotalMeleeDamage <= 0 || !original.HasMissileWeapon)
+                return mappedKey;
+            var choices = UnitMappers_BETA.GetAutomaticKnightTemplateCandidates(unit, mappedKey, PreparedDatabase.Query, Settings.KnightTemplateOverride);
+            if (choices.Count == 0) return mappedKey; // The existing strict target check remains authoritative.
+            var selected = choices[0];
+            Note("Army " + army.ID + ": automatic knight retinue representation " + mappedKey + " -> " + selected.UnitKey +
+                " from exact faction " + selected.Faction + ", author rank " + selected.AuthorRank + ", role " + selected.MapperRole +
+                " in " + selected.MapperFile + ". Original template is not supported for the independent melee/HP budget; mounted/foot class, native knight identities and budgets are preserved. No weapon was removed or ranged damage invented.");
+            return selected.UnitKey;
+        }
+
         private static string Register(string id, string baseKey, double damage, double hitPoints)
         {
             CheckMultiplier(damage, "damage", id); CheckMultiplier(hitPoints, "hit points", id);
@@ -517,7 +539,7 @@ namespace CrusaderWars.StatFidelity
         {
             if (PreparedDatabase == null)
                 throw Failure("Anchored knight budgets require the active Attila database before generating battle units.");
-            var candidates = new List<(Unit unit, RegimentStats stats, AttilaUnitCombatStats template)>();
+            var candidates = new List<(Unit unit, RegimentStats stats, AttilaUnitCombatStats template, double weight, string? referenceIdentity)>();
             foreach (var unit in army.Units.Where(u => u.GetRegimentType() == RegimentType.MenAtArms && !u.IsSiege() && u.SourceRegimentId != null && u.SourceArmyId == army.ID))
             {
                 if (!regimentLookup.TryGetValue(army.CombatSide + ":" + unit.SourceRegimentId + ":" + unit.SourceOwnerId, out var records)) continue;
@@ -527,8 +549,8 @@ namespace CrusaderWars.StatFidelity
                 string key = unit.GetAttilaUnitKey();
                 if (string.IsNullOrWhiteSpace(key) || key == UnitMappers_BETA.NOT_FOUND_KEY) continue;
                 var template = PreparedDatabase.Query(key);
-                if (template.HasMissileWeapon || template.EffectiveInfantryHitPoints == null || template.TotalMeleeDamage <= 0) continue;
-                candidates.Add((unit, matching[0], template));
+                if (!IsFootMeleeAnchor(template)) continue;
+                candidates.Add((unit, matching[0], template, unit.GetSoldiers(), null));
             }
             if (candidates.Count == 0)
             {
@@ -537,12 +559,41 @@ namespace CrusaderWars.StatFidelity
                 {
                     foreach (var unit in army.Units.Where(u => u.GetRegimentType() == RegimentType.Levy && u.GetSoldiers() > 0))
                     {
-                        string key = unit.GetAttilaUnitKey();
-                        if (string.IsNullOrWhiteSpace(key) || key == UnitMappers_BETA.NOT_FOUND_KEY) continue;
-                        var template = PreparedDatabase.Query(key);
-                        if (template.HasMissileWeapon || template.EffectiveInfantryHitPoints == null || template.TotalMeleeDamage <= 0) continue;
-                        candidates.Add((unit, new RegimentStats { Side = army.CombatSide, OwnerId = owner, Damage = levy.Damage, Toughness = levy.Toughness,
-                            BaseDamage = levy.BaseDamage, BaseToughness = levy.BaseToughness }, template));
+                        // Composition-only levies have no individual key yet. Use a
+                        // positive-weight melee-primary reference from THIS army's
+                        // effective mapped pool, not another army's deployed unit.
+                        // This is nominal calibration: it neither predicts nor changes
+                        // the random single-template draw when the levies are emitted.
+                        // Reuse that pool after emission too, so regeneration cannot
+                        // change the budget merely because a different member was drawn.
+                        string faction = unit.GetAttilaFaction();
+                        List<(int percentage, string unit_key, string name, string max)> pool;
+                        string? referenceIdentity = null;
+                        if (!string.IsNullOrWhiteSpace(faction) && faction != UnitMappers_BETA.NOT_FOUND_KEY)
+                        {
+                            string resolvedFaction;
+                            (pool, resolvedFaction) = UnitMappers_BETA.GetFactionLevies(faction);
+                            referenceIdentity = "levy-pool:" + army.CombatSide + ":" + army.ID + ":" + owner + ":" + resolvedFaction;
+                        }
+                        else
+                        {
+                            // An explicitly mapped levy without composition metadata
+                            // can use only its own key, still respecting replacements.
+                            string key = unit.GetAttilaUnitKey();
+                            if (string.IsNullOrWhiteSpace(key) || key == UnitMappers_BETA.NOT_FOUND_KEY) continue;
+                            pool = new() { (100, key, unit.GetName(), "") };
+                        }
+                        if (pool == null || pool.Count == 0) continue;
+                        var effective = UnitsFile.ResolveEffectiveLevyTemplates(army, faction, pool);
+                        double totalWeight = effective.Where(p => p.percentage > 0).Sum(p => (double)p.percentage);
+                        foreach (var member in effective.Where(p => p.percentage > 0 && !p.isSiege))
+                        {
+                            var template = PreparedDatabase.Query(member.unit_key);
+                            if (!IsFootMeleeAnchor(template)) continue;
+                            candidates.Add((unit, new RegimentStats { Side = army.CombatSide, OwnerId = owner,
+                                Damage = levy.Damage, Toughness = levy.Toughness, BaseDamage = levy.BaseDamage, BaseToughness = levy.BaseToughness },
+                                template, unit.GetSoldiers() * member.percentage / totalWeight, referenceIdentity));
+                        }
                     }
                 }
             }
@@ -551,16 +602,20 @@ namespace CrusaderWars.StatFidelity
             // Regeneration may already have split one source regiment into multiple
             // formations. Anchor choice depends on the source's total represented
             // soldiers, not the size of whichever split happened to come first.
-            var selected = candidates.GroupBy(c => (SourceIdentity: c.unit.SourceIdentity ?? "levy:" + c.stats.Side + ":" + c.stats.OwnerId, c.template.UnitKey))
-                .OrderByDescending(g => g.Sum(c => c.unit.GetSoldiers()))
-                .ThenBy(g => g.Key.SourceIdentity, StringComparer.Ordinal).First().First();
+            var selected = candidates.GroupBy(c => (SourceIdentity: c.referenceIdentity ?? c.unit.SourceIdentity ?? "levy:" + c.stats.Side + ":" + c.stats.OwnerId, c.template.UnitKey))
+                .OrderByDescending(g => g.Sum(c => c.weight))
+                .ThenBy(g => g.Key.SourceIdentity, StringComparer.Ordinal).ThenBy(g => g.Key.UnitKey, StringComparer.Ordinal).First().First();
             double ratioD = selected.stats.Damage / selected.stats.BaseDamage;
             double ratioT = selected.stats.Toughness / selected.stats.BaseToughness;
             double anchorDamage = Math.Round(selected.template.MeleeDamage * ratioD, MidpointRounding.AwayFromZero) +
                 Math.Round(selected.template.ArmourPiercingDamage * ratioD, MidpointRounding.AwayFromZero);
             double anchorHitPoints = Math.Round(selected.template.EffectiveInfantryHitPoints!.Value * ratioT, MidpointRounding.AwayFromZero);
-            var anchor = new KnightBudgetAnchor(selected.unit.SourceIdentity ?? "levy:" + selected.stats.Side + ":" + selected.stats.OwnerId, selected.template.UnitKey, selected.stats.Damage,
+            var anchor = new KnightBudgetAnchor(selected.referenceIdentity ?? selected.unit.SourceIdentity ?? "levy:" + selected.stats.Side + ":" + selected.stats.OwnerId, selected.template.UnitKey, selected.stats.Damage,
                 selected.stats.Toughness, anchorDamage, anchorHitPoints);
+            if (selected.referenceIdentity != null)
+                Note("Army " + army.ID + ": nominal knight calibration uses its verified owner " + selected.stats.OwnerId +
+                    " levy profile and effective local composition reference " + selected.template.UnitKey + " (" + selected.referenceIdentity + ")" +
+                    "; this reference is not a claim that the template was deployed. Levy RNG, soldier counts and source identities are unchanged.");
             string keyToUse = string.IsNullOrWhiteSpace(Settings.KnightTemplateOverride) ? mappedKey : Settings.KnightTemplateOverride;
             var target = PreparedDatabase.Query(keyToUse);
             if (target.IsNaval || target.HasSpecialEntity || target.HasMissileWeapon)
@@ -581,6 +636,10 @@ namespace CrusaderWars.StatFidelity
             catch (InvalidOperationException error) { throw Failure(error.Message); }
             return plan;
         }
+
+        private static bool IsFootMeleeAnchor(AttilaUnitCombatStats template) =>
+            template.EffectiveInfantryHitPoints is > 0 && template.TotalMeleeDamage > 0 &&
+            string.Equals(template.Category, "inf_melee", StringComparison.Ordinal);
         public static bool IsCalibratedKnightUnit(string type)
         {
             return type.StartsWith("knights_", StringComparison.Ordinal) && int.TryParse(type.Substring("knights_".Length), out int id) && calibratedKnightUnits.Contains(id);

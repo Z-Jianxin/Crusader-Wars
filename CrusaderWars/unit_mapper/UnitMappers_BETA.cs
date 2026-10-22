@@ -11,6 +11,7 @@ using System.Runtime.Versioning;
 using CrusaderWars.client;
 using CrusaderWars.data.save_file;
 using CrusaderWars.twbattle;
+using CrusaderWars.StatFidelity;
 
 namespace CrusaderWars.unit_mapper
 {
@@ -132,6 +133,9 @@ namespace CrusaderWars.unit_mapper
         public string? MaxCategory { get; set; }
         public bool IsSiege { get; set; }
     }
+
+    public sealed record KnightTemplateCandidate(string UnitKey, string Faction, int AuthorRank,
+        string MapperRole, string MapperFile, string OriginalUnitKey);
 
     internal static class UnitMappers_BETA
     {
@@ -1589,6 +1593,92 @@ namespace CrusaderWars.unit_mapper
             }
 
             return (NOT_FOUND_KEY, isPotentiallySiege);
+        }
+
+        /// <summary>
+        /// Eligible appearance alternatives for an automatic knight mapping. Stay in the
+        /// exact winning faction block and author rank; never reinterpret a user replacement,
+        /// title mapping, default-faction fallback, or the unit's mounted/foot representation.
+        /// General rows are a secondary appearance pool, not a new commander or combat budget.
+        /// </summary>
+        public static IReadOnlyList<KnightTemplateCandidate> GetAutomaticKnightTemplateCandidates(
+            Unit unit, string mappedKey, Func<string, AttilaUnitCombatStats> query, string? explicitTemplateOverride = null)
+        {
+            if (unit.GetRegimentType() != RegimentType.Knight || unit.IsSiege()
+                || string.IsNullOrWhiteSpace(mappedKey) || mappedKey == NOT_FOUND_KEY
+                || !string.IsNullOrWhiteSpace(explicitTemplateOverride)
+                || !string.Equals(unit.OriginalAttilaKey, mappedKey, StringComparison.Ordinal)
+                || string.IsNullOrWhiteSpace(LoadedUnitMapper_FolderPath))
+                return Array.Empty<KnightTemplateCandidate>();
+
+            bool HasReplacement(string key) => BattleState.ManualUnitReplacements.ContainsKey((key, unit.IsPlayer()))
+                || BattleProcessor.AutofixReplacements.ContainsKey(key);
+            if (HasReplacement(mappedKey) || SearchInTitlesFile(unit).Item1 != NOT_FOUND_KEY)
+                return Array.Empty<KnightTemplateCandidate>();
+
+            string faction = unit.GetAttilaFaction();
+            if (string.IsNullOrWhiteSpace(faction) || faction.Equals("Default", StringComparison.OrdinalIgnoreCase))
+                return Array.Empty<KnightTemplateCandidate>();
+            string folder = Path.Combine(LoadedUnitMapper_FolderPath, "Factions");
+            if (!Directory.Exists(folder)) return Array.Empty<KnightTemplateCandidate>();
+            string pattern = !string.IsNullOrEmpty(ActivePlaythroughTag) ? $"OfficialCC_{ActivePlaythroughTag}_*" : string.Empty;
+            var files = GetSortedFilePaths(folder, pattern);
+            files.Reverse(); // Identical precedence to SearchInFactionFiles.
+            foreach (string file in files)
+            {
+                var document = new XmlDocument();
+                document.Load(file);
+                // Attribute comparison avoids constructing XPath from a faction's name.
+                XmlNode? block = document.DocumentElement?.ChildNodes.Cast<XmlNode>()
+                    .FirstOrDefault(node => node.Name == "Faction" && node.Attributes?["name"]?.Value == faction);
+                if (block == null) continue;
+                var knights = ReadRankedTemplateKeys(block, "Knights");
+                if (knights.Count == 0) continue;
+                // This is the winning role mapping. An ineligible pool must not fall through
+                // to an older mapper, another culture, or a different author rank.
+                if (SelectRankedUnitKey(knights, unit.CharacterRank) != mappedKey)
+                    return Array.Empty<KnightTemplateCandidate>();
+                var eligibleRanks = knights.Where(candidate => candidate.rank <= unit.CharacterRank).ToArray();
+                int authorRank = eligibleRanks.Length > 0 ? eligibleRanks.Max(candidate => candidate.rank) : knights.Min(candidate => candidate.rank);
+                var original = query(mappedKey);
+                bool originalConventionalRole = original.IsMounted ? original.Category == "cavalry" : original.Category == "inf_melee";
+                // This fallback resolves only a ranged weapon on an otherwise supported
+                // melee-capable template. It must not conceal unsupported entities or HP.
+                if (!original.HasMissileWeapon || !originalConventionalRole || original.IsNaval || original.HasSpecialEntity
+                    || !original.CanScaleHitPoints || original.EffectiveHitPoints is not > 0 || original.TotalMeleeDamage <= 0)
+                    return Array.Empty<KnightTemplateCandidate>();
+                var result = new List<KnightTemplateCandidate>();
+                var seen = new HashSet<string>(StringComparer.Ordinal);
+                foreach (string role in new[] { "Knights", "General" })
+                {
+                    foreach (var candidate in ReadRankedTemplateKeys(block, role)
+                        .Where(candidate => candidate.rank == authorRank).OrderBy(candidate => candidate.key, StringComparer.Ordinal))
+                    {
+                        if (!seen.Add(candidate.key) || HasReplacement(candidate.key)) continue;
+                        var stats = query(candidate.key);
+                        bool conventionalRole = stats.IsMounted ? stats.Category == "cavalry" : stats.Category == "inf_melee";
+                        if (stats.IsMounted != original.IsMounted || !conventionalRole || stats.IsNaval || stats.HasSpecialEntity
+                            || stats.HasMissileWeapon || !stats.CanScaleHitPoints || stats.EffectiveHitPoints is not > 0
+                            || stats.TotalMeleeDamage <= 0) continue;
+                        result.Add(new(candidate.key, faction, authorRank, role, file, mappedKey));
+                    }
+                }
+                return result.AsReadOnly();
+            }
+            return Array.Empty<KnightTemplateCandidate>();
+        }
+
+        private static List<(int rank, string key)> ReadRankedTemplateKeys(XmlNode block, string role)
+        {
+            var result = new List<(int rank, string key)>();
+            foreach (XmlNode node in block.SelectNodes(role)!)
+            {
+                string? key = node.Attributes?["key"]?.Value;
+                if (string.IsNullOrEmpty(key)) continue;
+                int rank = int.TryParse(node.Attributes?["rank"]?.Value, out int parsed) ? parsed : 1;
+                result.Add((rank, key));
+            }
+            return result;
         }
 
         private static string SelectRankedUnitKey(List<(int rank, string key)> candidates, int requiredRank, string? keyToExclude = null)
