@@ -26,6 +26,8 @@ For an interrupted attempt, **Continue Battle** can regenerate the battle from i
 
 The current translation covers effective men-at-arms and owner-levy damage/toughness, character commander advantage, and independent knight damage/toughness budgets from prowess and knight efficiency. Attila's simulation determines combat results. CK3 counters, combat width/terrain modifiers, combat rolls, pursuit/screen values, siege progress and independent garrison stats are not fully translated. The mapping is therefore labelled experimental.
 
+Future proposals cover [counters, terrain and pursuit/screen](./combat-mechanics-fidelity-plan.md) and [automatic result loading](./automatic-battle-return-plan.md). Both are drafts; the manual loading instructions above remain the current behavior.
+
 Technical scope and evidence: [accepted battle/build validation](./stat-fidelity-validation.md), [stat model](./stat-fidelity-model.md), [knight budgets](./knight-budget-calibration.md), [native CK3 test workflow](./ck3-runtime-validation-20261021.md), and [isolated application/replay workflow](../Tests/DevelopmentRuntime/README.md).
 
 ## Default Attila unit packs
