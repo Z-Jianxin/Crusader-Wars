@@ -10,7 +10,7 @@ namespace CrusaderWars.mod_manager
 {
     public static class SubmodManager
     {
-        private static readonly string ActiveSubmodsFilePath = @".\\settings\\ActiveSubmods.xml";
+        private static readonly string ActiveSubmodsFilePath = Path.Combine("settings", "ActiveSubmods.xml");
         private static readonly string ActiveSubmodsXsdPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings", "schemas", "ActiveSubmods.xsd");
         private static bool _isRetryingSubmodsLoad = false;
         private static Dictionary<string, List<string>> ActiveSubmodsByPlaythrough { get; set; } = new Dictionary<string, List<string>>();
@@ -74,6 +74,10 @@ namespace CrusaderWars.mod_manager
                     ActiveSubmodsByPlaythrough[playthroughTag] = activeSubmods;
                     Program.Logger.Debug($"Loaded {activeSubmods.Count} active submods for playthrough '{playthroughTag}'.");
                 }
+                // An absent playthrough entry has never recorded a choice. An existing
+                // empty entry is an explicit opt-out and must not receive defaults again.
+                if (AddMissingDefaults()) SaveActiveSubmods();
+                _isRetryingSubmodsLoad = false;
             }
             catch (Exception ex)
             {
@@ -86,6 +90,7 @@ namespace CrusaderWars.mod_manager
             Program.Logger.Debug("Saving active submods to ActiveSubmods.xml...");
             try
             {
+                Directory.CreateDirectory(Path.GetDirectoryName(ActiveSubmodsFilePath)!);
                 XmlDocument xmlDoc = new XmlDocument();
                 XmlDeclaration xmlDeclaration = xmlDoc.CreateXmlDeclaration("1.0", "UTF-8", null);
                 xmlDoc.AppendChild(xmlDeclaration);
@@ -122,21 +127,29 @@ namespace CrusaderWars.mod_manager
         {
             if (ActiveSubmodsByPlaythrough.TryGetValue(playthroughTag, out var activeSubmods))
             {
-                return activeSubmods;
+                return new List<string>(activeSubmods);
             }
             return new List<string>();
         }
 
         public static void SetActiveSubmodsForPlaythrough(string playthroughTag, List<string> activeSubmodTags)
         {
-            if (activeSubmodTags == null || !activeSubmodTags.Any())
-            {
-                ActiveSubmodsByPlaythrough.Remove(playthroughTag);
-            }
-            else
-            {
-                ActiveSubmodsByPlaythrough[playthroughTag] = activeSubmodTags;
-            }
+            // Keep an empty selection as a real saved choice, including across restarts.
+            // Copy lists at the API boundary so a dialog cannot mutate saved preferences
+            // before it explicitly applies its selection.
+            ActiveSubmodsByPlaythrough[playthroughTag] = activeSubmodTags == null
+                ? new List<string>() : new List<string>(activeSubmodTags);
+        }
+
+        private static bool AddMissingDefaults()
+        {
+            if (ActiveSubmodsByPlaythrough.ContainsKey("DefaultCK3")) return false;
+            // Earl's three unit packs are already required by the High/Late/Renaissance
+            // mapper manifests. They have no selectable tag and must not be added to
+            // the Early Medieval stack. DahanChina is the existing selectable submod.
+            ActiveSubmodsByPlaythrough.Add("DefaultCK3", new List<string> { "DahanChina" });
+            Program.Logger.Debug("Applied DahanChina default to the previously unconfigured DefaultCK3 playthrough.");
+            return true;
         }
 
         private static void CreateDefaultActiveSubmodsFile()
@@ -144,14 +157,9 @@ namespace CrusaderWars.mod_manager
             try
             {
                 Program.Logger.Debug("Creating default ActiveSubmods.xml file...");
-                XmlDocument xmlDoc = new XmlDocument();
-                XmlDeclaration xmlDeclaration = xmlDoc.CreateXmlDeclaration("1.0", "UTF-8", null);
-                xmlDoc.AppendChild(xmlDeclaration);
-
-                XmlElement root = xmlDoc.CreateElement("ActiveSubmods");
-                xmlDoc.AppendChild(root);
-
-                xmlDoc.Save(ActiveSubmodsFilePath);
+                ActiveSubmodsByPlaythrough.Clear();
+                AddMissingDefaults();
+                SaveActiveSubmods();
                 Program.Logger.Debug("Default ActiveSubmods.xml file created successfully.");
             }
             catch (Exception ex)

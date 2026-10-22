@@ -69,6 +69,7 @@ namespace CrusaderWars.mod_manager
     {
         static DataGridView? ModManagerControl { get; set; }
         static List<Mod> ModsPaths { get; set; } = new List<Mod>();
+        private static List<string> RequestedRequiredMods { get; set; } = new List<string>();
 
         public static void SetControlReference(DataGridView dataGrid)
         {
@@ -100,7 +101,8 @@ namespace CrusaderWars.mod_manager
                                     // Also mark submod packs as "required" so they are hidden from the optional list
                                     if (modNode.Name == "Mod")
                                     {
-                                        ModsPaths.FirstOrDefault(x => x.GetName() == modNode.InnerText)?.IsRequiredMod(true);
+                                        foreach (var mod in ModsPaths.Where(x => string.Equals(x.GetName(), modNode.InnerText.Trim(), StringComparison.OrdinalIgnoreCase)))
+                                            mod.IsRequiredMod(true);
                                     }
                                     else if (modNode.Name == "Submod")
                                     {
@@ -108,7 +110,8 @@ namespace CrusaderWars.mod_manager
                                         {
                                             if (submod_modNode.Name == "Mod")
                                             {
-                                                ModsPaths.FirstOrDefault(x => x.GetName() == submod_modNode.InnerText)?.IsRequiredMod(true);
+                                                foreach (var mod in ModsPaths.Where(x => string.Equals(x.GetName(), submod_modNode.InnerText.Trim(), StringComparison.OrdinalIgnoreCase)))
+                                                    mod.IsRequiredMod(true);
                                             }
                                         }
                                     }
@@ -129,6 +132,10 @@ namespace CrusaderWars.mod_manager
         [SupportedOSPlatform("windows")]
         public static void SetLoadingRequiredMods(List<string> requiredMods)
         {
+            // Retain the requested names independently of installed discovery. A
+            // missing selected pack must not disappear from the later launch check.
+            RequestedRequiredMods = requiredMods.Select(name => name.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             // Reset all mods' loading required status before setting new ones
             foreach (var mod in ModsPaths)
             {
@@ -137,19 +144,67 @@ namespace CrusaderWars.mod_manager
 
             foreach (var mod in ModsPaths)
             {
-                if (mod.IsRequiredMod())
+                foreach (var requiredMod in RequestedRequiredMods)
                 {
-                    foreach (var requiredMod in requiredMods)
+                    if (string.Equals(mod.GetName(), requiredMod, StringComparison.OrdinalIgnoreCase))
                     {
-                        if (mod.GetName() == requiredMod)
-                        {
-                            mod.IsLoadingRequiredMod(true);
-                            mod.SetLoadOrderValue(requiredMods.IndexOf(requiredMod));
-                            break;
-                        }
+                        mod.IsRequiredMod(true);
+                        mod.IsLoadingRequiredMod(true);
+                        mod.SetLoadOrderValue(RequestedRequiredMods.IndexOf(requiredMod));
+                        break;
                     }
                 }
             }
+        }
+
+        public static IReadOnlyList<string> GetEffectiveRequiredModNames()
+        {
+            var active = string.IsNullOrEmpty(UnitMappers_BETA.ActivePlaythroughTag)
+                ? new HashSet<string>(StringComparer.Ordinal)
+                : new HashSet<string>(SubmodManager.GetActiveSubmodsForPlaythrough(UnitMappers_BETA.ActivePlaythroughTag), StringComparer.Ordinal);
+            // AvailableSubmods contains only mapper definitions applicable to the
+            // current battle year, not the all-era configuration-screen catalog.
+            var replaced = new HashSet<string>(UnitMappers_BETA.AvailableSubmods
+                .Where(submod => active.Contains(submod.Tag)).SelectMany(submod => submod.Replaces)
+                .Select(name => name.Trim()), StringComparer.OrdinalIgnoreCase);
+            return RequestedRequiredMods.Where(name => !replaced.Contains(name)).ToArray();
+        }
+
+        public static void ValidateRequiredModsForLaunch() => ResolveRequiredModsForLaunch();
+
+        private static List<Mod> ResolveRequiredModsForLaunch()
+        {
+            var required = GetEffectiveRequiredModNames();
+            if (string.IsNullOrEmpty(UnitMappers_BETA.GetLoadedUnitMapperName()) || required.Count == 0)
+                throw new InvalidOperationException("No unit mapper and required pack set applies to this battle year. Select a supported playthrough before launching Attila.");
+
+            var resolved = new List<Mod>();
+            var missing = new List<string>();
+            foreach (string name in required)
+            {
+                var found = ModsPaths.Where(mod => string.Equals(mod.GetName(), name, StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(mod => mod.GetLocalization() == ModLocalization.Data ? 0 : 1)
+                    .ThenBy(mod => mod.GetFullPath(), StringComparer.OrdinalIgnoreCase)
+                    .FirstOrDefault(mod => File.Exists(mod.GetLocalization() == ModLocalization.Data
+                        ? mod.GetFullPath() : Path.Combine(mod.GetFullPath(), mod.GetName())));
+                if (found == null) missing.Add(name);
+                else resolved.Add(found);
+            }
+            if (missing.Count != 0)
+                throw new FileNotFoundException("Missing required Attila packs for the selected mapper and enabled submods: " +
+                    string.Join(", ", missing) + ". Install or refresh these packs, or disable the affected submod. No launch list was written.");
+            // This guard establishes existence, not compatibility with a pinned
+            // version. The explicit mod verifier reports SHA mismatches separately.
+            return resolved;
+        }
+
+        public static IReadOnlyList<string> DiscoverWorkshopPackFiles(string? workshopRoot)
+        {
+            if (!Directory.Exists(workshopRoot)) return Array.Empty<string>();
+            return Directory.GetDirectories(workshopRoot!).OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .SelectMany(folder => Directory.GetFiles(folder)
+                    .Where(path => string.Equals(Path.GetExtension(path), ".pack", StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)).ToArray();
         }
 
         public static string? GetWorkshopFolderPath()
@@ -181,6 +236,9 @@ namespace CrusaderWars.mod_manager
         public static void CreateUserModsFile()
         {
             Program.Logger.Debug("Creating user mods file for Attila...");
+            // Validate the effective current-era set before touching either game
+            // startup file. A missing submod cannot yield a partial launch list.
+            var requiredMods = ResolveRequiredModsForLaunch();
             // CREATE ESSENTIAL FILE TO OPEN ATTILA AUTOMATICALLY
             string steam_app_id_path = Properties.Settings.Default.VAR_attila_path.Replace("Attila.exe", "steam_appid.txt");
             if (!File.Exists(steam_app_id_path))
@@ -192,33 +250,6 @@ namespace CrusaderWars.mod_manager
 
             // Clear existing content
             File.WriteAllText(userMods_path, "");
-
-            // Determine which mods to exclude based on active submods with a 'replace' attribute.
-            var modsToExclude = new HashSet<string>();
-            if (UnitMappers_BETA.ActivePlaythroughTag != null)
-            {
-                var activeSubmodTags = SubmodManager.GetActiveSubmodsForPlaythrough(UnitMappers_BETA.ActivePlaythroughTag);
-                if (activeSubmodTags.Any() && UnitMappers_BETA.AvailableSubmods.Any())
-                {
-                    var activeSubmodsWithReplacements = UnitMappers_BETA.AvailableSubmods
-                        .Where(s => activeSubmodTags.Contains(s.Tag) && s.Replaces.Any());
-
-                    foreach (var submod in activeSubmodsWithReplacements)
-                    {
-                        foreach (var modToReplace in submod.Replaces)
-                        {
-                            modsToExclude.Add(modToReplace);
-                            Program.Logger.Debug($"Submod '{submod.Tag}' is active, excluding required mod '{modToReplace}'.");
-                        }
-                    }
-                }
-            }
-
-            // Get ordered lists of mods
-            var requiredMods = ModsPaths.Where(x => x.IsLoadingModRequiredMod()
-                                                && !modsToExclude.Contains(x.GetName()))
-                                       .OrderBy(x => x.GetLoadOrderValue())
-                                       .ToList();
 
             // Optional mods are those enabled by the user AND NOT required by the current playthrough
             var optionalMods = ModsPaths.Where(x => x.IsEnabled() && !x.IsRequiredMod())
@@ -277,7 +308,7 @@ namespace CrusaderWars.mod_manager
             foreach (var file in dataModsPaths)
             {
                 var fileName = Path.GetFileName(file);
-                if (Path.GetExtension(fileName) == ".pack")
+                if (string.Equals(Path.GetExtension(fileName), ".pack", StringComparison.OrdinalIgnoreCase))
                 {
                     // Skip Attila Packs
                     if (fileName == "belisarius.pack" ||
@@ -313,35 +344,12 @@ namespace CrusaderWars.mod_manager
             }
 
             // Read steam workshop folder
-            if (Directory.Exists(workshop_folder_path))
+            foreach (var file in DiscoverWorkshopPackFiles(workshop_folder_path))
             {
-                var steamModsFoldersPaths = Directory.GetDirectories(workshop_folder_path);
-                foreach (var folder in steamModsFoldersPaths)
-                {
-                    var files = Directory.GetFiles(folder);
-                    string name = "";
-                    string image_path = "";
-                    string fullPath = "";
-                    foreach (var file in files)
-                    {
-                        var fileName = Path.GetFileName(file);
-
-                        if (Path.GetExtension(fileName) == ".pack")
-                        {
-                            name = fileName;
-                            fullPath = file.Replace($@"\{fileName}", "");
-                        }
-                        else if (Path.GetExtension(fileName) == ".png")
-                        {
-                            image_path = file;
-                        }
-                    }
-                    if (name != string.Empty)
-                    {
-                        Bitmap? thumbnail = LoadBitmapWithReducedSize(image_path);
-                        ModsPaths.Add(new Mod(false, thumbnail, name, ModLocalization.Steam, fullPath));
-                    }
-                }
+                string folder = Path.GetDirectoryName(file)!;
+                string imagePath = Directory.GetFiles(folder).FirstOrDefault(path =>
+                    string.Equals(Path.GetExtension(path), ".png", StringComparison.OrdinalIgnoreCase)) ?? "";
+                ModsPaths.Add(new Mod(false, LoadBitmapWithReducedSize(imagePath), Path.GetFileName(file), ModLocalization.Steam, folder));
             }
 
             //  REMOVE REQUIRED MODS

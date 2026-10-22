@@ -368,10 +368,9 @@ namespace CrusaderWars.mod_manager
                 return;
             }
 
-            // 1. When deactivating a playthrough, clear its submods and skip verification.
+            // Deactivate this playthrough without erasing its saved submod choices.
             if (!uC_Toggle1.State)
             {
-                SubmodManager.SetActiveSubmodsForPlaythrough(_playthroughTag, new List<string>());
                 ToggleClicked?.Invoke(this, EventArgs.Empty);
                 return;
             }
@@ -547,10 +546,6 @@ namespace CrusaderWars.mod_manager
                 {
                     if (controlReference != this)
                     {
-                        if (controlReference.GetState())
-                        {
-                            SubmodManager.SetActiveSubmodsForPlaythrough(controlReference.GetPlaythroughTag(), new List<string>());
-                        }
                         controlReference.uC_Toggle1.SetState(false);
                     }
                 }

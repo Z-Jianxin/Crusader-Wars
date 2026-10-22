@@ -863,6 +863,8 @@ namespace CrusaderWars.unit_mapper
         {
             ActivePlaythroughTag = tag;
             AvailableSubmods.Clear();
+            LoadedUnitMapper_FolderPath = null;
+            Terrains = null;
             List<string> requiredMods = new List<string>();
 
             var unit_mappers_folder = Directory.GetDirectories(@".\unit mappers");
@@ -959,7 +961,7 @@ namespace CrusaderWars.unit_mapper
 
                 if (isDefault) { startYear = 0; endYear = 9999; }
 
-                if ((Date.Year >= startYear && Date.Year <= endYear))
+                if (DefaultCk3EraPolicy.IncludesYear(ActivePlaythroughTag, mapperPath, startYear, endYear, Date.Year))
                 {
                     // MODS and SUBMODS
                     string modsPath = Path.Combine(mapperPath, "Mods.xml");

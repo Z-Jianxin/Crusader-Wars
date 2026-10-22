@@ -4,6 +4,8 @@ The corrected **v4** import passed a fresh native CK3 load, paused resave and on
 
 The [structured receipt](./stat-fidelity-validation.json) records hashes, test counts and limits. The [usage guide](./using-ck3-stat-fidelity.md) explains the separate runtime and explicit result-save loading. Raw campaign saves, logs and machine paths remain outside Git.
 
+The subsequent [default unit-pack selection update](./submod-defaults-validation.md) has a newer application build and separate validation. This receipt retains the exact combat-return build and evidence described below.
+
 ## What was actually exercised
 
 The application handled a fresh normal Fight export, conversion, pack installation and Attila launch. Native Continue Battle regenerated the same snapshot after test-controller repairs. The real battle ended naturally in **Defeat**, with two complete survivor phases and two complete kill phases covering all **51** deployed formations. Its completion marker was controller counter 1,380, not a calibrated simulation-time measurement. The temporary controller used ordinary movement and attack orders; it did not force a winner, health, morale, stats or casualties, and is absent from the installed build.
