@@ -14,6 +14,7 @@ namespace CrusaderWars.client
         public string SiegeResult { get; set; } = string.Empty; // "Settlement Captured", "Successfully Defended", "N/A"
         public string WallDamage { get; set; } = string.Empty; // "No Damage", "Damaged", "Breached", "N/A"
         public double? WarScoreValue { get; set; }
+        public bool WarScorePendingNativeResolution { get; set; }
 
         // New Battle Details
         public string BattleName { get; set; } = string.Empty;

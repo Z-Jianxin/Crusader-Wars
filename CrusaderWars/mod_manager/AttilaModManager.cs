@@ -228,6 +228,7 @@ namespace CrusaderWars.mod_manager
             using (StreamWriter sw = new StreamWriter(modsFile))
             {
                 sw.NewLine = "\n";
+                if (CrusaderWars.client.DevelopmentRuntime.Enabled) sw.WriteLine("show_frontend_movies false;");
                 Program.Logger.Debug("Writing mods to used_mods_cc.txt with new priority order...");
 
                 // Local function to write a single mod entry

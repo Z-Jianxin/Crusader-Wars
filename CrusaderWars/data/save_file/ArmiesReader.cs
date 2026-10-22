@@ -600,6 +600,7 @@ if (BattleResult.Player_Combat is not null)
             bool isKnight = false, isCommander = false, isMainCommander = false, isOwner = false;
             Army? searchingArmy = null;
             Knight? searchingKnight = null;
+            string? searchingCharacterId = null;
 
             //non-main army commander variables
             int nonMainCommander_Rank = 1;
@@ -617,7 +618,7 @@ if (BattleResult.Player_Combat is not null)
                 string? line;
                 while ((line = sr.ReadLine()) != null && !sr.EndOfStream)
                 {
-                    if (Regex.IsMatch(line, @"\d+={") && !searchStarted)
+                    if (Regex.IsMatch(line, StatFidelity.StatFidelitySession.HasBoundExport ? @"^\d+=\{$" : @"\d+={") && !searchStarted)
                     {
                         string line_id = Regex.Match(line, @"(\d+)={").Groups[1].Value;
 
@@ -632,6 +633,7 @@ if (BattleResult.Player_Combat is not null)
                             isOwner = searchingData.isOwner;
                             searchingArmy = searchingData.searchingArmy;
                             searchingKnight = searchingData.knight;
+                            searchingCharacterId = line_id;
 
                         }
                         else
@@ -647,6 +649,7 @@ if (BattleResult.Player_Combat is not null)
                                 isOwner = searchingData.isOwner;
                                 searchingArmy = searchingData.searchingArmy;
                                 searchingKnight = searchingData.knight;
+                                searchingCharacterId = line_id;
                             }
                         }
                     }
@@ -727,7 +730,8 @@ if (BattleResult.Player_Combat is not null)
                             searchingArmy.Knights.GetKnightsList().FirstOrDefault(x => x == searchingKnight)?.SetWoundedDebuffs();
                         }
                     }
-                    else if (searchStarted && line.Contains("\tculture=")) //# CULTURE
+                    else if (searchStarted && (StatFidelity.StatFidelitySession.HasBoundExport
+                        ? line.StartsWith("\tculture=", StringComparison.Ordinal) : line.Contains("\tculture="))) //# CULTURE
                     {
                         string culture_id = Regex.Match(line, @"\d+").Value;
                         if (isKnight && searchingKnight != null && searchingArmy?.Knights?.GetKnightsList() != null)
@@ -762,8 +766,11 @@ if (BattleResult.Player_Combat is not null)
                         {
                             searchingArmy.Owner.SetCulture(new Culture(culture_id));
                         }
-
-
+                        // A character can own several participating armies, even when the first
+                        // match was its commander/knight role in a different army. The native
+                        // character ID, not the first matching army, binds this saved culture.
+                        if (StatFidelity.StatFidelitySession.HasBoundExport && searchingCharacterId != null)
+                            PropagateNativeOwnerCulture(searchingCharacterId, culture_id);
                     }
                     else if (searchStarted && line.Contains("\t\tdomain={")) //# TITLES
                     {
@@ -851,6 +858,7 @@ if (BattleResult.Player_Combat is not null)
                         isKnight = false;
                         searchingKnight = null;
                         searchingArmy = null;
+                        searchingCharacterId = null;
 
                         nonMainCommander_Rank = 1;
                         nonMainCommander_Name = "";
@@ -862,6 +870,28 @@ if (BattleResult.Player_Combat is not null)
                 }
             }
             Program.Logger.Debug("Finished reading characters data.");
+        }
+
+        private static void PropagateNativeOwnerCulture(string characterId, string cultureId)
+        {
+            if (!StatFidelity.StatFidelitySession.HasBoundExport) return;
+            if (string.IsNullOrEmpty(cultureId))
+                throw new InvalidDataException("Saved owner culture is missing for character " + characterId);
+            var pending = new Stack<Army>(attacker_armies.Concat(defender_armies));
+            var visited = new HashSet<Army>();
+            while (pending.Count > 0)
+            {
+                var army = pending.Pop();
+                if (!visited.Add(army)) continue;
+                foreach (var merged in army.MergedArmies) pending.Push(merged);
+                if (army.Owner?.GetID() != characterId) continue;
+                var culture = new Culture(cultureId);
+                army.Owner.SetCulture(culture);
+                // A commanderless main army may already have its engine placeholder.
+                // Refresh its appearance only; never substitute the owner's identity.
+                if (army.Commander != null && !army.Commander.IsTrackedCharacter)
+                    army.Commander.ChangeCulture(culture);
+            }
         }
 
         private static void SetMAARegimentCultures(List<Army> armies)

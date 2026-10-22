@@ -275,6 +275,8 @@ namespace CrusaderWars.twbattle
                     BattleScript.CloseScript();
 
                     Program.Logger.Debug("--- FINAL ATTACKER ARMY COMPOSITION FOR ATTILA ---");
+                    BattleScript.AppendDevelopmentController(Data.units_scripts);
+                    StatFidelity.StatFidelitySession.CaptureDeployedRoster(attacker_armies.Concat(defender_armies), @".\data\battle files\script\tut_tutorial_battle\tut_battle.xml");
                     foreach (var army in attacker_armies)
                     {
                         Program.Logger.Debug($"Army ID: {army.ID}, Total Soldiers: {army.GetTotalSoldiers()}");
@@ -979,6 +981,8 @@ namespace CrusaderWars.twbattle
                     form.Text = "Crusader Conflicts (Processing results)";
 
                     string path_log_attila = Properties.Settings.Default.VAR_log_attila;
+                    var rawReports = BattleResultReader.GetRemainingAndKills(path_log_attila);
+                    StatFidelity.StatFidelitySession.ValidateResultReports(rawReports.AliveList, rawReports.KillsList);
 
                     // --- START: Capture pre-battle state for report ---
                     // Removed deployedCounts as it will be derived from UnitCasualitiesReport
@@ -1081,6 +1085,7 @@ namespace CrusaderWars.twbattle
 
                     // DETERMINE CHARACTER FATES BEFORE WAR SCORE CALCULATION
                     BattleResult.DetermineCharacterFates(attacker_armies.Concat(defender_armies).ToList());
+                    BattleResult.SynchronizeNativeKnightRegiments(attacker_armies.Concat(defender_armies));
 
                     // CALCULATE WAR SCORE BEFORE GENERATING REPORT
                     BattleResult.CalculateAndSetWarScore(attacker_armies, defender_armies);
@@ -1796,12 +1801,14 @@ namespace CrusaderWars.twbattle
             var report = new BattleReport();
 
             // Basic battle info
-            report.BattleName = BattleResult.ProvinceName ?? "Unknown Battle";
+            report.BattleName = !string.IsNullOrWhiteSpace(BattleDetails.Name) ? BattleDetails.Name : "Unknown Battle";
             report.BattleDate = $"{Date.Day}/{Date.Month}/{Date.Year}";
             report.LocationDetails = TerrainGenerator.TerrainType ?? "Unknown Terrain";
-            report.ProvinceName = BattleResult.ProvinceName ?? "Unknown Province";
+            report.ProvinceName = !string.IsNullOrWhiteSpace(BattleResult.ProvinceName) ? BattleResult.ProvinceName
+                : !string.IsNullOrWhiteSpace(BattleResult.ProvinceID) ? "Province " + BattleResult.ProvinceID : "Unknown Province";
             report.TimeOfDay = "Day"; // Default value
-            report.Season = "Spring"; // Default value
+            string season = Date.Month is >= 1 and <= 12 ? Date.GetSeason() : "Unknown";
+            report.Season = CultureInfo.InvariantCulture.TextInfo.ToTitleCase(season.ToLowerInvariant());
             report.Weather = "Clear"; // Default value
 
             // Battle result
@@ -1817,7 +1824,8 @@ namespace CrusaderWars.twbattle
                 report.BattleResult = winner == "attacker" ? "Victory" : "Defeat";
                 Program.Logger.Debug("WARNING: Could not determine player side in GenerateBattleReportData. BattleResult may be from attacker's perspective.");
             }
-            report.WarScoreValue = BattleResult.WarScoreValue;
+            report.WarScorePendingNativeResolution = StatFidelity.StatFidelitySession.HasBoundExport;
+            report.WarScoreValue = report.WarScorePendingNativeResolution ? null : BattleResult.WarScoreValue;
 
             // Siege info
             if (BattleState.IsSiegeBattle)

@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace CrusaderWars.StatFidelity
 {
@@ -76,6 +77,9 @@ namespace CrusaderWars.StatFidelity
         private static readonly Dictionary<string, List<RegimentStats>> regimentLookup = new Dictionary<string, List<RegimentStats>>(StringComparer.Ordinal);
         private static readonly Dictionary<string, KnightStats> commanderKnightBudgets = new Dictionary<string, KnightStats>(StringComparer.Ordinal);
         private static readonly Dictionary<string, KnightBudgetPlan> knightBudgetPlans = new Dictionary<string, KnightBudgetPlan>(StringComparer.Ordinal);
+        private static readonly List<DeployedFormation> deployedRoster = new();
+        private static readonly List<object> deployedSourceBindings = new();
+        public static IReadOnlyList<DeployedFormation> DeployedRoster => deployedRoster.AsReadOnly();
         public static PreparedAttilaDatabase? PreparedDatabase { get; private set; }
         public static bool Enabled { get; private set; }
         public static bool SaveEvidenceValidated { get; private set; }
@@ -90,7 +94,7 @@ namespace CrusaderWars.StatFidelity
         {
             profiles.Clear(); messages.Clear(); coverage.Clear(); preparedKnightArmies.Clear(); calibratedKnightUnits.Clear(); regimentLookup.Clear();
             commanderKnightBudgets.Clear();
-            knightBudgetPlans.Clear(); PreparedDatabase = null;
+            knightBudgetPlans.Clear(); deployedRoster.Clear(); deployedSourceBindings.Clear(); PreparedDatabase = null;
             SaveEvidenceValidated = false;
             Enabled = ModOptions.optionsValuesCollection.TryGetValue("StatFidelityMode", out string? mode) && (mode == "Validated" || mode == "Enabled");
             Export = Enabled ? StatExportParser.Parse(log) : new StatExport();
@@ -124,7 +128,7 @@ namespace CrusaderWars.StatFidelity
         public static InvalidOperationException InvalidateHandoff(string reason)
         {
             profiles.Clear(); messages.Clear(); coverage.Clear(); preparedKnightArmies.Clear(); calibratedKnightUnits.Clear();
-            regimentLookup.Clear(); commanderKnightBudgets.Clear(); knightBudgetPlans.Clear();
+            regimentLookup.Clear(); commanderKnightBudgets.Clear(); knightBudgetPlans.Clear(); deployedRoster.Clear(); deployedSourceBindings.Clear();
             PreparedDatabase = null; SaveEvidenceValidated = false; Export = new StatExport(); Settings = new StatFidelitySettings();
             Enabled = ModOptions.optionsValuesCollection.TryGetValue("StatFidelityMode", out string? mode) && (mode == "Enabled" || mode == "Validated");
             return Failure(reason);
@@ -161,7 +165,7 @@ namespace CrusaderWars.StatFidelity
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, JsonSerializer.Serialize(new { schemaVersion = 1, battleId = Export.BattleId, complete = Export.Complete, saveEvidenceValidated = SaveEvidenceValidated,
                 acceptedRegiments = Export.Regiments.Count, acceptedLevies = Export.Levies.Count, acceptedCommanders = Export.Commanders.Count, acceptedKnights = Export.Knights.Count,
-                generatedProfiles = profiles.Count, settings = Settings,
+                generatedProfiles = profiles.Count, deployedFormations = deployedSourceBindings, settings = Settings,
                 scope = new {
                     regimentScaling = "effective/base ratios on mapped Attila templates",
                     commanderScaling = "difference of exported character commander advantage; not complete combat advantage",
@@ -172,6 +176,76 @@ namespace CrusaderWars.StatFidelity
                     levyScaling = Export.Levies.Count > 0 ? "native owner effective/base ratios matched to exact saved army owner and side" : "mapped base stats; no native levy-owner export",
                     unconverted = new[] { "MAA counters", "combat terrain/width modifiers", "combat rolls", "pursuit/screen stats", "siege progress", "independent garrison stats" }
                 }, knightBudgets = knightBudgetPlans.Values.ToArray(), coverage, diagnostics = messages.ToArray() }, new JsonSerializerOptions { WriteIndented = true }));
+        }
+
+        public static void CaptureDeployedRoster(IEnumerable<Army> armies, string battleXml, bool archivedNativeBattle = false)
+        {
+            if (!HasBoundExport) return;
+            if (archivedNativeBattle && !client.DevelopmentRuntime.Enabled)
+                throw Failure("Archived deployed roster binding is restricted to an explicit isolated development replay.");
+            deployedRoster.Clear();
+            deployedSourceBindings.Clear();
+            var units = new Dictionary<int, Unit>();
+            var visited = new HashSet<Army>();
+            void visit(Army army)
+            {
+                if (!visited.Add(army)) return;
+                foreach (var unit in army.Units)
+                {
+                    if (units.TryGetValue(unit.UniqueID, out var previous) && !ReferenceEquals(previous, unit))
+                        throw Failure("Ambiguous generated unit identity " + unit.UniqueID + ". No result roster was inferred.");
+                    units[unit.UniqueID] = unit;
+                }
+                foreach (var merged in army.MergedArmies ?? new List<Army>()) visit(merged);
+            }
+            foreach (var army in armies) visit(army);
+            var emittedNames = new HashSet<string>(StringComparer.Ordinal);
+            var emittedIds = new HashSet<int>();
+            foreach (var element in XDocument.Load(battleXml).Descendants("unit"))
+            {
+                string script = element.Attribute("script_name")?.Value ?? "";
+                var identity = Regex.Match(script, @"_(attacker|defender)_army(?<army>\d+)_TYPE.*_(?<unit>\d+)_CULTURE", RegexOptions.CultureInvariant);
+                if (!identity.Success || !int.TryParse(identity.Groups["unit"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int unitId) ||
+                    !int.TryParse(element.Attribute("num_soldiers")?.Value, NumberStyles.None, CultureInfo.InvariantCulture, out int bodies) || bodies <= 0 ||
+                    !units.TryGetValue(unitId, out var source) || !emittedNames.Add(script) || !emittedIds.Add(unitId))
+                    throw Failure("Generated formation cannot be bound uniquely to its source unit: " + script + ". Save result import is disabled.");
+                deployedRoster.Add(new DeployedFormation(script, bodies));
+                deployedSourceBindings.Add(new {
+                    scriptName = script, deployedBodies = bodies, unitId,
+                    armyId = identity.Groups["army"].Value, unitType = source.GetRegimentType().ToString(),
+                    source.SourceIdentity, source.SourceOwnerId, source.SourceOriginProvinceId,
+                    emittedUnitKey = element.Element("unit_type")?.Attribute("type")?.Value
+                });
+            }
+            if (deployedRoster.Count == 0) throw Failure("The deployed native roster is empty.");
+            var generatedNames = Data.units_scripts.Select(u => u.unitName).ToHashSet(StringComparer.Ordinal);
+            if (!emittedNames.SetEquals(generatedNames))
+            {
+                if (!archivedNativeBattle) throw Failure("Generated XML and native survivor-report script registries differ. No partial result roster was accepted.");
+                // A corrected offline importer can read the original native battle's
+                // generic-general culture token. Never rewrite the raw AAR identity.
+                var presentationMissing = emittedNames.Except(generatedNames).ToArray();
+                var extra = generatedNames.Except(emittedNames).ToArray();
+                string identityPrefix(string name) => name[..name.IndexOf("_CULTURE", StringComparison.Ordinal)];
+                if (presentationMissing.Length != extra.Length || presentationMissing.Any(name => !name.Contains("_TYPEcommandercc_untracked_", StringComparison.Ordinal) ||
+                    extra.Count(other => identityPrefix(other) == identityPrefix(name)) != 1))
+                    throw Failure("Archived native source-map identities differ from the current replay beyond the documented untracked-general culture repair. No correspondence was synthesized.");
+                foreach (var name in presentationMissing)
+                    Note("Archived native identity retained verbatim: " + name + "; corrected future generic presentation: " + extra.Single(other => identityPrefix(other) == identityPrefix(name)));
+            }
+            var missing = units.Values.Where(u => u.GetSoldiers() > 0 && !emittedIds.Contains(u.UniqueID)).Select(u => u.UniqueID).ToArray();
+            if (missing.Length > 0)
+                throw Failure("Source units have no emitted formation: " + string.Join(",", missing) + ". No source-map coverage was synthesized.");
+            Note("Bound " + deployedRoster.Count + " emitted formations to exact source units and raw deployed body counts, including levy, general and siege representations.");
+        }
+
+        public static ValidatedBattleReports? ValidateResultReports(IReadOnlyList<string> survivors, IReadOnlyList<string> kills)
+        {
+            if (!HasBoundExport) return null;
+            if (deployedRoster.Count == 0)
+                throw Failure("No exact deployed formation roster is available for these results. Restart Continue Battle to regenerate the bound battle before importing results.");
+            try { return BattleReportEvidence.Validate(deployedRoster, survivors, kills); }
+            catch (InvalidDataException exception) { throw Failure("Native battle reports do not match the complete deployed roster: " + exception.Message); }
         }
 
         public static AppliedStatProfile Apply(Unit unit, Army army, string baseKey)
@@ -427,6 +501,7 @@ namespace CrusaderWars.StatFidelity
         public static void RegisterCalibratedKnightUnit(int uniqueId) => calibratedKnightUnits.Add(uniqueId);
         public static void ResetGeneration()
         {
+            deployedRoster.Clear(); deployedSourceBindings.Clear();
             profiles.Clear(); coverage.Clear(); preparedKnightArmies.Clear(); calibratedKnightUnits.Clear();
             knightBudgetPlans.Clear();
         }

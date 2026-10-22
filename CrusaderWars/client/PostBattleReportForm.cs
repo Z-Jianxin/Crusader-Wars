@@ -92,7 +92,13 @@ namespace CrusaderWars.client
                 lblWallDamage.Visible = false;
             }
 
-            if (_report.WarScoreValue.HasValue)
+            if (_report.WarScorePendingNativeResolution)
+            {
+                lblWarScoreChange.Text = "War score: pending CK3 battle resolution";
+                lblWarScoreChange.ForeColor = Color.White;
+                lblWarScoreChange.Visible = true;
+            }
+            else if (_report.WarScoreValue.HasValue)
             {
                 double warScoreChange = _report.WarScoreValue.Value;
                 string warScoreString;
@@ -127,12 +133,6 @@ namespace CrusaderWars.client
             int totalRemaining = _report.AttackerSide.TotalRemaining + _report.DefenderSide.TotalRemaining;
             int totalLosses = _report.AttackerSide.TotalLosses + _report.DefenderSide.TotalLosses;
             int totalKills = _report.AttackerSide.TotalKills + _report.DefenderSide.TotalKills;
-
-            // Verify totals consistency
-            if (totalLosses != totalKills)
-            {
-                totalKills = totalLosses; // Force consistency
-            }
 
             // Update the labels that are now part of the form design
             lblTotalDeployed.Text = $"Total Deployed: {totalDeployed}";

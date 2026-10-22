@@ -30,7 +30,8 @@ internal static class Replay
             if (flags.ContainsKey("help"))
             {
                 Console.WriteLine("Offline CK3 battle replay: --runtime DIR --save FILE --log FILE --out NEW_DIR [--mapper DefaultCK3] [--export-only | --snapshot-only --player-id ID] [--attila EXE] [--stat-cache DIR] [--stat-settings JSON] [--casualty-smoke]");
-                Console.WriteLine("Copies inputs into a new output directory. Never launches games or writes a campaign save. --attila additionally generates database TSV variants from installed packs, without loading a game.");
+                Console.WriteLine("Copies inputs into a new output directory. Never launches games or overwrites a personal campaign. --attila additionally generates database TSV variants from installed packs, without loading a game.");
+                Console.WriteLine("--native-aar FILE --deployed-xml FILE --observed-fates FILE replays hash-bound actual results and original fate decisions into an isolated result save.");
                 Console.WriteLine("--ck3-user-dir DIR selects the source CK3 user directory for read-only active-mod/landed-title lookups; defaults to Documents/Paradox Interactive/Crusader Kings III.");
                 return 0;
             }
@@ -66,6 +67,13 @@ internal static class Replay
             };
             WriteJson(Path.Combine(output, "inputs.json"), manifest);
             Environment.CurrentDirectory = output;
+            if (flags.ContainsKey("native-aar"))
+                File.WriteAllText(Path.Combine(output, DevelopmentRuntime.MarkerFileName), "{\"purpose\":\"Offline actual native battle replay; no game launch or personal campaign writes\"}");
+            if (flags.TryGetValue("development-controller", out string? controllerSource))
+            {
+                File.Copy(Path.GetFullPath(controllerSource, originalDirectory), Path.Combine(output, "test-battle-control.lua"));
+                File.WriteAllText(Path.Combine(output, DevelopmentRuntime.MarkerFileName), "{\"purpose\":\"Offline explicit-controller generation test; never launches a game\"}");
+            }
             string settingsPath = Path.Combine(output, "settings", "StatFidelity.json");
             // A replay defaults to strict evidence. Existing user settings cannot silently
             // enable partial coverage; optional overrides must be supplied explicitly.
@@ -165,6 +173,15 @@ internal static class Replay
             BattleScript.SetCommandersLocals();
             BattleScript.SetLocalsKills(Data.units_scripts);
             BattleScript.CloseScript();
+            BattleScript.AppendDevelopmentController(Data.units_scripts);
+            string deployedXml = Path.Combine(output, "data", "battle files", "script", "tut_tutorial_battle", "tut_battle.xml");
+            if (flags.TryGetValue("deployed-xml", out var originalDeployment))
+            {
+                if (!flags.ContainsKey("native-aar")) throw new ArgumentException("Archived deployment requires an explicit native AAR.");
+                deployedXml = Path.Combine(output, "inputs", "actual-deployed-battle.xml");
+                File.Copy(Path.GetFullPath(originalDeployment, originalDirectory), deployedXml);
+            }
+            StatFidelitySession.CaptureDeployedRoster(attackers.Concat(defenders), deployedXml, flags.ContainsKey("deployed-xml"));
             if (BattleLog.HasUnmappedUnits()) throw new InvalidOperationException("Battle generation dropped unmapped units; inspect data/debug.log. Replay is not considered valid.");
             StatFidelitySession.WriteCoverageReport(output);
             WriteJson(Path.Combine(output, "profiles.json"), StatFidelitySession.PendingProfiles);
@@ -188,23 +205,41 @@ internal static class Replay
                 if (emittedScripts.Count(s => s.Contains("_" + unit.UniqueID + "_CULTURE", StringComparison.Ordinal)) != 1)
                     throw new InvalidOperationException("A character placeholder remained in the battle roster without exactly one XML formation: " + unit.UniqueID);
             object? casualtySmoke = null;
+            var parsedBattleDate = new { Date.Year, Date.Month, Date.Day };
+            var battlePresentation = new { BattleDetails.Name, leftRealm = CK3LogData.LeftSide.GetRealmName(), rightRealm = CK3LogData.RightSide.GetRealmName() };
             if (flags.ContainsKey("casualty-smoke"))
             {
                 stage = "synthetic-casualty-roundtrip";
                 casualtySmoke = CasualtySmoke.Run(attackers, defenders, gamestate, battleXml, output);
             }
+            object? actualCasualties = null;
+            if (flags.TryGetValue("native-aar", out var actualAar))
+            {
+                if (flags.ContainsKey("casualty-smoke")) throw new ArgumentException("Real AAR replay cannot share a run with synthetic casualty smoke.");
+                stage = "actual-casualty-replay";
+                actualCasualties = ActualCasualtyReplay.Run(attackers.Concat(defenders), Path.GetFullPath(actualAar, originalDirectory), output);
+            }
+            object? correctedImport = null;
+            if (flags.TryGetValue("observed-fates", out var observedFates))
+            {
+                if (actualCasualties == null || !flags.ContainsKey("deployed-xml"))
+                    throw new ArgumentException("Corrected import requires both native AAR and actual deployed XML.");
+                stage = "corrected-native-import";
+                correctedImport = ActualImportReplay.Complete(attackers, defenders, gamestate, output, Path.GetFullPath(observedFates, originalDirectory));
+            }
             WriteJson(Path.Combine(output, "result.json"), new
             {
                 success = true, stage = "complete", BattleResult.CombatID,
                 playerId = DataSearch.Player_Character?.GetID(), snapshotId = StatFidelitySession.Export.BattleId,
-                parsedBattleDate = new { Date.Year, Date.Month, Date.Day },
+                parsedBattleDate,
                 handoffContext = HandoffLog.SelectLatest(logText, true).Fields,
-                battlePresentation = new { BattleDetails.Name, leftRealm = CK3LogData.LeftSide.GetRealmName(), rightRealm = CK3LogData.RightSide.GetRealmName() },
+                battlePresentation,
                 StatFidelitySession.SaveEvidenceValidated, mapper = UnitMappers_BETA.GetLoadedUnitMapperName(), requiredPacks,
                 attackerArmies = attackers.Count, defenderArmies = defenders.Count,
-                generatedProfiles = StatFidelitySession.PendingProfiles.Count, generatedCharacterFormations = generatedCharacters.Length, databaseGenerated, casualtySmoke,
-                gameLaunched = false, campaignSaveWritten = false,
-                validationLimit = "Offline conversion only; no claim of Attila engine loading, battle balance, or gameplay casualty return."
+                generatedProfiles = StatFidelitySession.PendingProfiles.Count, generatedCharacterFormations = generatedCharacters.Length, databaseGenerated, casualtySmoke, actualCasualties, correctedImport,
+                gameLaunched = false, campaignSaveWritten = false, isolatedResultSaveWritten = correctedImport != null,
+                validationLimit = correctedImport == null ? "Offline conversion only; no claim of Attila engine loading, battle balance, or gameplay casualty return."
+                    : "Offline corrected import of exact actual AAR and original logged character decisions; native CK3 reload is verified separately."
             });
             Console.WriteLine("Replay complete: " + output);
             return 0;
@@ -351,12 +386,19 @@ internal static class Replay
         }
         if (zipStart >= 0)
         {
+            stream.Position = 0;
+            byte[] prefix = new byte[checked((int)zipStart)];
+            stream.ReadExactly(prefix);
+            var saveFile = typeof(HomePage).Assembly.GetType("CrusaderWars.data.save_file.SaveFile")!;
+            saveFile.GetMethod("ValidateMetadataPrefix", BindingFlags.Public | BindingFlags.Static)!.Invoke(null, new object[] { prefix });
+            File.WriteAllBytes(Path.Combine("data", "save_file_data", "metadata.txt"), prefix);
             stream.Position = zipStart;
             using var archive = new ZipFile(stream);
             var entry = archive.GetEntry("gamestate") ?? throw new InvalidDataException("Save archive has no gamestate member.");
             using var input = archive.GetInputStream(entry);
             using var destination = File.Create(gamestate);
             input.CopyTo(destination);
+            return;
         }
         else File.Copy(save, gamestate);
         // The production reader only uses text metadata fields, all before the ZIP.
@@ -377,7 +419,7 @@ internal static class Replay
             if (args[i] is "--help" or "--export-only" or "--snapshot-only" or "--casualty-smoke") { result[args[i][2..]] = ""; continue; }
             if (!args[i].StartsWith("--") || i + 1 == args.Length) throw new ArgumentException("Expected --name value. Use --help.");
             string key = args[i][2..];
-            if (key is not ("runtime" or "save" or "log" or "out" or "mapper" or "attila" or "stat-settings" or "player-id" or "ck3-user-dir" or "stat-cache")) throw new ArgumentException("Unknown option: " + key);
+            if (key is not ("runtime" or "save" or "log" or "out" or "mapper" or "attila" or "stat-settings" or "player-id" or "ck3-user-dir" or "stat-cache" or "development-controller" or "native-aar" or "deployed-xml" or "observed-fates")) throw new ArgumentException("Unknown option: " + key);
             if (!result.TryAdd(key, args[++i])) throw new ArgumentException("Repeated option: " + key);
         }
         return result;

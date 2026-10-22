@@ -10,6 +10,8 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2" />
+    <PackageReference Include="MoonSharp" Version="2.0.0" />
     <ProjectReference Include="../../CrusaderWars/CrusaderWars.csproj" />
+    <None Include="../DevelopmentRuntime/test-battle-control.lua" Link="test-battle-control.lua" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

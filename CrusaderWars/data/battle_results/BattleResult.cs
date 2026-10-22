@@ -9,6 +9,8 @@ using static CrusaderWars.data.save_file.Writter;
 using CrusaderWars.twbattle; // Added for BattleFile access
 using System.Globalization; // Added for CultureInfo
 using CrusaderWars.armies; // Added for List<Army>
+using CrusaderWars.StatFidelity;
+using System.Text.Json;
 
 
 namespace CrusaderWars.data.battle_results
@@ -48,6 +50,7 @@ namespace CrusaderWars.data.battle_results
 
         public static Dictionary<string, SuccessorTransferData> PendingLandedData = new Dictionary<string, SuccessorTransferData>();
         public static HashSet<string> InvalidatedVassalContracts = new HashSet<string>();
+        public static CharacterFateLedger CharacterFates { get; } = new();
 
         public static void ReadPlayerCombat(string playerID)
         {
@@ -442,9 +445,14 @@ namespace CrusaderWars.data.battle_results
             return (false, false, null, false, null, null);
         }
 
-        public static void DetermineCharacterFates(List<Army> allArmies)
+        public static void DetermineCharacterFates(List<Army> allArmies, IReadOnlyDictionary<string, ResolvedCharacterFate>? observedDecisions = null)
         {
             Program.Logger.Debug("Determining character fates and extracting succession data...");
+            bool fidelity = StatFidelitySession.HasBoundExport;
+            if (observedDecisions != null && (!fidelity || !client.DevelopmentRuntime.Enabled))
+                throw new InvalidOperationException("Observed fate replay is available only in an explicit, bound development replay.");
+            CharacterFates.Clear();
+            var observedUsed = new HashSet<string>(StringComparer.Ordinal);
 
             using (StreamReader streamReader = new StreamReader(Writter.DataFilesPaths.Living_Path()))
             {
@@ -467,6 +475,40 @@ namespace CrusaderWars.data.battle_results
                         if (searchData.searchStarted && searchData.army != null)
                         {
                             bool hasFallen = (searchData.isCommander && searchData.commander != null && searchData.commander.hasFallen) || (searchData.isKnight && searchData.knight != null && searchData.knight.HasFallen());
+                            if (fidelity)
+                            {
+                                string traits = charBlock.FirstOrDefault(l => l.Trim().StartsWith("traits={")) ?? "\ttraits={ }";
+                                var fate = CharacterFates.Resolve(char_id, traits, () => {
+                                    if (!hasFallen)
+                                    {
+                                        if (observedDecisions?.ContainsKey(char_id) == true) throw new InvalidDataException("Observed fate supplied for a character who did not fall: " + char_id);
+                                        return new ResolvedCharacterFate(false, false, traits);
+                                    }
+                                    if (observedDecisions != null)
+                                    {
+                                        if (!observedDecisions.TryGetValue(char_id, out var observed)) throw new InvalidDataException("Missing original observed fate for fallen character " + char_id);
+                                        observedUsed.Add(char_id);
+                                        return observed;
+                                    }
+                                    bool losing = (searchData.army.CombatSide == "attacker") != IsAttackerVictorious;
+                                    var resolved = searchData.isCommander && searchData.commander != null
+                                        ? searchData.commander.Health(traits, losing)
+                                        : searchData.knight!.Health(traits, losing);
+                                    return new ResolvedCharacterFate(resolved.isSlain, resolved.isCaptured, resolved.newTraits);
+                                });
+                                if (searchData.isCommander && searchData.commander != null)
+                                {
+                                    searchData.commander.IsSlain = fate.IsSlain;
+                                    searchData.commander.IsPrisoner = fate.IsCaptured;
+                                }
+                                else if (searchData.knight != null)
+                                {
+                                    searchData.knight.IsSlain = fate.IsSlain;
+                                    searchData.knight.IsPrisoner = fate.IsCaptured;
+                                }
+                                if (fate.IsSlain) ExtractSuccessionData(char_id, charBlock);
+                                continue;
+                            }
                             if (hasFallen)
                             {
                                 string? traitsLine = charBlock.FirstOrDefault(l => l.Trim().StartsWith("traits={"));
@@ -500,7 +542,40 @@ namespace CrusaderWars.data.battle_results
                     }
                 }
             }
+            if (observedDecisions != null && !observedUsed.SetEquals(observedDecisions.Keys))
+                throw new InvalidDataException("Observed fate evidence contains characters outside the exact fallen roster.");
+            if (fidelity)
+                File.WriteAllText(@".\data\stat_fidelity_fates.json", JsonSerializer.Serialize(new {
+                    snapshot = StatFidelitySession.Export.BattleId, replayedOriginalDecisions = observedDecisions != null,
+                    characters = CharacterFates.Entries
+                }, new JsonSerializerOptions { WriteIndented = true }));
             Program.Logger.Debug("Finished determining character fates.");
+        }
+
+        public static void SynchronizeNativeKnightRegiments(IEnumerable<Army> armies)
+        {
+            if (!StatFidelitySession.HasBoundExport) return;
+            foreach (var army in FlattenBattleArmies(armies))
+                foreach (var regiment in army.ArmyRegiments.Where(r => r.Type == RegimentType.Knight))
+                {
+                    var fate = CharacterFates.Get(regiment.MAA_Name);
+                    if (regiment.CurrentNum is < 0 or > 1)
+                        throw new InvalidDataException("Native knight regiment has an invalid character count: " + regiment.ID);
+                    if (fate.IsSlain || fate.IsCaptured) regiment.CurrentNum = 0;
+                }
+        }
+
+        private static IEnumerable<Army> FlattenBattleArmies(IEnumerable<Army> armies)
+        {
+            var seen = new HashSet<Army>();
+            var pending = new Stack<Army>(armies);
+            while (pending.Count > 0)
+            {
+                var army = pending.Pop();
+                if (!seen.Add(army)) continue;
+                yield return army;
+                foreach (var merged in army.MergedArmies ?? new List<Army>()) pending.Push(merged);
+            }
         }
 
         private static void ExtractSuccessionData(string slainCharId, List<string> charBlock)
@@ -691,8 +766,9 @@ namespace CrusaderWars.data.battle_results
                         var searchData = SearchCharacters(char_id, allArmies);
                         if (searchData.searchStarted && searchData.army != null)
                         {
-                            bool isSlain = (searchData.isCommander && searchData.commander != null && searchData.commander.IsSlain) || (searchData.isKnight && searchData.knight != null && searchData.knight.HasFallen());
-                            bool isCaptured = (searchData.isCommander && searchData.commander != null && searchData.commander.IsPrisoner) || (searchData.isKnight && searchData.knight != null && searchData.knight.IsPrisoner);
+                            var resolvedFate = StatFidelitySession.HasBoundExport ? CharacterFates.Get(char_id) : null;
+                            bool isSlain = resolvedFate?.IsSlain ?? ((searchData.isCommander && searchData.commander != null && searchData.commander.IsSlain) || (searchData.isKnight && searchData.knight != null && searchData.knight.HasFallen()));
+                            bool isCaptured = resolvedFate?.IsCaptured ?? ((searchData.isCommander && searchData.commander != null && searchData.commander.IsPrisoner) || (searchData.isKnight && searchData.knight != null && searchData.knight.IsPrisoner));
 
                             // Remove court_data if employer was slain
                             int courtDataIdx = charBlock.FindIndex(l => l.Trim() == "court_data={");
@@ -703,7 +779,7 @@ namespace CrusaderWars.data.battle_results
                                 {
                                     string employerId = Regex.Match(charBlock[employerLineIdx], @"employer=(\d+)").Groups[1].Value;
                                     var employerSearch = SearchCharacters(employerId, allArmies);
-                                    bool employerSlain = (employerSearch.isCommander && employerSearch.commander != null && employerSearch.commander.IsSlain) || (employerSearch.isKnight && employerSearch.knight != null && employerSearch.knight.HasFallen());
+                                    bool employerSlain = (employerSearch.isCommander && employerSearch.commander != null && employerSearch.commander.IsSlain) || (employerSearch.isKnight && employerSearch.knight != null && (StatFidelitySession.HasBoundExport ? employerSearch.knight.IsSlain : employerSearch.knight.HasFallen()));
 
                                     if (employerSlain)
                                     {
@@ -879,7 +955,13 @@ namespace CrusaderWars.data.battle_results
                                                        (searchData.army.CombatSide == "defender" && IsAttackerVictorious);
 
                                 int traitsLineIndex = charBlock.FindIndex(l => l.Trim().StartsWith("traits={"));
-                                if (traitsLineIndex != -1)
+                                if (resolvedFate != null)
+                                {
+                                    if (traitsLineIndex != -1) charBlock[traitsLineIndex] = resolvedFate.TraitsLine;
+                                    else if (Regex.IsMatch(resolvedFate.TraitsLine, @"\d"))
+                                        charBlock.Insert(charBlock.FindLastIndex(l => l.Trim() == "}"), resolvedFate.TraitsLine);
+                                }
+                                else if (traitsLineIndex != -1)
                                 {
                                     (bool _, bool __, string newTraits) healthResult = (false, false, charBlock[traitsLineIndex]);
                                     if (searchData.isCommander && searchData.commander != null)
@@ -1689,6 +1771,27 @@ namespace CrusaderWars.data.battle_results
         {
             Program.Logger.Debug("Editing Combat Results file...");
 
+            if (StatFidelitySession.HasBoundExport)
+            {
+                var raw = BattleResultReader.GetRemainingAndKills(Properties.Settings.Default.VAR_log_attila);
+                var validated = StatFidelitySession.ValidateResultReports(raw.AliveList, raw.KillsList)
+                    ?? throw new InvalidDataException("Native result statistics require the complete deployed battle evidence.");
+                var statistics = CombatResultStatistics.Build(attacker_armies, defender_armies,
+                    StatFidelitySession.DeployedRoster, validated);
+                string edited = editors.CombatResultStatisticsEditor.Edit(
+                    File.ReadAllText(Writter.DataFilesPaths.CombatResults_Path()),
+                    ResultID ?? throw new InvalidDataException("Native combat result identity is absent."), statistics.Updates);
+                foreach (string diagnostic in statistics.Diagnostics) Program.Logger.Debug(diagnostic);
+                File.WriteAllText(@".\data\stat_fidelity_result_statistics.json", System.Text.Json.JsonSerializer.Serialize(new {
+                    snapshot = StatFidelitySession.Export.BattleId, resultId = ResultID,
+                    statistics.Updates, statistics.Diagnostics, nativeCompletionPending = true,
+                    finalCountSemantics = "Update FinalCount values are native survivor targets for side totals and loss accounting; pending final_count fields remain zero for CK3 to accumulate once at completion."
+                }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+                File.WriteAllText(Writter.DataTEMPFilesPaths.CombatResults_Path(), edited);
+                Program.Logger.Debug("Updated exact native result groups; retained original completion, reward and war-score fields for CK3.");
+                return;
+            }
+
             // Use pre-calculated war score if available, otherwise calculate it
             double newWarScore;
             if (WarScoreValue.HasValue)
@@ -2214,6 +2317,8 @@ namespace CrusaderWars.data.battle_results
 
             if (string.IsNullOrEmpty(Player_Combat) || string.IsNullOrEmpty(Original_Player_Combat))
             {
+                if (StatFidelitySession.HasBoundExport)
+                    throw new InvalidDataException("The bound native combat block is missing; no partial casualty return was published.");
                 Program.Logger.Debug("No player combat block found. Copying original Combats.txt to temp.");
                 File.Copy(Writter.DataFilesPaths.Combats_Path(), Writter.DataTEMPFilesPaths.Combats_Path(), true);
                 return;
@@ -2229,6 +2334,8 @@ namespace CrusaderWars.data.battle_results
 
             if (!attackerMatch.Success || !defenderMatch.Success)
             {
+                if (StatFidelitySession.HasBoundExport)
+                    throw new InvalidDataException("Both exact native combat sides are required; no winner-only or partial casualty return was published.");
                 Program.Logger.Debug("CRITICAL: Could not isolate attacker or defender block from Player_Combat. Aborting modification.");
                 // Fallback: write the partially modified (winner only) combat block to temp
                 string fullContent = File.ReadAllText(Writter.DataFilesPaths.Combats_Path());
@@ -2254,10 +2361,10 @@ namespace CrusaderWars.data.battle_results
                 if (army.ArmyRegiments == null) continue;
                 foreach (var armyRegiment in army.ArmyRegiments)
                 {
-                    if (armyRegiment == null || armyRegiment.Type == RegimentType.Knight) continue;
+                    if (armyRegiment == null || (armyRegiment.Type == RegimentType.Knight && !StatFidelitySession.HasBoundExport)) continue;
                     string currentNum = armyRegiment.CurrentNum.ToString();
                     // BUG FIX: Changed `\d+` to `[\d\.]+` to handle decimals. Added support for top-level current= for Levies.
-                    modifiedAttackerBlock = Regex.Replace(modifiedAttackerBlock, $@"(regiment={armyRegiment.ID}(?:(?!regiment=)[\s\S])*?current=)[\d\.]+", $"${{1}}{currentNum}");
+                    modifiedAttackerBlock = Regex.Replace(modifiedAttackerBlock, $@"(regiment={Regex.Escape(armyRegiment.ID)}(?!\d)(?:(?!regiment=)[\s\S])*?current=)[\d\.]+", $"${{1}}{currentNum}");
                 }
             }
 
@@ -2272,14 +2379,21 @@ namespace CrusaderWars.data.battle_results
                 if (army.ArmyRegiments == null) continue;
                 foreach (var armyRegiment in army.ArmyRegiments)
                 {
-                    if (armyRegiment == null || armyRegiment.Type == RegimentType.Knight) continue;
+                    if (armyRegiment == null || (armyRegiment.Type == RegimentType.Knight && !StatFidelitySession.HasBoundExport)) continue;
                     string currentNum = armyRegiment.CurrentNum.ToString();
                     // BUG FIX: Changed `\d+` to `[\d\.]+` to handle decimals. Added support for top-level current= for Levies.
-                    modifiedDefenderBlock = Regex.Replace(modifiedDefenderBlock, $@"(regiment={armyRegiment.ID}(?:(?!regiment=)[\s\S])*?current=)[\d\.]+", $"${{1}}{currentNum}");
+                    modifiedDefenderBlock = Regex.Replace(modifiedDefenderBlock, $@"(regiment={Regex.Escape(armyRegiment.ID)}(?!\d)(?:(?!regiment=)[\s\S])*?current=)[\d\.]+", $"${{1}}{currentNum}");
                 }
             }
 
             // 4. Replace the original blocks in Player_Combat with the modified ones
+            if (StatFidelitySession.HasBoundExport)
+            {
+                // Direct native survivor counts already replace the interrupted CK3
+                // combat's damage. Do not apply its old fractional casualties again.
+                modifiedAttackerBlock = Regex.Replace(modifiedAttackerBlock, @"(?m)^([\t ]*soft_casualties=)[^\r\n]+", "${1}0");
+                modifiedDefenderBlock = Regex.Replace(modifiedDefenderBlock, @"(?m)^([\t ]*soft_casualties=)[^\r\n]+", "${1}0");
+            }
             Player_Combat = Player_Combat!.Replace(originalAttackerBlock, modifiedAttackerBlock);
             Player_Combat = Player_Combat.Replace(originalDefenderBlock, modifiedDefenderBlock);
 
@@ -2292,8 +2406,9 @@ namespace CrusaderWars.data.battle_results
 
         static int GetArmiesTotalFightingMen(List<Army> armies)
         {
-            int total = armies.Where(army => army != null)
-                .Sum(army => army.GetTotalSoldiers()); // Use the updated GetTotalSoldiers
+            int total = StatFidelitySession.HasBoundExport
+                ? FlattenBattleArmies(armies).SelectMany(a => a.ArmyRegiments).DistinctBy(r => r.ID).Sum(r => r.CurrentNum)
+                : armies.Where(army => army != null).Sum(army => army.GetTotalSoldiers());
 
             string logMessage = string.Format("Calculated total fighting men for armies: {0}", total);
             Program.Logger.Debug(logMessage);
@@ -2473,6 +2588,23 @@ namespace CrusaderWars.data.battle_results
         public static void EditRegimentsFile(List<Army> attacker_armies, List<Army> defender_armies)
         {
             Program.Logger.Debug("Editing Regiments file...");
+            if (StatFidelitySession.HasBoundExport)
+            {
+                var updates = FlattenBattleArmies(attacker_armies.Concat(defender_armies))
+                    .SelectMany(a => a.ArmyRegiments.Where(r => r.Type != RegimentType.Knight).SelectMany(r => r.Regiments))
+                    .Select(r => new editors.SourceRegimentUpdate(r.ID,
+                        string.IsNullOrEmpty(r.Index) ? 0 : int.Parse(r.Index, NumberStyles.None, CultureInfo.InvariantCulture), r.CurrentNum))
+                    .GroupBy(r => (r.SourceRegimentId, r.ChunkIndex)).Select(group => {
+                        if (group.Select(r => r.Current).Distinct(StringComparer.Ordinal).Count() != 1)
+                            throw new InvalidDataException("Conflicting casualty totals for exact source/chunk " + group.Key);
+                        return group.First();
+                    }).ToArray();
+                string original = File.ReadAllText(Writter.DataFilesPaths.Regiments_Path());
+                string edited = editors.SourceRegimentEditor.Edit(original, updates);
+                File.WriteAllText(Writter.DataTEMPFilesPaths.Regiments_Path(), edited);
+                Program.Logger.Debug("Updated " + updates.Length + " exact source chunks; all other source fields and chunk identities retained.");
+                return;
+            }
             bool editStarted = false;
             bool editIndex = false;
             Regiment? editRegiment = null;
@@ -3075,6 +3207,15 @@ namespace CrusaderWars.data.battle_results
         public static void EditWarsFile(List<Army> attacker_armies, List<Army> defender_armies, double warScoreChange)
         {
             Program.Logger.Debug("Editing Wars file...");
+            if (StatFidelitySession.HasBoundExport)
+            {
+                // The imported combat remains in pursuit until CK3 completes it. Native
+                // completion adds the real battle-history entry and awards its war score.
+                // Applying the legacy estimate here would award this same battle twice.
+                File.Copy(Writter.DataFilesPaths.Wars_Path(), Writter.DataTEMPFilesPaths.Wars_Path(), true);
+                Program.Logger.Debug("Preserved native war history and score; CK3 will resolve the imported battle once.");
+                return;
+            }
             if (string.IsNullOrEmpty(WarID))
             {
                 Program.Logger.Debug("WarID is not set. Skipping Wars file edit and copying original to temp.");

@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 
 namespace CrusaderWars
@@ -135,6 +137,31 @@ function kills()
             File.AppendAllText(filePath, close);
         }
 
+        public static void AppendDevelopmentController(List<(string unitName, string declarationName)> units)
+        {
+            string controlPath = Path.Combine(Directory.GetCurrentDirectory(), "test-battle-control.lua");
+            if (!client.DevelopmentRuntime.Enabled || !File.Exists(controlPath)) return;
+            if (units.Count == 0 || units.Select(u => u.declarationName).Distinct().Count() != units.Count)
+                throw new InvalidDataException("Development trial needs a nonempty unique generated unit registry.");
+            var entries = new StringBuilder();
+            foreach (var unit in units)
+            {
+                if (!Regex.IsMatch(unit.declarationName, "^[A-Za-z_][A-Za-z0-9_]*$"))
+                    throw new InvalidDataException("Invalid Lua unit reference in development trial: " + unit.declarationName);
+                string side = unit.unitName.Contains("_attacker_") ? "attacker" : unit.unitName.Contains("_defender_") ? "defender"
+                    : throw new InvalidDataException("Generated unit has no combat side: " + unit.unitName);
+                string general = unit.unitName.Contains("_TYPEcommander") ? "true" : "false";
+                // Use the same direct references as production survivor/kill reports.
+                // Attila's battle namespace need not be enumerable through _G.
+                entries.AppendLine("{ name=\"" + unit.declarationName + "\", su=" + unit.declarationName + ", side=\"" + side + "\", general=" + general + " },");
+            }
+            string controller = File.ReadAllText(controlPath);
+            if (!controller.Contains("@@CC_TRIAL_UNITS@@")) throw new InvalidDataException("Development trial controller lacks its explicit registry placeholder.");
+            File.AppendAllText(filePath, "\n-- Explicit development-only actual battle controller.\n" +
+                "dev.log(\"CC_ACTUAL_TRIAL|SNAPSHOT|" + StatFidelity.StatFidelitySession.Export.BattleId + "\")\n" +
+                controller.Replace("@@CC_TRIAL_UNITS@@", entries.ToString()));
+        }
+
         //Add
         public static void EraseScript(bool isSiege)
         {
@@ -244,7 +271,7 @@ dev = require(""lua_scripts.dev"");
 
 require(""lua_scripts.logging_callbacks"");
 
-local date = os.date(""\A, %c"");
+local date = os.date(""%A, %c"");
 
 dev.log(""\n"" .. date);
 dev.log""\n Script Loaded"";

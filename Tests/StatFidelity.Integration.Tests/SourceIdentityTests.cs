@@ -347,6 +347,26 @@ public sealed class SourceIdentityTests : IDisposable
     }
 
     [Fact]
+    public void FidelityNeverInventsAnOutcomeFromAbsentOrContradictoryAttilaResults()
+    {
+        WithMode("Enabled", () =>
+        {
+            BindLevyFrame();
+            string log = Path.Combine(scratch, "outcome.log");
+            File.WriteAllText(log, "Unit Victory Knights\n-----PRINT ENDED-----!!\n");
+            Assert.Throws<InvalidDataException>(() => BattleResultReader.GetAttilaWinner(log, "defender", "attacker"));
+            File.WriteAllText(log, "Victory\r\nVictory\r\n");
+            Assert.Equal("defender", BattleResultReader.GetAttilaWinner(log, "defender", "attacker"));
+            File.WriteAllText(log, "Defeat\n");
+            Assert.Equal("attacker", BattleResultReader.GetAttilaWinner(log, "defender", "attacker"));
+            File.WriteAllText(log, "Victory\nDefeat\n");
+            Assert.Throws<InvalidDataException>(() => BattleResultReader.GetAttilaWinner(log, "defender", "attacker"));
+            File.Delete(log);
+            Assert.Throws<InvalidDataException>(() => BattleResultReader.GetAttilaWinner(log, "defender", "attacker"));
+        });
+    }
+
+    [Fact]
     public void VerifiedFightingCommanderGetsOneKnightBudgetAcrossRegeneration()
     {
         Directory.CreateDirectory(Path.Combine(scratch, "settings"));

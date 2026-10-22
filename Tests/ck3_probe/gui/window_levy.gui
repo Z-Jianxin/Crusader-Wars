@@ -229,4 +229,3 @@ window = {
         on_finish = "[ExecuteConsoleCommand('CCLEVYVIEW|END')]"
     }
 }
-

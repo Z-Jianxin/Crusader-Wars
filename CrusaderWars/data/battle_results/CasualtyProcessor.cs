@@ -43,6 +43,7 @@ namespace CrusaderWars.data.battle_results
                     new List<(string Script, string Type, string CultureID, string Kills)>();
 
                 var (AliveList, KillsList) = BattleResultReader.GetRemainingAndKills(path_attila_log);
+                StatFidelity.StatFidelitySession.ValidateResultReports(AliveList, KillsList);
                 if (AliveList.Count == 0)
                 {
                     Program.Logger.Debug(
@@ -104,8 +105,9 @@ namespace CrusaderWars.data.battle_results
             switch (list_type)
             {
                 case DataType.Alive:
-                    pattern = Regex.Matches(text,
-                        $@"(?<Unit>.+_army{army.ID}_TYPE(?<Type>.+?)_CULTURE(?<Culture>.+?)_.+)-(?<Remaining>.+)");
+                    pattern = Regex.Matches(text, StatFidelity.StatFidelitySession.HasBoundExport
+                        ? $@"(?m)^(?<Unit>.+_army{army.ID}_TYPE(?<Type>.+?)_CULTURE(?<Culture>.*?)_.+)-(?<Remaining>\d+)\r?$"
+                        : $@"(?<Unit>.+_army{army.ID}_TYPE(?<Type>.+?)_CULTURE(?<Culture>.+?)_.+)-(?<Remaining>.+)");
                     foreach (Match match in pattern)
                     {
                         string unit_script = match.Groups["Unit"].Value;
@@ -118,8 +120,9 @@ namespace CrusaderWars.data.battle_results
 
                     break;
                 case DataType.Kills:
-                    pattern = Regex.Matches(text,
-                        $@"(?<Unit>kills_.+_army{army.ID}_TYPE(?<Type>.+?)_CULTURE(?<Culture>.+?)_.+)-(?<Kills>.+)");
+                    pattern = Regex.Matches(text, StatFidelity.StatFidelitySession.HasBoundExport
+                        ? $@"(?m)^(?<Unit>kills_.+_army{army.ID}_TYPE(?<Type>.+?)_CULTURE(?<Culture>.*?)_.+)-(?<Kills>\d+)\r?$"
+                        : $@"(?<Unit>kills_.+_army{army.ID}_TYPE(?<Type>.+?)_CULTURE(?<Culture>.+?)_.+)-(?<Kills>.+)");
                     foreach (Match match in pattern)
                     {
 
@@ -262,6 +265,16 @@ namespace CrusaderWars.data.battle_results
                 if (totalOriginalSoldiers == 0) continue;
 
                 Program.Logger.Debug($"Processing levy casualties for culture {cultureId}: {totalCasualtiesToApply} total casualties to distribute among {totalOriginalSoldiers} soldiers.");
+
+                if (StatFidelity.StatFidelitySession.HasBoundExport)
+                {
+                    int[] originals = regimentsInGroup.Select(r => int.Parse(r.CurrentNum, NumberStyles.None, CultureInfo.InvariantCulture)).ToArray();
+                    long survivors = originals.Sum(n => (long)n) - levyReports.Sum(r => (long)r.GetCasualties());
+                    int[] allocated = StatFidelity.SurvivorApportionment.Allocate(originals, survivors);
+                    for (int index = 0; index < regimentsInGroup.Count; index++)
+                        regimentsInGroup[index].SetSoldiers(allocated[index].ToString(CultureInfo.InvariantCulture));
+                    continue;
+                }
 
                 int casualtiesAppliedSoFar = 0;
                 for (int i = 0; i < regimentsInGroup.Count; i++)

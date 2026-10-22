@@ -2346,7 +2346,7 @@ namespace CrusaderWars
                     //path_editedSave = Properties.Settings.Default.VAR_dir_save + @"\CrusaderWars_Battle.ck3";
                     path_editedSave = @".\data\save_file_data\gamestate_file\gamestate";
                     Program.Logger.Debug("Uncompressing and reading CK3 save file.");
-                    SaveFile.Uncompress();
+                    SaveFile.Uncompress(StatFidelity.StatFidelitySession.Enabled ? lastSave.FullName : null);
                     Reader.ReadFile(path_editedSave);
                     DataSearch.FindSiegeCombatID();
                     if (!twbattle.BattleState.IsSiegeBattle)
@@ -2500,6 +2500,7 @@ namespace CrusaderWars
                 // Manually reset some UI elements for the next iteration,
                 // without touching infoLabel.
                 battleJustCompleted = true;
+                if (RetainDevelopmentBattleEvidence()) return;
                 UpdateUIForBattleState();
                 // The line `ExecuteButton.Size = new Size(197, 115);` was moved from here.
             }
@@ -2588,6 +2589,20 @@ namespace CrusaderWars
 
             Program.Logger.Debug("Timed out waiting for file access after 30 seconds.");
             return false; // Timeout reached
+        }
+
+        private bool RetainDevelopmentBattleEvidence()
+        {
+            if (!DevelopmentRuntime.Enabled || BattleState.IsBattleInProgress()) return false;
+            Program.Logger.Debug("Development battle complete: automatic listener restart is disabled; input, native AAR and result evidence remain available.");
+            _battleMonitoringCts?.Cancel();
+            _myVariable = 0;
+            UpdateUIForBattleState();
+            SetBattleButtonsEnabled(true);
+            ExecuteButton.BackgroundImage = Properties.Resources.start_new;
+            infoLabel.Text = "Battle complete. Separate result saved in runtime/results.";
+            this.Text = "Crusader Conflicts (development result ready)";
+            return true;
         }
 
         private async void ContinueBattleButton_Click(object sender, EventArgs e)
@@ -2723,6 +2738,7 @@ namespace CrusaderWars
             if (await BattleProcessor.ProcessBattle(this, attacker_armies, defender_armies, token, regenerateAndRestart))
             {
                 battleJustCompleted = true;
+                if (RetainDevelopmentBattleEvidence()) return;
                 // The battle finished successfully, start the main loop to wait for the next one.
                 // ExecuteButton.PerformClick() does not work on a disabled button, so we call the handler directly.
                 ExecuteButton_Click(this, EventArgs.Empty);
@@ -2820,6 +2836,12 @@ namespace CrusaderWars
                 {
                     throw new InvalidOperationException(
                         "ProcessCommands has not been initialized. Call Initialize() at application startup.");
+                }
+
+                if (client.DevelopmentRuntime.Enabled)
+                {
+                    Program.Logger.Debug("Development runtime: CK3 remains responsive and paused in-game; OS suspension is skipped because it blocked native Attila input during the observed UI trial.");
+                    return;
                 }
 
                 if (!_controller.IsSupported)
@@ -2968,6 +2990,11 @@ namespace CrusaderWars
 
             public static void LoadBattleResults()
             {
+                if (client.DevelopmentRuntime.Enabled)
+                {
+                    Program.Logger.Debug("Development result is under this runtime's results folder. Load that separate test save explicitly; personal continue-game metadata is unchanged.");
+                    return;
+                }
                 Program.Logger.Debug("Loading CK3 with battle results...");
                 Process[] process_ck3 = Process.GetProcessesByName("ck3");
                 if (process_ck3.Length == 0)

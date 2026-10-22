@@ -223,3 +223,9 @@ supporting army is not proof of an absent side-commander branch.
 
 The environment and command syntax above were checked against CK3 1.20.1.2,
 Steam build 26046173. Revalidate after game updates.
+
+The [full copied-playset runtime receipt](../../docs/ck3-runtime-validation-20261021.md)
+records the completed 14-year observer campaign, native endpoint save/load,
+unchanged content hashes, and remaining diagnostics. Close title and county
+views before entering observer mode: the rejected first attempt exposed an
+existing Holding Manager no-player UI loop and reached the error-log cap.

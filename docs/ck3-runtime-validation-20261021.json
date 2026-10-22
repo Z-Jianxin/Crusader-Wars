@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "scope": "CK3 exporter probes, frozen copied-playset observer run, and native endpoint save/load",
+  "status": "completed_bounded_validation_with_documented_diagnostics",
+  "local_test_date": "2026-10-21",
+  "timezone": "America/Los_Angeles",
+  "game": {
+    "version": "1.20.1.2",
+    "steam_build": "26046173",
+    "normal_rendering": true
+  },
+  "playset": {
+    "name": "vanilla-20261013-crusader-conflicts",
+    "total_entries": 48,
+    "enabled_roots": 45,
+    "original_membership_flags_and_order_preserved": true,
+    "cw_before_final_compat_patch": true,
+    "disabled_dlcs_preserved": true,
+    "debug_probe_in_observer_run": false
+  },
+  "source_integrity": {
+    "fork_commit": "4e1e3889c376c2cf844b7269154945255d87e25d",
+    "mega_commit": "2ed2e6fd8ce797dc350f30e464e23ac02827e86d",
+    "prelaunch_started_utc": "2026-10-22T00:40:03.220382Z",
+    "prelaunch_completed_utc": "2026-10-22T00:44:48.115009Z",
+    "post_exit_checked_utc": "2026-10-22T01:21:39.067126Z",
+    "root_files": 25646,
+    "root_content_bytes": 7863516669,
+    "wrappers": 45,
+    "all_content_and_wrappers_unchanged": true,
+    "differences": 0,
+    "aggregate_sha256": "0cdff0ce71dc8466106b5493d58d0eb8ec52615ed999aeae454c64badbc336c6",
+    "digest_scope": "Local enabled-root files plus machine-specific launcher wrappers; not a portable build checksum.",
+    "scope": "Frozen CK3 enabled roots and wrappers during the accepted observer run; not a final C# application revision or package checksum."
+  },
+  "observer": {
+    "accepted_prefix": "ccf_full45b_",
+    "fresh_bookmark": "bm_1066_hastings",
+    "initial_character_title": "d_munster",
+    "mode": "Native Switch Character > Observe",
+    "speed": 5,
+    "start_date": "1066.9.15",
+    "end_date": "1081.2.23",
+    "elapsed_calendar_days": 5275,
+    "elapsed_calendar": "14 years 5 months 8 days",
+    "start_utc_reported": "2026-10-22T01:06:24Z",
+    "pause_utc_reported": "2026-10-22T01:12:06Z",
+    "endpoint_receipt_written_utc": "2026-10-22T01:13:06.1731112Z",
+    "minimum_ten_years_exceeded": true,
+    "normal_map_hud_and_war_units_observed": true,
+    "no_crash_observed": true,
+    "window_workaround": "Title/county/holding views closed before observer entry; HUD Go to Capital used while still a player.",
+    "cleanup": "Authorized Stop-Process after native reload verification; not a natural Exit to Desktop test."
+  },
+  "save_reload": {
+    "file": "_1081_02_23.ck3",
+    "preexisting_file": false,
+    "local_save": true,
+    "bytes": 25679881,
+    "sha256": "ccee0bba5751bff0980c95081c7df83e4f40384a1e84ace74d4239759703d0b3",
+    "metadata_date": "1081.2.23",
+    "gamestate_date": "1081.2.23",
+    "zip_crc_pass": true,
+    "unchanged_during_read": true,
+    "native_load_ui_verified": true,
+    "observer_reentered": true,
+    "reloaded_render_and_date_verified": true,
+    "verified_utc": "2026-10-22T01:20:18.3975421Z"
+  },
+  "logs": {
+    "initial_stable_records": 2064,
+    "paused_observer_records": 3089,
+    "post_initial_observer_records": 1025,
+    "final_after_save_reload_records": 3374,
+    "save_reload_ui_additional_records": 285,
+    "initial_prefix_intact": true,
+    "error_cap_reached": false,
+    "error_log_ends_with_newline": true,
+    "debug_and_some_info_tails_partial_after_cleanup": true,
+    "comparison": "Complete multiline blocks with only leading timestamps removed; dynamic IDs, line numbers, and line endings retained.",
+    "baseline_limit": "Historical 1.20.1.1/44-mod and 1.20.1.2 probe evidence is not current clean-run proof.",
+    "known_cw_option_label_warning_records": 39,
+    "new_runtime_cw_export_path_failure_identified": false,
+    "paused_error_sha256": "dcd6c2dfc6f33cdc1549342d07b3280766ec0ce5f10fd92c94b6773f04480ed6",
+    "closed_files": [
+      {
+        "name": "ccf_full45b_error.log",
+        "bytes": 836114,
+        "sha256": "3314bf2be848aa899afc2b805bea293a497a03d0b0a2495db976bccf3468b4bc",
+        "ends_with_newline": true
+      },
+      {
+        "name": "ccf_full45b_debug.log",
+        "bytes": 11979365,
+        "sha256": "88ef403c139b8a855db64eb0d8d6e8ca1139ed44a92953b7ffe83882f02b8ad3",
+        "ends_with_newline": false
+      },
+      {
+        "name": "ccf_full45b_game.log",
+        "bytes": 470062,
+        "sha256": "ed91a79a700186b54bc35438384c96def776502fa27df9223e5969f82ce38f7e",
+        "ends_with_newline": true
+      },
+      {
+        "name": "ccf_full45b_gui_warnings.log",
+        "bytes": 57344,
+        "sha256": "912ce9afedd2590080cb68230a5d1df14351baafe6a09c1d70ee7fb014db038d",
+        "ends_with_newline": false
+      }
+    ]
+  },
+  "unresolved_findings": [
+    {
+      "scope": "Rejected first observer attempt",
+      "finding": "HoldingManager title/county controls repeatedly evaluated an invalid observer player; exactly100000 errors. This attempt is excluded from uncapped-soak evidence.",
+      "source_repair_applied": false,
+      "accepted_run_recurrence": false
+    },
+    {
+      "scope": "AVII existing mod",
+      "observer_records": 1,
+      "finding": "Custom maritime_trading_handbook visual failed to select an asset for a generated merchant; loaded travel_events.4005 differs from native visuals=book.",
+      "status": "unresolved"
+    },
+    {
+      "scope": "SRE existing mod",
+      "observer_records": 2,
+      "finding": "War-start callbacks rejected the same invalid casus-belli scope; cause of invalidation not established.",
+      "status": "unresolved"
+    },
+    {
+      "scope": "BattleGraphics",
+      "observer_records": 5,
+      "finding": "UV-streaming-factor notices on existing flag/weapon meshes.",
+      "status": "documented; no universal harmlessness claim"
+    },
+    {
+      "scope": "Save/load UI",
+      "finding": "Observer/no-player CFP and Divine Intervention diagnostics, plus older-save POD emblem preview warnings.",
+      "status": "documented"
+    },
+    {
+      "scope": "Native/context diagnostics",
+      "finding": "Activity, succession, scheme, artifact and generated on-action queue diagnostics remain.",
+      "status": "preserved, not declared harmless"
+    }
+  ],
+  "supporting_exporter_evidence": {
+    "owner_modifier": {
+      "damage": [
+        40,
+        60,
+        40
+      ],
+      "toughness": [
+        27.56,
+        39.96,
+        27.56
+      ],
+      "knight_effectiveness": [
+        1.85,
+        2.35,
+        1.85
+      ],
+      "commander_advantage": [
+        19,
+        24,
+        19
+      ]
+    },
+    "station_modifier": {
+      "province": 1527,
+      "damage": [
+        52,
+        91,
+        52
+      ],
+      "toughness": [
+        35.36,
+        55.76,
+        35.36
+      ],
+      "same_owner_and_regiment": true
+    },
+    "levy_modifier": {
+      "native_and_independent_context_match": true,
+      "damage": [
+        10,
+        10,
+        10
+      ],
+      "toughness": [
+        11.1,
+        5.55,
+        11.1
+      ],
+      "maa_control_unchanged": true,
+      "restored_exactly": true
+    },
+    "latest_handoff": {
+      "required_current_headers_exactly_once": 25,
+      "matching_native_save": true,
+      "legacy_frame": "CCHANDOFF|v1",
+      "numeric_frame": "CCSTAT|v1"
+    },
+    "production_snapshot4": {
+      "levy_owners": 3,
+      "armies": 4,
+      "generated_profiles": 26,
+      "stationed_and_allied_maa": true,
+      "separate_pure_levy_army_soldiers": 750,
+      "untracked_generic_general_for_commanderless_supporting_army": true,
+      "synthetic_casualty_serialization_passed": true
+    },
+    "absent_side_commander_branch": "Source/API type validation only; the live captured combat had named side commanders."
+  },
+  "limits": [
+    "One fresh campaign and selected UI/exporter/save checks; not every mod feature, event, start date or personal old save.",
+    "Not an error-free claim and not evidence that all remaining native/context diagnostics are harmless.",
+    "Attila engine combat calibration and actual gameplay casualty return are documented in separate stat-fidelity-validation receipts; this exporter/observer receipt does not conflate those evidence scopes.",
+    "Raw logs/saves and machine paths remain outside Git."
+  ],
+  "external_audit_key": "conflicts-20261021/full45-run",
+  "separate_actual_battle_validation": {
+    "status": "completed_separate_bounded_native_return_validation",
+    "markdown_receipt": "stat-fidelity-validation.md",
+    "structured_receipt": "stat-fidelity-validation.json",
+    "external_evidence_key": "conflicts-20261021/actual-game-to-game/native-return-v4",
+    "scope_separation": "The Attila battle and corrected native CK3 return have independent evidence. This exporter/observer receipt does not infer them from the soak or synthetic casualty tests."
+  }
+}

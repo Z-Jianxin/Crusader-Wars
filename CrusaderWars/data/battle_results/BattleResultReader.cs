@@ -89,6 +89,7 @@ namespace CrusaderWars.data.battle_results
             {
                 if (!File.Exists(path_attila_log))
                 {
+                    if (StatFidelity.StatFidelitySession.Enabled) throw new InvalidDataException("Attila result log is missing; no battle winner was inferred.");
                     Program.Logger.Debug($"Attila log file not found at: {path_attila_log}. Returning default winner.");
                     return winner;
                 }
@@ -130,6 +131,13 @@ namespace CrusaderWars.data.battle_results
                     Program.Logger.Debug("Battle report header not found. Analyzing entire Attila log content.");
                 }
 
+                if (StatFidelity.StatFidelitySession.Enabled)
+                {
+                    bool victory = Regex.IsMatch(relevantLogSection, @"(?m)^Victory[ \t]*$");
+                    bool defeat = Regex.IsMatch(relevantLogSection, @"(?m)^Defeat[ \t]*$");
+                    if (victory == defeat) throw new InvalidDataException("Attila must report exactly one consistent Victory/Defeat outcome. Missing or contradictory results cannot update CK3.");
+                    return victory ? player_armies_combat_side : enemy_armies_combat_side;
+                }
                 // Search for "Victory" only within the isolated log section
                 if (relevantLogSection.Contains("Victory"))
                 {
@@ -146,6 +154,7 @@ namespace CrusaderWars.data.battle_results
             {
                 Program.Logger.Debug(
                     $"Error determining Attila winner: {ex.Message}. Returning default winner ({winner}).");
+                if (StatFidelity.StatFidelitySession.Enabled) throw;
                 // The 'winner' variable is already initialized to enemy_armies_combat_side, so no need to re-assign.
             }
 

@@ -2,7 +2,8 @@ param(
     [Parameter(Mandatory = $true)][string]$AssetRuntime,
     [Parameter(Mandatory = $true)][string]$Destination,
     [Parameter(Mandatory = $true)][string]$DotNet,
-    [string]$AppVersion = ''
+    [string]$AppVersion = '',
+    [switch]$SelfContained
 )
 
 $ErrorActionPreference = 'Stop'
@@ -18,6 +19,11 @@ foreach ($protectedRoot in @($repoRoot, $assetRoot)) {
 }
 if (-not (Test-Path -LiteralPath $assetRoot -PathType Container)) { throw 'Asset runtime does not exist.' }
 if (-not (Test-Path -LiteralPath $DotNet -PathType Leaf)) { throw 'Pass the .NET 9 SDK dotnet.exe path.' }
+foreach ($requiredFile in @('data/runtime/pssuspend64.exe', 'data/rpfm/rpfm_cli.exe', 'data/schema_att.ron')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $assetRoot $requiredFile) -PathType Leaf)) {
+        throw "Missing required runtime dependency: $requiredFile"
+    }
+}
 
 [IO.Directory]::CreateDirectory($stageRoot) | Out-Null
 $head = (& git -C $repoRoot rev-parse HEAD).Trim()
@@ -33,13 +39,15 @@ $marker = [ordered]@{
     automaticUpstreamUpdates = $false
     automaticCk3ModCopy = $false
     originalRuntimeModified = $false
+    selfContained = [bool]$SelfContained
+    runtimeIdentifier = if ($SelfContained) { 'win-x64' } else { $null }
 }
 [IO.File]::WriteAllText((Join-Path $stageRoot 'development-runtime.json'), ($marker | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
 
 # Keep the installed battle state, save files, logs and updater executable out.
 $folders = @('font', 'Resources', 'settings', 'unit mappers',
     'data/battle files', 'data/traits', 'data/units_cards_names', 'data/terrains_images',
-    'data/sounds', 'data/dlls', 'data/mod manager', 'data/rpfm')
+    'data/sounds', 'data/dlls', 'data/mod manager', 'data/rpfm', 'data/runtime')
 foreach ($relative in $folders) {
     $source = Join-Path $assetRoot $relative
     if (-not (Test-Path -LiteralPath $source -PathType Container)) { throw "Missing runtime asset folder: $relative" }
@@ -58,9 +66,13 @@ foreach ($relative in @('data/attila_battle', 'data/save_file_data/temp', 'data/
     [IO.Directory]::CreateDirectory((Join-Path $stageRoot $relative)) | Out-Null
 }
 $project = Join-Path $repoRoot 'CrusaderWars/CrusaderWars.csproj'
-& $DotNet restore $project --source https://api.nuget.org/v3/index.json --verbosity quiet
+$restoreArguments = @('restore', $project, '--source', 'https://api.nuget.org/v3/index.json', '--verbosity', 'quiet')
+if ($SelfContained) { $restoreArguments += @('--runtime', 'win-x64', '-p:SelfContained=true') }
+& $DotNet @restoreArguments
 if ($LASTEXITCODE -ne 0) { throw 'Restore failed.' }
-& $DotNet publish $project --no-restore --configuration Release --output $stageRoot --verbosity quiet -p:WarningLevel=0
+$publishArguments = @('publish', $project, '--no-restore', '--configuration', 'Release', '--output', $stageRoot, '--verbosity', 'quiet', '-p:WarningLevel=0')
+if ($SelfContained) { $publishArguments += @('--runtime', 'win-x64', '--self-contained', 'true', '-p:PublishSingleFile=false', '-p:PublishTrimmed=false') }
+& $DotNet @publishArguments
 if ($LASTEXITCODE -ne 0) { throw 'Development publish failed.' }
 
 $binary = Join-Path $stageRoot 'CrusaderConflicts.dll'

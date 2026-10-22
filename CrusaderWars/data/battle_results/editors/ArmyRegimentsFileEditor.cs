@@ -61,6 +61,12 @@ namespace CrusaderWars.data.battle_results.editors
                             $"Updated ArmyRegiment {editArmyRegiment.ID} current soldiers to {editArmyRegiment.CurrentNum}.");
                         continue;
                     }
+                    else if (editStarted && StatFidelity.StatFidelitySession.HasBoundExport &&
+                        editArmyRegiment?.Type == RegimentType.Knight && editArmyRegiment.CurrentNum == 0 && line.StartsWith("\t\t\t\tpower="))
+                    {
+                        streamWriter.WriteLine("\t\t\t\tpower=0");
+                        continue;
+                    }
 
                     //End Line
                     else if (editStarted && line == "\t\t}")
@@ -92,7 +98,7 @@ namespace CrusaderWars.data.battle_results.editors
                     {
                         if (army_regiment == null) continue;
 
-                        if (army_regiment.Type == RegimentType.Knight) continue;
+                        if (army_regiment.Type == RegimentType.Knight && !StatFidelity.StatFidelitySession.HasBoundExport) continue;
                         if (army_regiment.ID == army_regiment_id)
                         {
                             editStarted = true;
