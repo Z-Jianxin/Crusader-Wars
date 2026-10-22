@@ -137,7 +137,7 @@ namespace CrusaderWars.unit_mapper
     public sealed record KnightTemplateCandidate(string UnitKey, string Faction, int AuthorRank,
         string MapperRole, string MapperFile, string OriginalUnitKey);
 
-    internal static class UnitMappers_BETA
+    internal static partial class UnitMappers_BETA
     {
         /*----------------------------------------------------------------
          * TO DO:
@@ -159,6 +159,7 @@ namespace CrusaderWars.unit_mapper
         private static Dictionary<string, List<(int percentage, string unit_key, string name, string max, int level)>>? _garrisonCache;
         private static readonly Dictionary<string, (long Length, DateTime Stamp, XmlDocument Document)> _scopeAuthorities = new(StringComparer.OrdinalIgnoreCase);
         private static readonly HashSet<string> _scopeNotices = new(StringComparer.Ordinal);
+        private static readonly Dictionary<string, (long Length, DateTime Stamp, string Context, XmlDocument Document)> _mapperDocuments = new(StringComparer.OrdinalIgnoreCase);
 
         public static void ClearFactionCache()
         {
@@ -167,6 +168,29 @@ namespace CrusaderWars.unit_mapper
             _garrisonCache = null;
             _scopeAuthorities.Clear();
             _scopeNotices.Clear();
+            _mapperDocuments.Clear();
+            ClearSemanticMappings();
+        }
+
+        // All production callers inspect these documents without mutating their DOM.
+        // Keep LoadMapperXml's caller-owned document API for isolated inspection tools.
+        private static XmlDocument ReadMapperXml(string path)
+        {
+            string full = Path.GetFullPath(path);
+            var info = new FileInfo(full);
+            string folder = Path.GetDirectoryName(full)!;
+            string context = (ActivePlaythroughTag ?? "") + "\n" + (LoadedUnitMapper_FolderPath ?? "") + "\n" +
+                string.Join("\n", string.IsNullOrEmpty(ActivePlaythroughTag) ? Enumerable.Empty<string>() :
+                    CrusaderWars.mod_manager.SubmodManager.GetActiveSubmodsForPlaythrough(ActivePlaythroughTag).OrderBy(tag => tag, StringComparer.Ordinal)) + "\n" +
+                string.Join("\n", Directory.GetFiles(folder, "OfficialCC_DefaultCK3_*.xml").OrderBy(file => file, StringComparer.OrdinalIgnoreCase)
+                    .Select(file => { var stamp = new FileInfo(file); return file + ":" + stamp.Length + ":" + stamp.LastWriteTimeUtc.Ticks; }));
+            if (_mapperDocuments.TryGetValue(full, out var cached) && cached.Length == info.Length && cached.Stamp == info.LastWriteTimeUtc && cached.Context == context)
+                return cached.Document;
+            InvalidateNativeCandidatePools();
+            var document = new XmlDocument();
+            LoadMapperXml(document, full);
+            _mapperDocuments[full] = (info.Length, info.LastWriteTimeUtc, context, document);
+            return document;
         }
 
         private static void LoadMapperXml(XmlDocument document, string path)
@@ -221,7 +245,7 @@ namespace CrusaderWars.unit_mapper
             foreach (var file in files_paths)
             {
                 XmlDocument doc = new XmlDocument();
-                LoadMapperXml(doc, file);
+                doc = ReadMapperXml(file);
                 if (doc.DocumentElement == null) continue;
                 _factionFileCache[file] = doc;
 
@@ -1125,6 +1149,7 @@ namespace CrusaderWars.unit_mapper
         };
         public static int GetMax(Unit unit)
         {
+            if (TrySemanticCohortMaximum(unit, out int semanticMaximum)) return semanticMaximum;
             Program.Logger.Debug($"Entering GetMax for unit: {unit.GetName()} (Type: {unit.GetRegimentType()}, Faction: {unit.GetAttilaFaction()})");
 
             if (LoadedUnitMapper_FolderPath == null)
@@ -1144,7 +1169,7 @@ namespace CrusaderWars.unit_mapper
                 {
                     Program.Logger.Debug($"Processing XML file: {Path.GetFileName(xml_file)}");
                     XmlDocument FactionsFile = new XmlDocument();
-                    LoadMapperXml(FactionsFile, xml_file);
+                    FactionsFile = ReadMapperXml(xml_file);
                     if (FactionsFile.DocumentElement == null) continue; // Added null check
 
                     foreach (XmlNode element in FactionsFile.DocumentElement.ChildNodes)
@@ -1289,11 +1314,11 @@ namespace CrusaderWars.unit_mapper
                 if (Path.GetExtension(xml_file) == ".xml")
                 {
                     XmlDocument FactionsFile = new XmlDocument();
-                    LoadMapperXml(FactionsFile, xml_file);
+                    FactionsFile = ReadMapperXml(xml_file);
                     if (FactionsFile.DocumentElement == null) continue;
 
                     // Check for specific faction
-                    XmlNode? specificNode = FactionsFile.SelectSingleNode($"/Factions/Faction[@name='{attila_faction}']");
+                    XmlNode? specificNode = FactionsFile.SelectSingleNode($"/Factions/Faction[@name={MapperXPath.Literal(attila_faction)}]");
                     if (specificNode?.Attributes?["subculture"]?.Value is string foundSpecificSubculture)
                     {
                         specific_subculture = foundSpecificSubculture;
@@ -1327,7 +1352,7 @@ namespace CrusaderWars.unit_mapper
 
         static List<(int porcentage, string unit_key, string name, string max)> Levies(XmlDocument factions_file, string attila_faction)
         {
-            var levies_nodes = factions_file.SelectNodes($"/Factions/Faction[@name=\"{attila_faction}\"]/Levies");
+            var levies_nodes = factions_file.SelectNodes($"/Factions/Faction[@name={MapperXPath.Literal(attila_faction)}]/Levies");
             List<(int porcentage, string unit_key, string name, string max)> list = new List<(int porcentage, string unit_key, string name, string max)>();
 
             if (levies_nodes?.Count == 0)
@@ -1372,7 +1397,7 @@ namespace CrusaderWars.unit_mapper
 
         private static List<(int percentage, string unit_key, string name, string max, int level)> Garrison(XmlDocument factions_file, string attila_faction)
         {
-            var garrison_nodes = factions_file.SelectNodes($"/Factions/Faction[@name=\"{attila_faction}\"]/Garrison");
+            var garrison_nodes = factions_file.SelectNodes($"/Factions/Faction[@name={MapperXPath.Literal(attila_faction)}]/Garrison");
             List<(int percentage, string unit_key, string name, string max, int level)> list = new List<(int percentage, string unit_key, string name, string max, int level)>();
 
             if (garrison_nodes?.Count == 0)
@@ -1593,9 +1618,9 @@ namespace CrusaderWars.unit_mapper
             foreach (var xml_file in files_paths)
             {
                 XmlDocument FactionsFile = new XmlDocument();
-                LoadMapperXml(FactionsFile, xml_file);
+                FactionsFile = ReadMapperXml(xml_file);
                 if (FactionsFile.DocumentElement == null) continue;
-                XmlNode? factionNode = FactionsFile.SelectSingleNode($"/Factions/Faction[@name='{unit.GetAttilaFaction()}']");
+                XmlNode? factionNode = FactionsFile.SelectSingleNode($"/Factions/Faction[@name={MapperXPath.Literal(unit.GetAttilaFaction())}]");
 
                 if (factionNode != null)
                 {
@@ -1614,7 +1639,7 @@ namespace CrusaderWars.unit_mapper
             foreach (var xml_file in files_paths)
             {
                 XmlDocument FactionsFile = new XmlDocument();
-                LoadMapperXml(FactionsFile, xml_file);
+                FactionsFile = ReadMapperXml(xml_file);
                 if (FactionsFile.DocumentElement == null) continue;
                 if (FactionsFile.DocumentElement == null) continue;
                 XmlNode? factionNode = FactionsFile.SelectSingleNode($"/Factions/Faction[@name='Default' or @name='DEFAULT']");
@@ -1666,7 +1691,7 @@ namespace CrusaderWars.unit_mapper
             foreach (string file in files)
             {
                 var document = new XmlDocument();
-                LoadMapperXml(document, file);
+                document = ReadMapperXml(file);
                 // Attribute comparison avoids constructing XPath from a faction's name.
                 XmlNode? block = document.DocumentElement?.ChildNodes.Cast<XmlNode>()
                     .FirstOrDefault(node => node.Name == "Faction" && node.Attributes?["name"]?.Value == faction);
@@ -1959,6 +1984,8 @@ namespace CrusaderWars.unit_mapper
 
             // 1. Initial search in specific files
             result = SearchInTitlesFile(unit);
+            bool titleMapping = result.unit_key != NOT_FOUND_KEY;
+            bool genericFallback = false;
             if (result.unit_key == NOT_FOUND_KEY)
             {
                 result = SearchInFactionFiles(unit);
@@ -1980,6 +2007,7 @@ namespace CrusaderWars.unit_mapper
                 var (default_key, defaultIsSiege) = GetDefaultUnitKey(unit);
                 if (default_key != NOT_FOUND_KEY)
                 {
+                    genericFallback = true;
                     Program.Logger.Debug($"  - INFO: Could not map CK3 Unit '{unit.GetName()}' (Type: {unit.GetRegimentType()}). Substituting with default Attila unit '{default_key}'.");
                     result = (default_key, defaultIsSiege);
 
@@ -2006,7 +2034,10 @@ namespace CrusaderWars.unit_mapper
             }
 
             // 5. Return final result
-            return ProcessUnitKeyResult(unit, result.unit_key, result.isSiege);
+            result = ResolveNativeSemanticMapping(unit, result, titleMapping, genericFallback);
+            var processed = ProcessUnitKeyResult(unit, result.unit_key, result.isSiege);
+            RecordSemanticReplacement(unit, processed.Item1);
+            return processed;
         }
 
         private static string GetUnitMaxCategory(Unit unit)
@@ -2023,11 +2054,11 @@ namespace CrusaderWars.unit_mapper
             foreach (var xml_file in files_paths)
             {
                 XmlDocument FactionsFile = new XmlDocument();
-                LoadMapperXml(FactionsFile, xml_file);
+                FactionsFile = ReadMapperXml(xml_file);
                 if (FactionsFile.DocumentElement == null) continue;
 
                 // Search for the specific unit type in any faction to determine its category
-                XmlNode? unitNode = FactionsFile.SelectSingleNode($"//MenAtArm[@type='{unit.GetName()}']");
+                XmlNode? unitNode = FactionsFile.SelectSingleNode($"//MenAtArm[@type={MapperXPath.Literal(unit.GetName())}]");
                 if (unitNode?.Attributes?["max"]?.Value is string foundCategory)
                 {
                     maxCategory = foundCategory.ToUpper();
@@ -2062,16 +2093,20 @@ namespace CrusaderWars.unit_mapper
             var filesPaths = GetSortedFilePaths(factionsFolderPath, priorityFilePattern);
 
             XmlNode? defaultFactionNode = null;
+            var defaultBlocks = new List<XmlNode>();
             foreach (var xmlFile in filesPaths)
             {
                 XmlDocument factionsFile = new XmlDocument();
-                LoadMapperXml(factionsFile, xmlFile);
+                factionsFile = ReadMapperXml(xmlFile);
                 XmlNode? currentNode = factionsFile.SelectSingleNode("/Factions/Faction[@name='Default' or @name='DEFAULT']");
                 if (currentNode != null)
                 {
                     defaultFactionNode = currentNode;
+                    defaultBlocks.Add(currentNode);
                 }
             }
+            if (ActivePlaythroughTag == "DefaultCK3" && defaultBlocks.Count > 0)
+                defaultFactionNode = NativeMappingPolicy.MergeDefaultBlocks(defaultBlocks);
 
             if (defaultFactionNode == null)
             {
@@ -2113,6 +2148,12 @@ namespace CrusaderWars.unit_mapper
                     return (SelectRankedUnitKey(knightRanks, unitToReplace.CharacterRank, keyToExclude), false);
 
                 case RegimentType.MenAtArms:
+                    if (NativeSemanticPolicyEnabled && ArmiesReader.TryGetNativeMaaDefinition(unitToReplace.GetName(), out var nativeFallback))
+                    {
+                        var match = FindCompatibleAuthoredCandidate(unitToReplace, nativeFallback, unitToReplace.GetAttilaFaction(), keyToExclude)
+                            ?? FindCompatibleAuthoredCandidate(unitToReplace, nativeFallback, "Default", keyToExclude);
+                        return match == null ? (NOT_FOUND_KEY, false) : (match.Key, nativeFallback.IsSiegeEquipment);
+                    }
                     string category = GetUnitMaxCategory(unitToReplace);
                     var candidates = new List<(string? key, bool isSiege)>();
                     var fallbackCandidates = new List<(string? key, bool isSiege)>();
@@ -2197,9 +2238,9 @@ namespace CrusaderWars.unit_mapper
             foreach (var xml_file in files_paths)
             {
                 XmlDocument FactionsFile = new XmlDocument();
-                LoadMapperXml(FactionsFile, xml_file);
+                FactionsFile = ReadMapperXml(xml_file);
                 if (FactionsFile.DocumentElement == null) continue;
-                XmlNode? factionNode = FactionsFile.SelectSingleNode($"/Factions/Faction[@name='{targetFaction}']");
+                XmlNode? factionNode = FactionsFile.SelectSingleNode($"/Factions/Faction[@name={MapperXPath.Literal(targetFaction)}]");
 
                 if (factionNode != null)
                 {
@@ -2229,10 +2270,10 @@ namespace CrusaderWars.unit_mapper
             foreach (var xml_file in files_paths)
             {
                 XmlDocument CulturesFile = new XmlDocument();
-                LoadMapperXml(CulturesFile, xml_file);
+                CulturesFile = ReadMapperXml(xml_file);
                 if (CulturesFile.DocumentElement == null) continue;
 
-                foreach (XmlNode heritageNode in CulturesFile.DocumentElement.SelectNodes($"Heritage[@name='{heritageName}']"))
+                foreach (XmlNode heritageNode in CulturesFile.DocumentElement.SelectNodes($"Heritage[@name={MapperXPath.Literal(heritageName)}]"))
                 {
                     if (heritageNode.Attributes?["faction"]?.Value is string heritageFaction && !string.IsNullOrEmpty(heritageFaction)) factions.Add(heritageFaction);
                     foreach (XmlNode cultureNode in heritageNode.SelectNodes("Culture"))
@@ -2277,7 +2318,7 @@ namespace CrusaderWars.unit_mapper
                     string currentFile = Path.GetFileName(xml_file);
                     Program.Logger.Debug($"Scanning cultures file: {currentFile}");
                     XmlDocument CulturesFile = new XmlDocument();
-                    LoadMapperXml(CulturesFile, xml_file);
+                    CulturesFile = ReadMapperXml(xml_file);
 
                     if (CulturesFile.DocumentElement == null) continue; // Add null check for DocumentElement
                     foreach (XmlNode heritage in CulturesFile.DocumentElement.ChildNodes)
@@ -2351,7 +2392,7 @@ namespace CrusaderWars.unit_mapper
                     if (Path.GetExtension(xml_file) == ".xml")
                     {
                         XmlDocument CulturesFile = new XmlDocument();
-                        LoadMapperXml(CulturesFile, xml_file);
+                        CulturesFile = ReadMapperXml(xml_file);
 
                         if (CulturesFile.DocumentElement == null) continue; // Add null check for DocumentElement
                         foreach (XmlNode heritage in CulturesFile.DocumentElement.ChildNodes)
@@ -2789,7 +2830,7 @@ namespace CrusaderWars.unit_mapper
             // This function will check a given faction node for the siege attribute.
             bool CheckFactionNodeForSiege(XmlNode factionNode, string maaName)
             {
-                XmlNode? maaNode = factionNode.SelectSingleNode($"MenAtArm[@type='{maaName}']");
+                XmlNode? maaNode = factionNode.SelectSingleNode($"MenAtArm[@type={MapperXPath.Literal(maaName)}]");
                 if (maaNode != null)
                 {
                     if (maaNode.Attributes?["siege"]?.Value == "true")
@@ -2804,9 +2845,9 @@ namespace CrusaderWars.unit_mapper
             foreach (var xml_file in files_paths)
             {
                 XmlDocument FactionsFile = new XmlDocument();
-                LoadMapperXml(FactionsFile, xml_file);
+                FactionsFile = ReadMapperXml(xml_file);
                 if (FactionsFile.DocumentElement == null) continue;
-                XmlNode? factionNode = FactionsFile.SelectSingleNode($"/Factions/Faction[@name='{attilaFaction}']");
+                XmlNode? factionNode = FactionsFile.SelectSingleNode($"/Factions/Faction[@name={MapperXPath.Literal(attilaFaction)}]");
 
                 if (factionNode != null)
                 {
@@ -2821,7 +2862,7 @@ namespace CrusaderWars.unit_mapper
             foreach (var xml_file in files_paths)
             {
                 XmlDocument FactionsFile = new XmlDocument();
-                LoadMapperXml(FactionsFile, xml_file);
+                FactionsFile = ReadMapperXml(xml_file);
                 XmlNode? factionNode = FactionsFile.SelectSingleNode($"/Factions/Faction[@name='Default' or @name='DEFAULT']");
 
                 if (factionNode != null)
@@ -2854,7 +2895,7 @@ namespace CrusaderWars.unit_mapper
                 try
                 {
                     XmlDocument FactionsFile = new XmlDocument();
-                    LoadMapperXml(FactionsFile, xml_file);
+                    FactionsFile = ReadMapperXml(xml_file);
                     if (FactionsFile.DocumentElement == null) continue;
 
                     foreach (XmlNode factionNode in FactionsFile.SelectNodes("/Factions/Faction"))
@@ -2930,11 +2971,11 @@ namespace CrusaderWars.unit_mapper
                 try
                 {
                     XmlDocument FactionsFile = new XmlDocument();
-                    LoadMapperXml(FactionsFile, xml_file);
+                    FactionsFile = ReadMapperXml(xml_file);
                     if (FactionsFile.DocumentElement == null) continue;
 
                     // Find a MenAtArm node with the matching key
-                    XmlNode maaNode = FactionsFile.SelectSingleNode($"//MenAtArm[@key='{unitKey}']");
+                    XmlNode maaNode = FactionsFile.SelectSingleNode($"//MenAtArm[@key={MapperXPath.Literal(unitKey)}]");
                     if (maaNode != null)
                     {
                         // If we find the key, we have our answer.
@@ -2966,11 +3007,11 @@ namespace CrusaderWars.unit_mapper
                 try
                 {
                     XmlDocument FactionsFile = new XmlDocument();
-                    LoadMapperXml(FactionsFile, xml_file);
+                    FactionsFile = ReadMapperXml(xml_file);
                     if (FactionsFile.DocumentElement == null) continue;
 
                     // Find a MenAtArm node with the matching type attribute
-                    XmlNode? maaNode = FactionsFile.SelectSingleNode($"//MenAtArm[@type='{menAtArmType}']");
+                    XmlNode? maaNode = FactionsFile.SelectSingleNode($"//MenAtArm[@type={MapperXPath.Literal(menAtArmType)}]");
                     if (maaNode != null)
                     {
                         return maaNode.Attributes?["max"]?.Value;

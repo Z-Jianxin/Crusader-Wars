@@ -20,7 +20,7 @@ public sealed record AttilaUnitCombatStats(
 }
 
 /// <summary>A single active-pack snapshot shared by planning queries and later battle generation.</summary>
-public sealed class PreparedAttilaDatabase
+public sealed partial class PreparedAttilaDatabase
 {
     private readonly AttilaDatabase database;
     private readonly Action assertCurrent;

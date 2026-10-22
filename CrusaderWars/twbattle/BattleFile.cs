@@ -40,6 +40,8 @@ namespace CrusaderWars
         {
             var units = bufferedArmyUnits ?? throw new InvalidOperationException("No army unit buffer is active.");
             StatFidelity.StatFidelitySession.FundCommanderGuard(army, units);
+            StatFidelity.StatFidelitySession.ValidateLevyCohortDeployment(army);
+            StatFidelity.StatFidelitySession.ValidateMaaSourceDeployment(army);
             bufferedArmyUnits = null;
             foreach (var unit in units) CommitGeneratedUnit(unit.Attribute("script_name")!.Value, unit.ToString(SaveOptions.DisableFormatting) + "\n\n");
         }

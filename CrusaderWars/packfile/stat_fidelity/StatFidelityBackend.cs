@@ -18,18 +18,38 @@ public static partial class StatFidelityBackend
 
     public static PreparedAttilaDatabase Prepare(string runtimeRoot, string attilaExecutable, string? cacheRoot = null)
     {
+        var packs = PackSourceResolver.Resolve(attilaExecutable);
+        return PrepareCore(runtimeRoot, packs, cacheRoot, () => {
+            if (!PackSourceResolver.Resolve(attilaExecutable).SequenceEqual(packs, StringComparer.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Active Attila load order changed after stat planning. Prepare a fresh database before publishing.");
+        });
+    }
+
+    /// <summary>Prepare a caller-selected low-to-high pack snapshot; never consults the live game mod list.</summary>
+    public static PreparedAttilaDatabase PrepareFromPacks(string runtimeRoot, IReadOnlyList<string> packsLowToHigh, string? cacheRoot = null)
+        => PrepareCore(runtimeRoot, packsLowToHigh, cacheRoot, null);
+
+    private static PreparedAttilaDatabase PrepareCore(string runtimeRoot, IReadOnlyList<string> packsLowToHigh, string? cacheRoot, Action? assertSelection)
+    {
+        ArgumentNullException.ThrowIfNull(packsLowToHigh);
+        if (packsLowToHigh.Count == 0) throw new InvalidDataException("An explicit Attila database needs at least one source pack.");
+        var packs = packsLowToHigh.Select(Path.GetFullPath).ToArray();
+        if (packs.Distinct(StringComparer.OrdinalIgnoreCase).Count() != packs.Length)
+            throw new InvalidDataException("Explicit Attila database packs must have unique paths in low-to-high order.");
         string rpfm = Path.Combine(runtimeRoot, "data", "rpfm", "rpfm_cli.exe");
         string schema = Path.Combine(runtimeRoot, "data", "schema_att.ron");
         if (!File.Exists(schema)) throw new FileNotFoundException("The bundled Attila RPFM schema is missing.", schema);
-        var packs = PackSourceResolver.Resolve(attilaExecutable);
+        var schemaStamp = new FileInfo(schema);
+        long schemaLength = schemaStamp.Length; DateTime schemaTime = schemaStamp.LastWriteTimeUtc;
         var stamps = packs.Select(p => new FileInfo(p)).Select(f => (f.FullName, f.Length, f.LastWriteTimeUtc)).ToArray();
         var database = LoadPacks(rpfm, schema, packs, cacheRoot ?? Path.Combine(runtimeRoot, "data", "stat-fidelity-cache"));
         void AssertCurrent()
         {
-            if (!PackSourceResolver.Resolve(attilaExecutable).SequenceEqual(packs, StringComparer.OrdinalIgnoreCase) ||
+            assertSelection?.Invoke();
+            if (!File.Exists(schema) || new FileInfo(schema).Length != schemaLength || File.GetLastWriteTimeUtc(schema) != schemaTime ||
                 stamps.Any(s => !File.Exists(s.FullName) || new FileInfo(s.FullName).Length != s.Length ||
                     File.GetLastWriteTimeUtc(s.FullName) != s.LastWriteTimeUtc))
-                throw new InvalidOperationException("Active Attila packs changed after stat planning. Prepare a fresh database and rebuild the battle before publishing.");
+                throw new InvalidOperationException("Attila source packs or schema changed after stat planning. Prepare a fresh database and rebuild the battle before publishing.");
         }
         AssertCurrent();
         return new PreparedAttilaDatabase(database, packs, AssertCurrent);

@@ -71,7 +71,10 @@ public sealed class TsvTable
                 if (quoted && reader.Peek() == '"') { reader.Read(); field.Append('"'); }
                 else quoted = !quoted;
             }
-            else if (!quoted && (c == '\t' || c == '\r' || c == '\n'))
+            // RPFM writes LF-delimited exports and can leave a literal lone CR
+            // inside an unquoted DB string (observed in Earl's infantry pack).
+            // Preserve that value; only LF or CRLF terminates a record.
+            else if (!quoted && (c == '\t' || c == '\n' || (c == '\r' && reader.Peek() == '\n')))
             {
                 row.Add(field.ToString()); field.Clear();
                 if (c != '\t')

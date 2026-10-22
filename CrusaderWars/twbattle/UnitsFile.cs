@@ -99,6 +99,10 @@ namespace CrusaderWars
         {
             if (!StatFidelity.StatFidelitySession.HasBoundExport) { BETA_AddArmyUnits(army); return; }
             StatFidelity.StatFidelitySession.RestoreCommanderGuardDonation(army);
+            StatFidelity.StatFidelitySession.ValidateNativeUnitCultures(army);
+            UnitMappers_BETA.RefreshNativeMappings(army);
+            StatFidelity.StatFidelitySession.RegisterLevyCohorts(army, verifyOriginalStrength: true);
+            StatFidelity.StatFidelitySession.RegisterMaaSourceCohorts(army, verifyOriginalStrength: true);
             BattleFile.BeginArmyUnitBuffer();
             try
             {
@@ -383,14 +387,17 @@ namespace CrusaderWars
             {
                 // Group levies by their target Attila faction to prevent duplicate generation
                 // if multiple cultures map to the same faction.
-                var levies_by_faction = levies_units.GroupBy(u => u.GetAttilaFaction());
+                var levies_by_faction = levies_units.GroupBy(u => (Faction: u.GetAttilaFaction(),
+                    Culture: StatFidelity.StatFidelitySession.HasBoundExport ? u.GetObjCulture()?.ID : null));
 
                 foreach (var faction_group in levies_by_faction)
                 {
-                    string factionName = faction_group.Key;
+                    string factionName = faction_group.Key.Faction;
                     if (string.IsNullOrEmpty(factionName) || factionName == UnitMappers_BETA.NOT_FOUND_KEY)
                     {
                         int soldiers = faction_group.Sum(u => u.GetSoldiers());
+                        if (StatFidelity.StatFidelitySession.HasBoundExport && soldiers > 0)
+                            throw new InvalidOperationException("Positive native levy cohort has no mapped faction in army " + army.ID + ". No troops were silently discarded.");
                         Program.Logger.Debug($"WARNING - {soldiers} LEVY SOLDIERS WITHOUT A FACTION FOUND. SKIPPING.");
                         continue;
                     }
@@ -442,12 +449,13 @@ namespace CrusaderWars
             foreach (var unit in maa_units)
             {
                 int? activeSiegeMachines = null;
-                var nativeDefinition = StatFidelity.StatFidelitySession.HasBoundExport && !BattleState.IsSiegeBattle
+                var nativeDefinition = StatFidelity.StatFidelitySession.HasBoundExport
                     ? ArmiesReader.RequireNativeMaaDefinition(unit) : null;
                 // Native type semantics override only the bookkeeping category,
                 // never the selected Attila appearance key. A mapper infantry
                 // proxy cannot turn excluded native equipment into field troops.
                 if (nativeDefinition?.IsSiegeEquipment == true) unit.SetIsSiege(true);
+                if (nativeDefinition != null) StatFidelity.NativePopulationContract.ValidateEquipmentMapping(nativeDefinition, unit.IsSiege());
                 if (StatFidelity.StatFidelitySession.HasBoundExport && (unit.IsSiege() || nativeDefinition?.IsFieldNoncombatant == true))
                 {
                     StatFidelity.StatFidelitySession.RegisterSiegeSource(army, unit);
@@ -633,6 +641,7 @@ namespace CrusaderWars
 
         private static void AddFidelitySiegeBatteries(Army army, Unit source, List<Unit> emitted, int experience, int? activeNativeMachines = null)
         {
+            StatFidelity.NativePopulationContract.ValidateEquipmentMapping(ArmiesReader.RequireNativeMaaDefinition(source), true);
             if (source.SourceIdentity == null)
                 throw new InvalidOperationException("Siege generation requires an exact native source identity; no anonymous source can be discarded or merged.");
             var database = StatFidelity.StatFidelitySession.PreparedDatabase
@@ -756,10 +765,21 @@ namespace CrusaderWars
             var composedUnits = new List<Unit>();
             if (faction_levy_percentages == null || faction_levy_percentages.Count < 1)
             {
+                if (StatFidelity.StatFidelitySession.HasBoundExport && unit.GetSoldiers() > 0)
+                    throw new InvalidOperationException("Positive native levy cohort has no authored composition pool in army " + army.ID);
                 Program.Logger.Debug("ERROR - LEVIES WITHOUT FACTION IN UNIT" + $"\nNUMBER OF SOLDIERS:{unit.GetSoldiers()}" + $"\nATTILA FACTION:{unit.GetAttilaFaction()}");
                 return composedUnits;
             }
             var corrected_levy_percentages = ResolveEffectiveLevyTemplates(army, unit.GetAttilaFaction(), faction_levy_percentages);
+            if (StatFidelity.StatFidelitySession.HasBoundExport)
+            {
+                if (corrected_levy_percentages.Any(p => p.percentage < 0)) throw new InvalidOperationException("Levy composition has a negative authored weight.");
+                corrected_levy_percentages = corrected_levy_percentages.Where(p => p.percentage > 0).ToList();
+                if (unit.GetSoldiers() > 0 && corrected_levy_percentages.Count == 0)
+                    throw new InvalidOperationException("Positive native levy cohort has no effective positive-weight templates after replacements/filtering.");
+                if (corrected_levy_percentages.Any(p => p.isSiege))
+                    throw new InvalidOperationException("A native levy pool contains siege-machine templates without an equipment representation budget.");
+            }
 
             //  SINGULAR UNIT
             //  select random levy type

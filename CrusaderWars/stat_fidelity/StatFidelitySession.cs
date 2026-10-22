@@ -99,7 +99,11 @@ namespace CrusaderWars.StatFidelity
             commanderKnightBudgets.Clear();
             knightBudgetPlans.Clear(); deployedRoster.Clear(); deployedSourceBindings.Clear(); PreparedDatabase = null;
             siegeSources.Clear(); siegeFormations.Clear();
+            levyCohorts.Clear();
+            maaSources.Clear(); maaRawFormations.Clear();
             ClearCommanderGuards();
+            levyStrengthProofs.Clear();
+            maaStrengthProofs.Clear();
             SaveEvidenceValidated = false;
             Enabled = ModOptions.optionsValuesCollection.TryGetValue("StatFidelityMode", out string? mode) && (mode == "Validated" || mode == "Enabled");
             Export = Enabled ? StatExportParser.Parse(log) : new StatExport();
@@ -135,7 +139,11 @@ namespace CrusaderWars.StatFidelity
             profiles.Clear(); messages.Clear(); coverage.Clear(); preparedKnightArmies.Clear(); calibratedKnightUnits.Clear();
             regimentLookup.Clear(); commanderKnightBudgets.Clear(); knightBudgetPlans.Clear(); deployedRoster.Clear(); deployedSourceBindings.Clear();
             siegeSources.Clear(); siegeFormations.Clear();
+            levyCohorts.Clear();
+            maaSources.Clear(); maaRawFormations.Clear();
             ClearCommanderGuards();
+            levyStrengthProofs.Clear();
+            maaStrengthProofs.Clear();
             PreparedDatabase = null; SaveEvidenceValidated = false; Export = new StatExport(); Settings = new StatFidelitySettings();
             Enabled = ModOptions.optionsValuesCollection.TryGetValue("StatFidelityMode", out string? mode) && (mode == "Enabled" || mode == "Validated");
             return Failure(reason);
@@ -173,7 +181,8 @@ namespace CrusaderWars.StatFidelity
             File.WriteAllText(path, JsonSerializer.Serialize(new { schemaVersion = 1, battleId = Export.BattleId, complete = Export.Complete, saveEvidenceValidated = SaveEvidenceValidated,
                 acceptedRegiments = Export.Regiments.Count, acceptedLevies = Export.Levies.Count, acceptedCommanders = Export.Commanders.Count, acceptedKnights = Export.Knights.Count,
                 generatedProfiles = profiles.Count, deployedFormations = deployedSourceBindings, siegeSourceBudgets = siegeSources.Values,
-                fieldSiegeParticipation = ArmiesReader.FieldSiegeParticipation, settings = Settings,
+                fieldSiegeParticipation = ArmiesReader.FieldSiegeParticipation, levySourceCohorts = LevyCohorts,
+                maaSourceCohorts = MaaSourceCohorts, settings = Settings,
                 scope = new {
                     regimentScaling = "effective/base ratios on mapped Attila templates",
                     commanderScaling = "difference of exported character commander advantage; not complete combat advantage",
@@ -195,6 +204,7 @@ namespace CrusaderWars.StatFidelity
             deployedSourceBindings.Clear();
             siegeFormations.Clear();
             guardRawFormations.Clear();
+            maaRawFormations.Clear();
             var units = new Dictionary<int, Unit>();
             var visited = new HashSet<Army>();
             void visit(Army army)
@@ -209,6 +219,8 @@ namespace CrusaderWars.StatFidelity
                 foreach (var merged in army.MergedArmies ?? new List<Army>()) visit(merged);
             }
             foreach (var army in armies) visit(army);
+            foreach (var army in visited) ValidateLevyCohortDeployment(army);
+            foreach (var army in visited) ValidateMaaSourceDeployment(army);
             var emittedNames = new HashSet<string>(StringComparer.Ordinal);
             var emittedIds = new HashSet<int>();
             var emittedUnitKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -223,6 +235,8 @@ namespace CrusaderWars.StatFidelity
                 deployedRoster.Add(new DeployedFormation(script, bodies));
                 emittedUnitKeys.Add(element.Element("unit_type")?.Attribute("type")?.Value ?? "");
                 if (IsGuardCohortUnit(source, units.Values)) guardRawFormations.Add(script);
+                if (source.GetRegimentType() == RegimentType.MenAtArms && !source.IsSiege() && source.SourceIdentity != null)
+                    maaRawFormations.Add(script);
                 if (deployedRoster.Count > BattleReportEvidence.MaximumFormations)
                     throw Failure("The emitted battle exceeds the complete-report formation limit; no unreimportable pack was generated.");
                 if (source.IsSiege())
@@ -289,6 +303,8 @@ namespace CrusaderWars.StatFidelity
             if (Enabled && Export.Complete && !SaveEvidenceValidated && Settings.RequireCompleteExport)
                 throw Failure("CK3 combat stats have not been bound to the selected handoff save. Regenerate the snapshot/save or disable CK3 combat stats to use legacy conversion.");
             if (!Enabled || !Export.Complete || !SaveEvidenceValidated) return result;
+            if (unit.GetRegimentType() == RegimentType.Garrison)
+                throw Failure("Independent native garrison combat stats have not been verified. CK3 combat-stat fidelity cannot substitute army-owner or levy stats for a garrison.");
             if (unit.IsSiege())
             {
                 Note("Siege engines retain legacy mapping; field damage cannot be inferred from CK3 siege progress.");
@@ -416,6 +432,9 @@ namespace CrusaderWars.StatFidelity
             var rows = new List<KnightStats>();
             foreach (var regiment in roster)
             {
+                if (regiment.CurrentNum is < 0 or > 1)
+                    throw Failure("Native knight regiment has an invalid available character count: " + regiment.ID);
+                if (regiment.CurrentNum == 0) continue;
                 if (!Export.Knights.TryGetValue(army.CombatSide + ":" + regiment.MAA_Name, out var row))
                 {
                     if (Settings.RequireCompleteExport) throw Failure("Native knight roster lacks stat evidence for " + army.CombatSide + ":" + regiment.MAA_Name + ". No character was silently omitted.");
@@ -446,6 +465,8 @@ namespace CrusaderWars.StatFidelity
         {
             if (!Enabled || !Export.Complete || !SaveEvidenceValidated || !Settings.EnableKnightCalibration || string.IsNullOrEmpty(army.CommanderID)) return;
             var roster = army.ArmyRegiments.Where(r => r.Type == RegimentType.Knight).ToList();
+            if (roster.Any(r => r.CurrentNum is < 0 or > 1))
+                throw Failure("Native knight roster has an invalid available character count.");
             var commanderRecords = roster.Where(r => r.MAA_Name == army.CommanderID).ToArray();
             if (commanderRecords.Length == 0) return;
             if (commanderRecords.Length != 1 || commanderRecords[0].CurrentNum is < 0 or > 1)
@@ -455,7 +476,7 @@ namespace CrusaderWars.StatFidelity
             if (!participation.Current.HasValue || participation.Current > 1)
                 throw Failure("Fighting commander lacks valid explicit current participation in the selected native combat.");
             if (participation.Current == 0) return;
-            if (!roster.All(r => Export.Knights.ContainsKey(army.CombatSide + ":" + r.MAA_Name)))
+            if (!roster.Where(r => r.CurrentNum > 0).All(r => Export.Knights.ContainsKey(army.CombatSide + ":" + r.MAA_Name)))
             {
                 if (Settings.RequireCompleteExport) throw Failure("Fighting-commander knight calibration requires complete original roster evidence for army " + army.ID + ".");
                 return;
@@ -573,6 +594,8 @@ namespace CrusaderWars.StatFidelity
             profiles.Clear(); coverage.Clear(); preparedKnightArmies.Clear(); calibratedKnightUnits.Clear();
             knightBudgetPlans.Clear();
             siegeSources.Clear(); siegeFormations.Clear();
+            levyCohorts.Clear();
+            maaSources.Clear(); maaRawFormations.Clear();
         }
 
         public static void PrepareKnightBudgetDatabase(string runtimeRoot, string attilaExecutable, string? cacheRoot = null)

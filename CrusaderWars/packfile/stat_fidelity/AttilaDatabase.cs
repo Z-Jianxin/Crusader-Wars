@@ -89,6 +89,9 @@ public sealed class AttilaDatabase
         return result ?? throw new InvalidOperationException($"Stat fidelity cannot resolve {table} '{key}' in the active packs. Restore the required Attila/mod files or disable stat fidelity.");
     }
 
+    internal Dictionary<string, string>? Lookup(string table, string key) =>
+        rowIndices.TryGetValue(table, out var indices) && indices.TryGetValue(key, out int index) ? Tables[table].Rows[index] : null;
+
     internal IEnumerable<Dictionary<string, string>> Find(string table, string column, string value) =>
         Tables.TryGetValue(table, out var data) ? data.Rows.Where(r => r.TryGetValue(column, out var cell) && cell == value) : Enumerable.Empty<Dictionary<string, string>>();
 

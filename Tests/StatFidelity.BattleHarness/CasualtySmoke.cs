@@ -23,15 +23,18 @@ internal static class CasualtySmoke
         var armies = attackers.Concat(defenders).SelectMany(a => new[] { a }.Concat(a.MergedArmies)).DistinctBy(a => a.ID).ToArray();
         var sourceUnits = armies.SelectMany(a => a.Units.Where(u => u.SourceIdentity != null).Select(u => (army: a, unit: u))).ToArray();
         var guards = armies.SelectMany(a => a.Units.Where(u => u.CommanderGuardRepresentation != null).Select(u => (army: a, unit: u, metadata: u.CommanderGuardRepresentation!))).ToArray();
+        var levyUnits = armies.SelectMany(a => a.Units.Where(u => u.GetRegimentType() == RegimentType.Levy).Select(u => (army: a, unit: u))).ToArray();
         var allSourceStarts = armies.SelectMany(a => a.ArmyRegiments.SelectMany(r => r.Regiments)).Distinct().ToDictionary(r => r, r => r.CurrentNum);
-        if (sourceUnits.Length == 0 && !guards.Any(g => g.metadata.DonorType == RegimentType.MenAtArms))
-            throw new InvalidOperationException("Casualty smoke requires at least one real source MAA unit or funded MAA guard.");
+        if (sourceUnits.Length == 0 && guards.Length == 0 && levyUnits.Length == 0)
+            throw new InvalidOperationException("Casualty smoke requires at least one real source formation or funded guard.");
         var identities = sourceUnits.Select(x => Key(x.unit)).Concat(CrusaderWars.StatFidelity.StatFidelitySession.SiegeSources.Keys)
             .Concat(guards.Where(g => g.metadata.DonorType == RegimentType.MenAtArms).Select(g =>
                 Key(g.metadata.ArmyId, g.metadata.SourceArmyRegimentId!, g.metadata.SourceRegimentId!, g.metadata.SourceChunkIndex ?? "0")))
+            .Concat(armies.SelectMany(a => a.ArmyRegiments.Where(r => r.Type == RegimentType.Levy).SelectMany(r =>
+                r.Regiments.Select(s => Key(a.ID, r.ID, s.ID, s.Index)))))
             .Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray();
         var ratios = identities.Select((id, index) => (id, ratio: new[] { 0.25, 0.5, 0.75 }[index % 3])).ToDictionary(x => x.id, x => x.ratio);
-        var sources = armies.SelectMany(a => a.ArmyRegiments.Where(r => r.Type == RegimentType.MenAtArms)
+        var sources = armies.SelectMany(a => a.ArmyRegiments.Where(r => r.Type is RegimentType.MenAtArms or RegimentType.Levy)
             .SelectMany(r => r.Regiments.Select(s => new Source(Key(a.ID, r.ID, s.ID, s.Index), a, r, s, int.Parse(s.CurrentNum, CultureInfo.InvariantCulture)))))
             .Where(s => ratios.ContainsKey(s.Identity)).ToArray();
         var expected = new Dictionary<string, int>();
@@ -52,6 +55,8 @@ internal static class CasualtySmoke
                 if (guardByUniqueId.ContainsKey(id)) remaining = checked((int)Math.Round(deployed * 0.6));
                 else if (byUniqueId.TryGetValue(id, out var source))
                     remaining = checked((int)Math.Round(deployed * ratios[Key(source.unit)]));
+                else if (levyUnits.Any(u => u.unit.UniqueID == id))
+                    remaining = checked((int)Math.Round(deployed * new[] {0.25, 0.5, 0.75}[id % 3]));
             }
             rows.Add(new Row(parsed.Groups["army"].Value, script, parsed.Groups["type"].Value,
                 parsed.Groups["culture"].Value, deployed, remaining.ToString(CultureInfo.InvariantCulture)));
@@ -60,7 +65,7 @@ internal static class CasualtySmoke
         // Independent expected native counts from the actual emitted body reports.
         // Raw crew denominators remain raw at50%, and partial batteries carry their
         // own equipment budget. Unrepresented registered sources remain untouched.
-        foreach (var source in sources)
+        foreach (var source in sources.Where(s => s.ArmyRegiment.Type == RegimentType.MenAtArms))
         {
             var emitted = sourceUnits.Where(s => Key(s.unit) == source.Identity).Select(s =>
                 (s.unit, row: rows.Single(r => r.Type.EndsWith("_" + s.unit.UniqueID, StringComparison.Ordinal)))).ToArray();
@@ -84,14 +89,28 @@ internal static class CasualtySmoke
             }
             else
             {
-                double scale = CrusaderWars.client.ModOptions.GetBattleScale() / 100.0;
-                long starting = emitted.Sum(e => (long)Math.Round(e.row.Deployed / scale));
-                long remaining = emitted.Sum(e => (long)Math.Round(int.Parse(e.row.Remaining, CultureInfo.InvariantCulture) / scale));
+                long starting = emitted.Sum(e => (long)e.row.Deployed);
+                long remaining = emitted.Sum(e => (long)int.Parse(e.row.Remaining, CultureInfo.InvariantCulture));
                 if (starting <= 0) throw new InvalidDataException("Synthetic regular-source fixture has no deployed denominator.");
-                expected[source.Identity] = Math.Min(source.Starting, checked((int)Math.Round(source.Starting * Math.Min(1.0, (double)remaining / starting))));
+                expected[source.Identity] = checked((int)Math.Round((decimal)source.Starting * remaining / starting, MidpointRounding.AwayFromZero));
             }
         }
-        var chosen = sourceUnits.Length > 0 ? sourceUnits[0] : (army: guards[0].army, unit: guards[0].unit);
+        foreach (var cohort in CrusaderWars.StatFidelity.StatFidelitySession.LevyCohorts)
+        {
+            var originals = cohort.Sources.Select(s => sources.Single(x => x.Army.ID == cohort.ArmyId && x.ArmyRegiment.ID == s.ArmyRegimentId &&
+                x.Regiment.ID == s.RegimentId && (string.IsNullOrEmpty(x.Regiment.Index) ? "0" : x.Regiment.Index) == s.ChunkIndex)).ToArray();
+            decimal survivingBodies = levyUnits.Where(u => u.army.ID == cohort.ArmyId && u.unit.GetObjCulture()?.ID == cohort.CultureId)
+                .Sum(u => int.Parse(rows.Single(r => r.Type.EndsWith("_" + u.unit.UniqueID, StringComparison.Ordinal)).Remaining, CultureInfo.InvariantCulture));
+            foreach (var guard in guards.Where(g => g.army.ID == cohort.ArmyId && g.metadata.DonorType == RegimentType.Levy && g.metadata.DonorCultureId == cohort.CultureId))
+                survivingBodies += (decimal)guard.metadata.BorrowedBodies * int.Parse(rows.Single(r => r.Type.EndsWith("_" + guard.unit.UniqueID, StringComparison.Ordinal)).Remaining, CultureInfo.InvariantCulture) / guard.metadata.DeployedBodies;
+            int total = originals.Sum(s => s.Starting);
+            int survivingNative = total == 0 ? 0 : checked((int)Math.Round(total * survivingBodies / cohort.DeployedBodies, MidpointRounding.AwayFromZero));
+            decimal[] shares = originals.Select(s => total == 0 ? 0 : (decimal)survivingNative * s.Starting / total).ToArray();
+            int[] allocated = shares.Select(s => (int)decimal.Floor(s)).ToArray();
+            foreach (int index in Enumerable.Range(0, shares.Length).OrderByDescending(i => shares[i] - allocated[i]).ThenBy(i => i).Take(survivingNative - allocated.Sum())) allocated[index]++;
+            for (int index = 0; index < originals.Length; index++) expected[originals[index].Identity] = allocated[index];
+        }
+        var chosen = sourceUnits.Length > 0 ? sourceUnits[0] : guards.Length > 0 ? (army: guards[0].army, unit: guards[0].unit) : levyUnits[0];
         Row chosenRow = rows.Single(r => r.Type.EndsWith("_" + chosen.unit.UniqueID, StringComparison.Ordinal));
         var negative = new List<object>();
         foreach (string kind in new[] { "missing-report", "duplicate-report", "malformed-count" })
@@ -146,14 +165,14 @@ internal static class CasualtySmoke
         Reader.ReadFile(rewritten);
         typeof(ArmiesReader).GetMethod("ReadArmyRegiments", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, null);
         typeof(ArmiesReader).GetMethod("ReadRegiments", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, null);
-        var reloaded = armies.SelectMany(a => a.ArmyRegiments.Where(r => r.Type == RegimentType.MenAtArms)
+        var reloaded = armies.SelectMany(a => a.ArmyRegiments.Where(r => r.Type is RegimentType.MenAtArms or RegimentType.Levy)
             .SelectMany(r => r.Regiments.Select(s => new { identity = Key(a.ID, r.ID, s.ID, s.Index), count = int.Parse(s.CurrentNum, CultureInfo.InvariantCulture) })))
             .Where(s => expected.ContainsKey(s.identity)).ToDictionary(s => s.identity, s => s.count);
         foreach (var pair in expected)
             if (!reloaded.TryGetValue(pair.Key, out int count) || count != pair.Value)
                 throw new InvalidOperationException("Serialized casualty roundtrip mismatch for " + pair.Key);
         foreach (var army in armies)
-            foreach (var regiment in army.ArmyRegiments.Where(r => r.Type == RegimentType.MenAtArms &&
+            foreach (var regiment in army.ArmyRegiments.Where(r => (r.Type is RegimentType.MenAtArms or RegimentType.Levy) &&
                          r.Regiments.Any(s => expected.ContainsKey(Key(army.ID, r.ID, s.ID, s.Index)))))
             {
                 int sum = regiment.Regiments.Sum(s => int.Parse(s.CurrentNum, CultureInfo.InvariantCulture));
@@ -166,7 +185,8 @@ internal static class CasualtySmoke
             negativeCases = negative,
             fundedGuards = guards.Select(g => new { g.unit.UniqueID, g.metadata,
                 syntheticSurvivors = rows.Single(r => r.Type.EndsWith("_" + g.unit.UniqueID, StringComparison.Ordinal)).Remaining }),
-            sources = sources.Select(s => new { s.Identity, starting = s.Starting, survivalFraction = ratios[s.Identity], expected = expected[s.Identity], reloaded = reloaded[s.Identity],
+            sources = sources.Select(s => new { s.Identity, regimentType = s.ArmyRegiment.Type.ToString(), starting = s.Starting,
+                survivalFraction = s.ArmyRegiment.Type == RegimentType.Levy ? (double?)null : ratios[s.Identity], expected = expected[s.Identity], reloaded = reloaded[s.Identity],
                 siege = sourceUnits.Any(u => Key(u.unit) == s.Identity && u.unit.SiegeRepresentation != null) || CrusaderWars.StatFidelity.StatFidelitySession.SiegeSources.ContainsKey(s.Identity),
                 formations = sourceUnits.Where(u => Key(u.unit) == s.Identity).Select(u => new {u.unit.UniqueID,u.unit.SiegeRepresentation}) }),
             inputGamestateUnchanged = Hash(gamestate) == inputHash,

@@ -32,7 +32,7 @@ public static class CommanderGuardAccounting
             formations.Sum(f => (long)f.Weight) != cohortBodies)
             throw new InvalidDataException("Commander guard casualty evidence does not conserve its ordinary donor cohort.");
         decimal remaining = formations.Sum(f => (decimal)f.Weight * f.Remaining / f.Bodies);
-        return checked((int)Math.Round(nativeSoldiers * remaining / cohortBodies, MidpointRounding.AwayFromZero));
+        return NativeCohortProjection.Survivors(nativeSoldiers, cohortBodies, remaining);
     }
 
     public static (int Donor, int Personal) SplitCredits(int kills, double personalShare)

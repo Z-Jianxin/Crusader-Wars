@@ -558,9 +558,10 @@ namespace CrusaderWars.data.battle_results
             foreach (var army in FlattenBattleArmies(armies))
                 foreach (var regiment in army.ArmyRegiments.Where(r => r.Type == RegimentType.Knight))
                 {
-                    var fate = CharacterFates.Get(regiment.MAA_Name);
                     if (regiment.CurrentNum is < 0 or > 1)
                         throw new InvalidDataException("Native knight regiment has an invalid character count: " + regiment.ID);
+                    if (regiment.CurrentNum == 0) continue;
+                    var fate = CharacterFates.Get(regiment.MAA_Name);
                     if (fate.IsSlain || fate.IsCaptured) regiment.CurrentNum = 0;
                 }
         }

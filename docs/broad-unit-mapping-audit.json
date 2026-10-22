@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-22",
+  "scope": "DefaultCK3 four eras, Dahan, mandatory Earl later-era packs; synthetic resolver coverage, not recruitment eligibility or full gameplay certification",
+  "nativeTypes": 111,
+  "nativeCultures": 244,
+  "nativeHeritages": 59,
+  "activeMods": 46,
+  "cultureContextsPerEra": 305,
+  "matrixQueries": 45288,
+  "policyTotals": {
+    "retained": 17493,
+    "unsupported": 10093,
+    "repaired": 14030,
+    "noncombatant": 3672
+  },
+  "matrix": [
+    {
+      "era": "OfficialCC_DefaultCK3_EarlyMedieval_919Mod",
+      "reachableFactions": 58,
+      "queries": 6438,
+      "authorRowInstances": 102631,
+      "policy": [
+        {
+          "status": "retained",
+          "count": 3403
+        },
+        {
+          "status": "unsupported",
+          "count": 726
+        },
+        {
+          "status": "repaired",
+          "count": 1787
+        },
+        {
+          "status": "noncombatant",
+          "count": 522
+        }
+      ],
+      "resolutionErrors": 0,
+      "unexpectedResolverExceptions": 0,
+      "authoredAssetErrorRows": 0
+    },
+    {
+      "era": "OfficialCC_DefaultCK3_HighMedieval_MK1212Mod",
+      "reachableFactions": 147,
+      "queries": 16317,
+      "authorRowInstances": 182018,
+      "policy": [
+        {
+          "status": "repaired",
+          "count": 4859
+        },
+        {
+          "status": "retained",
+          "count": 5925
+        },
+        {
+          "status": "unsupported",
+          "count": 4210
+        },
+        {
+          "status": "noncombatant",
+          "count": 1323
+        }
+      ],
+      "resolutionErrors": 0,
+      "unexpectedResolverExceptions": 0,
+      "authoredAssetErrorRows": 64
+    },
+    {
+      "era": "OfficialCC_DefaultCK3_LateMedieval_MK1212Mod",
+      "reachableFactions": 102,
+      "queries": 11322,
+      "authorRowInstances": 166410,
+      "policy": [
+        {
+          "status": "repaired",
+          "count": 3839
+        },
+        {
+          "status": "retained",
+          "count": 3778
+        },
+        {
+          "status": "unsupported",
+          "count": 2787
+        },
+        {
+          "status": "noncombatant",
+          "count": 918
+        }
+      ],
+      "resolutionErrors": 0,
+      "unexpectedResolverExceptions": 0,
+      "authoredAssetErrorRows": 49
+    },
+    {
+      "era": "OfficialCC_DefaultCK3_Renaissance_MK1212Mod",
+      "reachableFactions": 101,
+      "queries": 11211,
+      "authorRowInstances": 100213,
+      "policy": [
+        {
+          "status": "unsupported",
+          "count": 2370
+        },
+        {
+          "status": "retained",
+          "count": 4387
+        },
+        {
+          "status": "repaired",
+          "count": 3545
+        },
+        {
+          "status": "noncombatant",
+          "count": 909
+        }
+      ],
+      "resolutionErrors": 0,
+      "unexpectedResolverExceptions": 0,
+      "authoredAssetErrorRows": 46
+    }
+  ],
+  "activeModListSha256": "4450D481ACABE52774A6A0C3703580FBDD7927E9C85EE64EE63E41331619FBE0",
+  "nativeCatalogSha256": "FC1C08C116DD4AB9B2389A3B3CDDD086A876430C2F2D7C265735A9DD174930FB",
+  "resolverAssemblySha256": "D4BC4FAEF21798213D395A8ADE1F235A0B661BCD07722295E788A73DF585738C",
+  "auditorAssemblySha256": "98447841A41B126FE7E66C7681DA684C3461C4F56ED26E140D47EC5FB11C2535",
+  "tests": {
+    "integrationPassed": 282,
+    "modelPassed": 85,
+    "backendPassed": 34,
+    "backendOptionalSkipped": 2,
+    "catalogPassed": 7,
+    "existingAuditFilesPreservedOnRejectedRerun": 279
+  },
+  "cohortReplays": {
+    "scales": [
+      25,
+      50,
+      75,
+      100
+    ],
+    "exactSourcesPerRun": 88,
+    "levySources": 77,
+    "maaSourcesIncludingReserves": 11,
+    "reservedEquipmentSources": 4,
+    "profiles": [
+      21,
+      22,
+      22,
+      22
+    ],
+    "formations": [
+      21,
+      25,
+      30,
+      30
+    ],
+    "casualties": "deliberately synthetic",
+    "authority": "authentic snapshot-4 save and matching framed handoff",
+    "codeNote": "Final cohort replay snapshot precedes XPath-only quoting delta; final all-era matrix and quote regressions cover that delta separately."
+  },
+  "binaryRoundtrip": {
+    "tables": 10,
+    "rows": 176,
+    "allDataCellsEqual": true
+  },
+  "deployment": {
+    "assemblySha256": "00A1F8C76342E660D677A928BA6C3A76970DF38797922FEB5821D4C9551EAE32",
+    "publishedFilesHashChecked": 402,
+    "protectedStateFilesUnchanged": 45
+  },
+  "limits": [
+    "Ordinary source stock still includes soft casualties.",
+    "Many later-era mounted HP/body models and special native families remain unsupported.",
+    "High Conrois unsupported in 145 of 147 queried faction contexts.",
+    "Retained foot templates are not certified for polearm/armour/exact weapon role.",
+    "Small levy template selection still uses inherited weighted randomness.",
+    "Effective/base template scaling is not absolute CK3 cross-type balance.",
+    "Counters, terrain, combat rolls, pursuit/screen and independent garrison stats remain incomplete or unsupported.",
+    "Authored optional/title/role assets can still be missing; inventory and actual query errors are separate."
+  ],
+  "gameLaunched": false,
+  "uiTestsPerformed": false,
+  "personalCampaignSaveWritten": false,
+  "saveRecoveryPerformed": false
+}

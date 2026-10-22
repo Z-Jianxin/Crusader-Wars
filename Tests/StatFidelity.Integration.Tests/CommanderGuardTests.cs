@@ -44,15 +44,18 @@ public sealed class CommanderGuardTests : IDisposable
     }
 
     [Theory]
+    [InlineData(25, 60)]
     [InlineData(100, 85)]
     [InlineData(50, 70)]
+    [InlineData(75, 80)]
     public void GuardDetachesExistingTroopsAndReturnsExactNativeLossesAtEachScale(int scale, int expected)
     {
         options["BattleScale"] = scale + "%"; ArmyProportions.SetRatio(scale);
         var (source, donor) = Maa(100, scale);
         var originalProfile = StatFidelitySession.PendingProfiles.Single(p => p.Id.Contains(donor.SourceIdentity!));
         StatFidelitySession.FundCommanderGuard(army, xml);
-        Assert.Equal(30, guard.GetSoldiers()); Assert.Equal(scale - 30, donor.GetSoldiers());
+        int borrowed = Math.Min(30, scale);
+        Assert.Equal(borrowed, guard.GetSoldiers()); Assert.Equal(scale - borrowed, donor.GetSoldiers());
         Assert.Equal(scale, army.Units.Sum(u => u.GetSoldiers()));
         var metadata = Assert.IsType<CommanderGuardRepresentation>(guard.CommanderGuardRepresentation);
         Assert.Null(metadata.NativeKnightId); Assert.Equal(0, metadata.PersonalDamageShare);
@@ -67,7 +70,7 @@ public sealed class CommanderGuardTests : IDisposable
             new[] {string.Join("\n", army.UnitsResults.Alive_MainPhase.Select(r => r.Script + "-" + r.Remaining))},
             new[] {string.Join("\n", army.UnitsResults.Kills_MainPhase.Select(r => r.Script + "-" + r.Kills))});
         var statistics = CombatResultStatistics.Build(new[] {army}, Array.Empty<Army>(), StatFidelitySession.DeployedRoster, evidence);
-        Assert.Equal(6, Assert.Single(statistics.Updates).MainKills); // guard credits belong to its donor, not an invented knight.
+        Assert.Equal(army.Units.Count * 3, Assert.Single(statistics.Updates).MainKills); // guard credits belong to its donor, not an invented knight.
     }
 
     [Fact]
@@ -103,6 +106,7 @@ public sealed class CommanderGuardTests : IDisposable
         xml[0].Element("unit_type")!.SetAttributeValue("type", StatFidelitySession.Apply(guard, army, "melee", false).UnitKey);
         var (_, donor) = Maa(100, 100);
         var nativeKnight = new ArmyRegiment("50") { CurrentNum = 1 }; nativeKnight.SetType(RegimentType.Knight, "500"); army.ArmyRegiments.Add(nativeKnight);
+        var unavailable = new ArmyRegiment("51") {CurrentNum = 0}; unavailable.SetType(RegimentType.Knight, "999"); army.ArmyRegiments.Add(unavailable); // no export is needed for unavailable stock
         StatFidelitySession.CaptureCommanderKnightBudget(army);
         StatFidelitySession.FundCommanderGuard(army, xml);
         var metadata = guard.CommanderGuardRepresentation!;
@@ -173,19 +177,24 @@ public sealed class CommanderGuardTests : IDisposable
         Assert.Equal(6, result.MainKills); Assert.Equal(4, result.PursuitKills);
     }
 
-    [Fact]
-    public void RegenerationRestoresDonationOnceWithoutCreatingNewNativeStrength()
+    [Theory]
+    [InlineData(50)] [InlineData(100)]
+    public void RegenerationRestoresDonationOnceWithoutCreatingNewNativeStrength(int scale)
     {
-        var (_, donor) = Maa(100, 100); StatFidelitySession.FundCommanderGuard(army, xml);
-        Assert.Equal(70, donor.GetSoldiers());
+        options["BattleScale"] = scale + "%"; ArmyProportions.SetRatio(scale);
+        var (_, donor) = Maa(100, scale); donor.SetInitialSoldiers(100); donor.ChangeSoldiers(scale);
+        StatFidelitySession.RegisterMaaSourceCohorts(army, verifyOriginalStrength: true);
+        StatFidelitySession.FundCommanderGuard(army, xml);
+        Assert.Equal(scale - 30, donor.GetSoldiers());
         StatFidelitySession.ResetGeneration(); StatFidelitySession.RestoreCommanderGuardDonation(army);
-        Assert.Equal(100, donor.GetSoldiers()); Assert.Null(guard.CommanderGuardRepresentation);
+        Assert.Equal(scale, donor.GetSoldiers()); Assert.Null(guard.CommanderGuardRepresentation);
+        StatFidelitySession.RegisterMaaSourceCohorts(army, verifyOriginalStrength: true);
         Assert.Single(army.Units.Where(u => ReferenceEquals(u, donor)));
         xml.Clear(); guard.SetInitialSoldiers(2);
         Emit(guard, StatFidelitySession.Apply(guard, army, "melee", false).UnitKey, "commander500");
         Emit(donor, StatFidelitySession.Apply(donor, army, "melee").UnitKey, "swords");
         StatFidelitySession.FundCommanderGuard(army, xml);
-        Assert.Equal(70, donor.GetSoldiers()); Assert.Equal(30, guard.GetSoldiers());
+        Assert.Equal(scale - 30, donor.GetSoldiers()); Assert.Equal(30, guard.GetSoldiers());
     }
 
     [Fact]

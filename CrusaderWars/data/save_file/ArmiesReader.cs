@@ -26,6 +26,9 @@ namespace CrusaderWars.data.save_file
             nativeMaaDefinitions.TryGetValue(source.GetName(), out var definition) ? definition :
                 throw new InvalidDataException("Active native CK3 definition is missing for source type " + source.GetName() + "; Attila mapper flags cannot establish its field participation.");
 
+        public static bool TryGetNativeMaaDefinition(string type, out StatFidelity.NativeMaaDefinition definition) =>
+            nativeMaaDefinitions.TryGetValue(type, out definition!);
+
         public static StatFidelity.NativeCombatRegiment RequireNativeCombatParticipation(Army army, string armyRegimentId)
         {
             if (!StatFidelity.StatFidelitySession.HasBoundExport || BattleState.IsSiegeBattle || nativeCombatParticipation == null ||

@@ -606,7 +606,8 @@ namespace CrusaderWars.data.save_file
 
                 // Organize only regular units
                 regularUnits = OrganizeUnitsIntoCultures(regularUnits, army.Owner);
-                regularUnits = OrganizeLeviesUnits(regularUnits);
+                if (!StatFidelity.StatFidelitySession.HasBoundExport)
+                    regularUnits = OrganizeLeviesUnits(regularUnits);
 
                 // Combine them back
                 var allUnits = new List<Unit>();
@@ -639,7 +640,7 @@ namespace CrusaderWars.data.save_file
             var groupedUnits = units.GroupBy(u => new
             {
                 Name = u.GetName(),
-                Culture = u.GetCulture(),
+                Culture = StatFidelity.StatFidelitySession.HasBoundExport ? u.GetObjCulture()?.ID : u.GetCulture(),
                 Type = u.GetRegimentType(),
                 SourceIdentity = u.SourceIdentity,
                 IsMerc = (u.GetRegimentType() == RegimentType.Levy) ? false : u.IsMerc()

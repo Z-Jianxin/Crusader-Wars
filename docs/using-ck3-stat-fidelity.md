@@ -20,11 +20,11 @@ Use your actual Documents folder if Windows redirects it to OneDrive or another 
 
 The application leaves your personal last-save and Continue target alone. Each result folder retains the native input, battle export, Attila result and resolved character-fate record for inspection. A later battle begins only when you press Execute again.
 
-After loading the returned save, resume CK3 so it can finish the imported battle. CK3 calculates the battle's war score and adds its history entry at that point; the converter's report marks that award as pending. Its native troop totals exclude Attila's extra general guards and convert knight retinues back into individual CK3 characters.
+After loading the returned save, resume CK3 so it can finish the imported battle. CK3 calculates the battle's war score and adds its history entry at that point; the converter's report marks that award as pending. Native troop totals return funded guards to their donor regiments, exclude unfunded engine-only guards, and convert knight retinues back into individual CK3 characters.
 
 For an interrupted attempt, **Continue Battle** can regenerate the battle from its saved handoff. Choose the restart option when Attila is already running so the exact deployed roster is reconstructed.
 
-The current translation covers effective men-at-arms and owner-levy damage/toughness, character commander advantage, and independent knight damage/toughness budgets from prowess and knight efficiency. Attila's simulation determines combat results. CK3 counters, combat width/terrain modifiers, combat rolls, pursuit/screen values, siege progress and independent garrison stats are not fully translated. The mapping is therefore labelled experimental.
+The current translation covers effective men-at-arms and owner-levy damage/toughness, character commander advantage, and independent knight damage/toughness budgets from prowess and knight efficiency. Attila's simulation determines combat results. CK3 counters, combat width/terrain modifiers, combat rolls, pursuit/screen values, siege progress and soft-casualty reserves are not fully translated. Independent garrison stat profiles are explicitly unsupported in fidelity mode. The mapping is therefore labelled experimental.
 
 Future proposals cover [counters, terrain and pursuit/screen](./combat-mechanics-fidelity-plan.md) and [automatic result loading](./automatic-battle-return-plan.md). Both are drafts; the manual loading instructions above remain the current behavior.
 
@@ -47,3 +47,7 @@ Generate a fresh battle after installing that update. Results from an earlier ge
 The later [field-participation and commander update](./mapping-and-commanders-validation.md) corrects the army composition: reserve siege equipment with zero native field participation does not spawn. It also restores the normal Norman/Latin heavy-cavalry mapping despite unrelated regional overlays and labels private MAA variants by their CK3 type. Existing 400-man ordinary cohorts already stay together below their configured formation limit.
 
 The commander now targets a 30-body guard drawn from an actual same-army troop cohort, preserving its quality and returning its losses to that source. Martial advantage applies across the army once; personal prowess/knight-efficiency combat strength requires a native fighting-knight contribution. A larger guard does not create extra soldiers. Eligible small cohorts can provide fewer guards; armies with no eligible donor retain the minimum engine representation.
+
+The [broader mapping audit](./broad-unit-mapping-audit.md) checks all four DefaultCK3 eras and inherited/default roles against installed assets. It records systemic fallback, culture/source-accounting and pack-import fixes, together with unresolved soft-casualty and later-era body-model limits. This is broader offline coverage, not a claim of exact CK3 balance or native gameplay certification.
+
+**Later-era cavalry remains substantially unsupported in CK3 combat-stat mode**, including many of the selected Earl templates. Conversion stops on unverified body/HP contracts rather than silently substituting another troop role. The verified 1066 Norman fixture uses the Early-era stack; its successful replay does not certify a High/Late/Renaissance cavalry army.

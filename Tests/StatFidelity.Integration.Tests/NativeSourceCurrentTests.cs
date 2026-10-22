@@ -107,6 +107,30 @@ public sealed class NativeSourceCurrentTests : IDisposable
         BattleResult.CharacterFates.Clear();
     }
 
+    [Theory]
+    [InlineData(0)] [InlineData(-1)] [InlineData(2)]
+    public void ZeroStockKnightGetsNoBudgetOrFateAndInvalidNativeCountsReject(int current)
+    {
+        Bind(true); BattleResult.CharacterFates.Clear();
+        var army = new Army("4", "attacker", true);
+        var native = new ArmyRegiment("12") {CurrentNum = current, StartingNum = 1}; native.SetType(RegimentType.Knight, "99"); army.SetArmyRegiments([native]);
+        if (current != 0)
+        {
+            Assert.Throws<InvalidOperationException>(() => StatFidelitySession.TryCreateNativeKnights(army, new(), out _));
+            Assert.Throws<InvalidDataException>(() => BattleResult.SynchronizeNativeKnightRegiments(new[] {army}));
+            return;
+        }
+        Assert.True(StatFidelitySession.TryCreateNativeKnights(army, new(), out var knights));
+        Assert.Empty(knights.GetKnightsList()); Assert.Empty(BattleResult.CharacterFates.Entries);
+        BattleResult.SynchronizeNativeKnightRegiments(new[] {army});
+        Assert.Equal(0, native.CurrentNum); Assert.Equal(1, native.StartingNum); Assert.Empty(BattleResult.CharacterFates.Entries);
+        native.CurrentNum = 1;
+        Assert.Throws<InvalidDataException>(() => BattleResult.SynchronizeNativeKnightRegiments(new[] {army}));
+        BattleResult.CharacterFates.Resolve("99", "traits={}", () => new(false, false, "traits={}"));
+        BattleResult.SynchronizeNativeKnightRegiments(new[] {army}); Assert.Equal(1, native.CurrentNum);
+        BattleResult.CharacterFates.Clear();
+    }
+
     private void Bind(bool enabled, bool bound = true)
     {
         options["StatFidelityMode"] = enabled ? "Enabled" : "Disabled";

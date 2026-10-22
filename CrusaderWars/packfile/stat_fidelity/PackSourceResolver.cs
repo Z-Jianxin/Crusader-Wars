@@ -14,10 +14,27 @@ public static class PackSourceResolver
     {
         string root = Path.GetDirectoryName(Path.GetFullPath(attilaExecutable))!;
         string data = Path.Combine(root, "data");
-        if (!File.Exists(Path.Combine(data, "data.pack")))
-            throw new FileNotFoundException("Stat fidelity requires Attila's data.pack. Finish installing or verifying Attila before creating a battle.");
         string script = Path.Combine(root, "used_mods_cc.txt");
         if (!File.Exists(script)) throw new FileNotFoundException("The active Attila load-order file used_mods_cc.txt is missing.", script);
+        return Resolve(attilaExecutable, ResolveScript(script, data));
+    }
+
+    /// <summary>Resolve an explicit selection in script (highest-first) order without reading or writing the live mod list.</summary>
+    public static IReadOnlyList<string> Resolve(string attilaExecutable, IReadOnlyList<string> modsHighestFirst)
+    {
+        ArgumentNullException.ThrowIfNull(modsHighestFirst);
+        string root = Path.GetDirectoryName(Path.GetFullPath(attilaExecutable))!;
+        string data = Path.Combine(root, "data");
+        if (!File.Exists(Path.Combine(data, "data.pack")))
+            throw new FileNotFoundException("Stat fidelity requires Attila's data.pack. Finish installing or verifying Attila before creating a battle.");
+        var selected = modsHighestFirst.Select(p => {
+            if (!Path.IsPathRooted(p)) throw new InvalidDataException("Explicit Attila selections require absolute pack paths: " + p);
+            string full = Path.GetFullPath(p);
+            if (!File.Exists(full)) throw new FileNotFoundException("An explicitly selected Attila pack is missing.", full);
+            return full;
+        }).Where(p => !Path.GetFileName(p).Equals("CrusaderConflicts.pack", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (selected.GroupBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase).Any(g => g.Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1))
+            throw new InvalidDataException("Explicit Attila selection contains the same pack filename in different directories.");
 
         string locale = ResolveLocale(data);
         var automatic = Directory.GetFiles(data, "*.pack")
@@ -28,7 +45,7 @@ public static class PackSourceResolver
         var result = automatic.Where(x => x.type is 0 or 1 or 2).OrderBy(x => x.type)
             .ThenBy(x => Path.GetFileName(x.path).Equals("local_en_shared_rome2.pack", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
             .ThenByDescending(x => Path.GetFileName(x.path), StringComparer.OrdinalIgnoreCase).Select(x => x.path).ToList();
-        result.AddRange(ResolveScript(script, data).Reverse());
+        result.AddRange(selected.Reverse());
         result.AddRange(automatic.Where(x => x.type == 4).OrderByDescending(x => Path.GetFileName(x.path), StringComparer.OrdinalIgnoreCase).Select(x => x.path));
         // Preserve the final (highest-priority) occurrence if a movie pack was also explicitly enabled.
         return result.AsEnumerable().Reverse().Distinct(StringComparer.OrdinalIgnoreCase).Reverse().ToArray();

@@ -41,26 +41,36 @@ public sealed class SiegeCasualtyAccountingTests : IDisposable
     }
 
     [Theory]
+    [InlineData(25)]
     [InlineData(100)]
     [InlineData(50)]
+    [InlineData(75)]
     public void RawCrewCountsAndKillsAreNotUnscaledAndEquipmentUsesNativeBudget(int scale)
     {
         options["BattleScale"] = scale + "%";
         var (source, prototype) = Source("10", "100", 20);
-        if (scale == 50)
+        if (scale == 25)
+        {
+            Emit(prototype, 16, 40, 4); Emit(prototype, 4, 10, 1);
+        }
+        else if (scale == 50)
         {
             Emit(prototype, 8, 40, 4); Emit(prototype, 8, 40, 4); Emit(prototype, 4, 20, 2);
+        }
+        else if (scale == 75)
+        {
+            Emit(prototype, 6, 40, 4); Emit(prototype, 5, 40, 4); Emit(prototype, 5, 40, 4); Emit(prototype, 4, 30, 3);
         }
         else
         {
             Emit(prototype, 4, 40, 4); Emit(prototype, 4, 40, 4); Emit(prototype, 12, 120, 12);
         }
         Bind();
-        int[] remaining = scale == 50 ? new[] {20, 40, 10} : new[] {20, 40, 80};
+        int[] remaining = scale switch {25 => new[] {25, 10}, 50 => new[] {20, 40, 10}, 75 => new[] {40, 40, 0, 23}, _ => new[] {20, 40, 80}};
         Consume(remaining);
         Assert.Equal(remaining.Select(n => n.ToString()), army.UnitsResults.Alive_MainPhase.Select(r => r.Remaining));
         Assert.All(army.UnitsResults.Kills_MainPhase, r => Assert.Equal("3", r.Kills));
-        Assert.Equal(scale == 50 ? "14" : "14", source.CurrentNum);
+        Assert.Equal("14", source.CurrentNum);
         Assert.Equal(emitted.Select(e => e.Unit.SiegeRepresentation!.DeployedBodies), army.CasualitiesReports.Select(r => r.GetStarting()));
     }
 

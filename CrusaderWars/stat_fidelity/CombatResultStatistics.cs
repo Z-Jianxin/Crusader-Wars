@@ -98,8 +98,22 @@ public static class CombatResultStatistics
             var binding = outcome.Representation;
             Key donorKey = GuardDonorKey(army.CombatSide, binding);
             if (!groups.TryGetValue(donorKey, out var totals)) throw new InvalidDataException("Guard donor has no native result-statistics group.");
-            totals.NormalPursuit = checked(totals.NormalPursuit + outcome.PursuitLosses);
             foreach (int id in binding.CohortUnitIds) guardCohortIds.Add(id);
+        }
+        foreach (var army in armies.Values)
+        foreach (var outcome in StatFidelitySession.GetLevyCohortCasualties(army))
+        {
+            Key levyKey = new(army.CombatSide, null, null);
+            if (!groups.TryGetValue(levyKey, out var totals)) throw new InvalidDataException("Levy cohort has no native statistics group.");
+            totals.NormalPursuit = checked(totals.NormalPursuit + outcome.PursuitLosses);
+        }
+        foreach (var army in armies.Values)
+        foreach (var outcome in StatFidelitySession.GetMaaSourceCasualties(army))
+        {
+            if (!native.TryGetValue((army.CombatSide, outcome.Budget.ArmyRegimentId), out var regiment))
+                throw new InvalidDataException("MAA casualty cohort has no exact native result group.");
+            var totals = groups[NativeKey(army.CombatSide, regiment)];
+            totals.NormalPursuit = checked(totals.NormalPursuit + outcome.PursuitLosses);
         }
         foreach (var formation in roster)
         {
@@ -173,6 +187,8 @@ public static class CombatResultStatistics
             }
             AddCredits(key, mainKills, pursuitKills);
             if (guardCohortIds.Contains(unit.UniqueID)) continue;
+            if (StatFidelitySession.HasBoundExport && unit.GetRegimentType() == RegimentType.Levy) continue;
+            if (StatFidelitySession.HasBoundExport && unit.GetRegimentType() == RegimentType.MenAtArms && !unit.IsSiege()) continue;
             if (unit.IsSiege())
             {
                 var representation = unit.SiegeRepresentation;

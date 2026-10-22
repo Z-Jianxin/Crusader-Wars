@@ -1,8 +1,18 @@
 using CrusaderWars.unit_mapper;
+using CrusaderWars.StatFidelity;
 using Xunit;
 
 public sealed class SiegeMappingCompatibilityTests
 {
+    [Fact]
+    public void NativeArchersCannotBecomeMachinesThroughAnExplicitArtilleryMapping()
+    {
+        var native = new NativeMaaDefinition("ballistrai", "archers", true, "native");
+        var error = Assert.Throws<InvalidDataException>(() => NativePopulationContract.ValidateEquipmentMapping(native, true));
+        Assert.Contains("people into machines", error.Message);
+        NativePopulationContract.ValidateEquipmentMapping(native, false);
+        NativePopulationContract.ValidateEquipmentMapping(new("mangonel", "siege_weapon", false, "native"), true);
+    }
     [Fact]
     public void OnlyTheReviewedAutomaticEarlyImazigenOnagerMappingIsCorrected()
     {

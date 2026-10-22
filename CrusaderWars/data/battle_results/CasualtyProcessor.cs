@@ -150,6 +150,24 @@ namespace CrusaderWars.data.battle_results
             // weighted by explicit per-formation representation, not template size.
             var siegeSurvivors = GetSiegeSourceSurvivors(army);
             var guardSurvivors = StatFidelity.StatFidelitySession.GetCommanderGuardCasualties(army);
+            var levySurvivors = StatFidelity.StatFidelitySession.GetLevyCohortCasualties(army);
+            var maaSurvivors = StatFidelity.StatFidelitySession.GetMaaSourceCasualties(army);
+            foreach (var outcome in maaSurvivors)
+            {
+                var source = outcome.Budget;
+                var native = army.ArmyRegiments.Single(r => r.ID == source.ArmyRegimentId).Regiments.Single(r => r.ID == source.RegimentId &&
+                    (string.IsNullOrEmpty(r.Index) ? "0" : r.Index) == source.ChunkIndex);
+                if (int.Parse(native.CurrentNum, CultureInfo.InvariantCulture) != source.NativeSoldiers)
+                    throw new InvalidOperationException("Native MAA source changed before casualty import: " + source.Identity);
+            }
+            foreach (var outcome in levySurvivors)
+                foreach (var source in outcome.Budget.Sources)
+                {
+                    var native = army.ArmyRegiments.Single(r => r.ID == source.ArmyRegimentId).Regiments.Single(r =>
+                        r.ID == source.RegimentId && (string.IsNullOrEmpty(r.Index) ? "0" : r.Index) == source.ChunkIndex);
+                    if (int.Parse(native.CurrentNum, CultureInfo.InvariantCulture) != source.Soldiers)
+                        throw new InvalidOperationException("Native levy source changed before casualty import: " + source.RegimentId + ":" + source.ChunkIndex);
+                }
 
             // Separate ArmyRegiments into levy and non-levy regiments
             var levyArmyRegiments = new List<ArmyRegiment>();
@@ -196,14 +214,11 @@ namespace CrusaderWars.data.battle_results
 
                 foreach (Regiment regiment in armyRegiment.Regiments)
                 {
-                    var guardSource = guardSurvivors.SingleOrDefault(g => g.Representation.DonorType == RegimentType.MenAtArms &&
-                        g.Representation.SourceArmyRegimentId == armyRegiment.ID && g.Representation.SourceRegimentId == regiment.ID &&
-                        (g.Representation.SourceChunkIndex ?? "0") == (regiment.Index ?? "0"));
-                    if (guardSource != null)
+                    var maaSource = maaSurvivors.SingleOrDefault(g => g.Budget.Identity ==
+                        StatFidelity.MaaSourceBudget.Key(army.ID, armyRegiment.ID, regiment.ID, regiment.Index));
+                    if (maaSource != null)
                     {
-                        if (int.Parse(regiment.CurrentNum, CultureInfo.InvariantCulture) != guardSource.Representation.NativeSoldiers)
-                            throw new InvalidOperationException("Commander donor native source changed before casualty import.");
-                        regiment.SetSoldiers(guardSource.FinalSurvivors.ToString(CultureInfo.InvariantCulture));
+                        regiment.SetSoldiers(maaSource.FinalSurvivors.ToString(CultureInfo.InvariantCulture));
                         continue;
                     }
                     string siegeKey = StatFidelity.SiegeSourceBudget.Key(army.ID, armyRegiment.ID, regiment.ID, regiment.Index);
@@ -270,12 +285,23 @@ namespace CrusaderWars.data.battle_results
             }
 
             // Process levy regiments correctly by culture group
+            foreach (var outcome in levySurvivors)
+            {
+                int[] allocated = StatFidelity.SurvivorApportionment.Allocate(outcome.Budget.Sources.Select(s => s.Soldiers).ToArray(), outcome.FinalSurvivors);
+                for (int index = 0; index < allocated.Length; index++)
+                {
+                    var source = outcome.Budget.Sources[index];
+                    army.ArmyRegiments.Single(r => r.ID == source.ArmyRegimentId).Regiments.Single(r => r.ID == source.RegimentId &&
+                        (string.IsNullOrEmpty(r.Index) ? "0" : r.Index) == source.ChunkIndex).SetSoldiers(allocated[index].ToString(CultureInfo.InvariantCulture));
+                }
+            }
             var levyRegimentsByCulture = levyArmyRegiments
                 .SelectMany(ar => ar.Regiments.Where(r => r.Culture?.ID != null))
                 .GroupBy(r => r.Culture.ID);
 
             foreach (var cultureGroup in levyRegimentsByCulture)
             {
+                if (StatFidelity.StatFidelitySession.HasBoundExport && !army.IsGarrisonArmy) continue;
                 string cultureId = cultureGroup.Key;
 
                 var levyReports = army.CasualitiesReports.Where(x =>
@@ -383,6 +409,7 @@ namespace CrusaderWars.data.battle_results
 
         static void CreateUnitsReports(Army army)
         {
+            StatFidelity.StatFidelitySession.RegisterLevyCohorts(army);
             var identifiedUnits = army.Units.Where(u => u.SourceIdentity != null ||
                 (u.GetOriginalSoldiers() > 0 && StatFidelity.StatFidelitySession.IsCalibratedKnightUnit("knights_" + u.UniqueID))).ToArray();
             if (army.UnitsResults == null)
@@ -484,7 +511,8 @@ namespace CrusaderWars.data.battle_results
                     continue;
                 }
 
-                bool requiresExactReport = matchingUnit.SourceIdentity != null || StatFidelity.StatFidelitySession.IsCalibratedKnightUnit(typeIdentifier);
+                bool requiresExactReport = matchingUnit.SourceIdentity != null || StatFidelity.StatFidelitySession.IsCalibratedKnightUnit(typeIdentifier) ||
+                    (StatFidelity.StatFidelitySession.HasBoundExport && matchingUnit.GetRegimentType() == RegimentType.Levy);
                 if (requiresExactReport && (!int.TryParse(mainUnit.Remaining, out int verifiedRemaining) || verifiedRemaining < 0))
                     throw new InvalidOperationException("Invalid survivor count for identified stat-fidelity unit " + script + ". Save update aborted.");
 
@@ -527,7 +555,8 @@ namespace CrusaderWars.data.battle_results
                 int effectiveNumGuns = matchingUnit.GetNumGuns();
                 if (matchingUnit.IsSiegeEnginePerUnit() && effectiveNumGuns <= 0) effectiveNumGuns = 1;
 
-                if (StatFidelity.StatFidelitySession.IsGuardBoundFormation(script))
+                if (StatFidelity.StatFidelitySession.IsGuardBoundFormation(script) || StatFidelity.StatFidelitySession.IsMaaBoundFormation(script) ||
+                    (StatFidelity.StatFidelitySession.HasBoundExport && matchingUnit.GetRegimentType() == RegimentType.Levy))
                     starting = matchingUnit.GetSoldiers();
                 else if (matchingUnit.IsSiege() && StatFidelity.StatFidelitySession.HasBoundExport)
                 {
