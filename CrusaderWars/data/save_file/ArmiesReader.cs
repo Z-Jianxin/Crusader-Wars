@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using CrusaderWars.twbattle;
@@ -15,12 +16,63 @@ namespace CrusaderWars.data.save_file
         // V1.0 Beta
         static List<Army> attacker_armies = new List<Army>();
         static List<Army> defender_armies = new List<Army>();
+        private static StatFidelity.NativeCombatParticipation? nativeCombatParticipation;
+        private static IReadOnlyDictionary<string, StatFidelity.NativeMaaDefinition> nativeMaaDefinitions = new Dictionary<string, StatFidelity.NativeMaaDefinition>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, StatFidelity.FieldSiegeParticipation> fieldSiegeParticipation = new(StringComparer.Ordinal);
+        public static IReadOnlyList<StatFidelity.FieldSiegeParticipation> FieldSiegeParticipation => fieldSiegeParticipation.Values.ToArray();
+        public static void ResetSiegeParticipationReport() => fieldSiegeParticipation.Clear();
+
+        public static StatFidelity.NativeMaaDefinition RequireNativeMaaDefinition(Unit source) =>
+            nativeMaaDefinitions.TryGetValue(source.GetName(), out var definition) ? definition :
+                throw new InvalidDataException("Active native CK3 definition is missing for source type " + source.GetName() + "; Attila mapper flags cannot establish its field participation.");
+
+        public static StatFidelity.NativeCombatRegiment RequireNativeCombatParticipation(Army army, string armyRegimentId)
+        {
+            if (!StatFidelity.StatFidelitySession.HasBoundExport || BattleState.IsSiegeBattle || nativeCombatParticipation == null ||
+                army.ArmyRegiments.Count(r => r.ID == armyRegimentId) != 1)
+                throw new InvalidDataException("Native participation requires a unique regiment in the selected bound field combat.");
+            return nativeCombatParticipation.Require(army.CombatSide, army.ID, armyRegimentId);
+        }
+
+        public static int GetFieldSiegeActiveMachines(Army army, Unit source)
+        {
+            if (!StatFidelity.StatFidelitySession.HasBoundExport || BattleState.IsSiegeBattle || nativeCombatParticipation == null)
+                throw new InvalidDataException("Field siege participation requires the exact bound native field combat.");
+            if (source.SourceArmyId != army.ID || string.IsNullOrEmpty(source.SourceArmyRegimentId) || string.IsNullOrEmpty(source.SourceRegimentId))
+                throw new InvalidDataException("Field siege source identity disagrees with its army.");
+            var matches = army.ArmyRegiments.Where(r => r.ID == source.SourceArmyRegimentId).ToArray();
+            if (matches.Length != 1) throw new InvalidDataException("Field siege source has no unique native army regiment.");
+            var regiment = matches[0];
+            string Chunk(Regiment r) => string.IsNullOrEmpty(r.Index) ? "0" : r.Index;
+            var chunks = regiment.Regiments.OrderBy(r => r.ID, StringComparer.Ordinal).ThenBy(Chunk, StringComparer.Ordinal).ToArray();
+            if (chunks.Select(r => r.ID + ":" + Chunk(r)).Distinct(StringComparer.Ordinal).Count() != chunks.Length)
+                throw new InvalidDataException("Duplicate native source chunk in field siege participation.");
+            var stocks = chunks.Select(r => int.TryParse(r.CurrentNum, NumberStyles.None, CultureInfo.InvariantCulture, out int n)
+                ? n : throw new InvalidDataException("Field siege source stock is missing or invalid.")).ToArray();
+            if (stocks.Sum(n => (long)n) != regiment.CurrentNum)
+                throw new InvalidDataException("Native field siege cached count and exact source stocks disagree.");
+            string sourceChunk = string.IsNullOrEmpty(source.SourceChunkIndex) ? "0" : source.SourceChunkIndex;
+            int index = Array.FindIndex(chunks, r => r.ID == source.SourceRegimentId && Chunk(r) == sourceChunk);
+            if (index < 0 || (!string.IsNullOrEmpty(chunks[index].Owner) && chunks[index].Owner != source.SourceOwnerId))
+                throw new InvalidDataException("Field siege source owner or chunk differs from the native save.");
+            var record = RequireNativeCombatParticipation(army, regiment.ID);
+            var allocation = nativeCombatParticipation.AllocateEquipment(army.CombatSide, army.ID, regiment.ID, stocks);
+            nativeMaaDefinitions.TryGetValue(source.GetName(), out var definition);
+            var report = new StatFidelity.FieldSiegeParticipation(army.CombatSide, army.ID, regiment.ID,
+                source.SourceRegimentId, sourceChunk, stocks[index], allocation[index], stocks[index] - allocation[index], record.Current!.Value,
+                definition?.Key, definition?.Category, definition?.FightsInMainPhase, definition?.SourceFile);
+            fieldSiegeParticipation[StatFidelity.SiegeSourceBudget.Key(army.ID, regiment.ID, source.SourceRegimentId, sourceChunk)] = report;
+            return allocation[index];
+        }
         public static List<(string name, int index)> save_file_traits { get; set; } = new List<(string name, int index)>();
         public static (List<Army> attacker, List<Army> defender) ReadBattleArmies()
         {
             StatFidelity.StatFidelitySession.ValidateSaveEvidence(Writter.DataFilesPaths.Living_Path(), DataSearch.Player_Character?.GetID() ?? "", BattleResult.CombatID ?? "");
             attacker_armies.Clear();
             defender_armies.Clear();
+            nativeCombatParticipation = null;
+            nativeMaaDefinitions = new Dictionary<string, StatFidelity.NativeMaaDefinition>(StringComparer.Ordinal);
+            fieldSiegeParticipation.Clear();
             Program.Logger.Debug("Reading battle armies from CK3 save data...");
             try
             {
@@ -270,6 +322,14 @@ if (BattleResult.Player_Combat is not null)
             ReadArmyRegiments();
 
             ReadCombatSoldiersNum(BattleResult.Player_Combat);
+            if (StatFidelity.StatFidelitySession.HasBoundExport && !BattleState.IsSiegeBattle)
+            {
+                nativeCombatParticipation = StatFidelity.NativeCombatParticipation.Parse(BattleResult.Player_Combat
+                    ?? throw new InvalidDataException("Bound field battle has no selected native combat participation."));
+                nativeMaaDefinitions = StatFidelity.NativeMaaDefinitions.LoadActive(Properties.Settings.Default.VAR_ck3_path,
+                    Path.GetDirectoryName(Path.GetFullPath(Properties.Settings.Default.VAR_log_ck3))
+                    ?? throw new InvalidDataException("CK3 user directory is missing for native type definitions."));
+            }
             ReadRegiments();
             ReadOriginsKeys();
 
@@ -1394,12 +1454,15 @@ if (BattleResult.Player_Combat is not null)
 
         static void RemoveCommandersAsKnights()
         {
+            // Bound fidelity keeps the native record for result groups and fate
+            // caches. TryCreateNativeKnights already excludes the commander from
+            // the separate KnightSystem, so retaining this record adds no duplicate.
             Program.Logger.Debug("Removing commanders from knight regiments...");
             foreach (Army army in attacker_armies)
             {
                 ArmyRegiment? commanderRegiment = army.ArmyRegiments.FirstOrDefault(x => x.MAA_Name == army.CommanderID);
                 StatFidelity.StatFidelitySession.CaptureCommanderKnightBudget(army);
-                if (commanderRegiment != null)
+                if (commanderRegiment != null && !StatFidelity.StatFidelitySession.HasBoundExport)
                 {
                     Program.Logger.Debug($"Removing commander '{army.CommanderID}' from knight regiments in attacker army '{army.ID}'.");
                     army.ArmyRegiments.Remove(commanderRegiment);
@@ -1409,7 +1472,7 @@ if (BattleResult.Player_Combat is not null)
             {
                 ArmyRegiment? commanderRegiment = army.ArmyRegiments.FirstOrDefault(x => x.MAA_Name == army.CommanderID);
                 StatFidelity.StatFidelitySession.CaptureCommanderKnightBudget(army);
-                if (commanderRegiment != null)
+                if (commanderRegiment != null && !StatFidelity.StatFidelitySession.HasBoundExport)
                 {
                     Program.Logger.Debug($"Removing commander '{army.CommanderID}' from knight regiments in defender army '{army.ID}'.");
                     army.ArmyRegiments.Remove(commanderRegiment);

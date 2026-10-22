@@ -277,6 +277,7 @@ namespace CrusaderWars.twbattle
                     Program.Logger.Debug("--- FINAL ATTACKER ARMY COMPOSITION FOR ATTILA ---");
                     BattleScript.AppendDevelopmentController(Data.units_scripts);
                     StatFidelity.StatFidelitySession.CaptureDeployedRoster(attacker_armies.Concat(defender_armies), @".\data\battle files\script\tut_tutorial_battle\tut_battle.xml");
+                    StatFidelity.GeneratedUnitLabels.Capture(attacker_armies.Concat(defender_armies), @".\data\battle files\script\tut_tutorial_battle\tut_battle.xml");
                     foreach (var army in attacker_armies)
                     {
                         Program.Logger.Debug($"Army ID: {army.ID}, Total Soldiers: {army.GetTotalSoldiers()}");

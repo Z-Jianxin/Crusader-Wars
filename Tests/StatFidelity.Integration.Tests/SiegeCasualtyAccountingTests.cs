@@ -77,6 +77,26 @@ public sealed class SiegeCasualtyAccountingTests : IDisposable
         Assert.Equal(new[] {0, 10, 20}, army.ArmyRegiments.Select(r => r.CurrentNum));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void BoundZeroSourceWithoutDeploymentCannotBeRevivedBySameTypeReport(bool fidelity)
+    {
+        var (positive, prototype) = Source("10", "100", 10);
+        var zero = new Regiment("101", "0"); zero.SetSoldiers("0"); zero.SetMax("20"); zero.SetCulture("7");
+        var zeroRegiment = new ArmyRegiment("11") {CurrentNum = 0};
+        zeroRegiment.SetType(RegimentType.MenAtArms, "onager"); zeroRegiment.SetRegiments(new() {zero});
+        army.ArmyRegiments.Add(zeroRegiment); // No Unit or source ledger exists for this zero population.
+        Emit(prototype, 10, 100, 10); Bind();
+        army.SetCasualitiesReport(new() {new UnitCasualitiesReport(RegimentType.MenAtArms, "onager", Culture,
+            100, 50, 10, "fixture", emitted[0].Script)});
+        if (!fidelity) { options["StatFidelityMode"] = "Disabled"; StatFidelitySession.Begin(""); }
+        Invoke("ChangeRegimentsSoldiers");
+        Assert.Equal(fidelity ? "0" : "10", zero.CurrentNum);
+        Assert.Equal(fidelity ? "5" : "15", positive.CurrentNum);
+        Assert.Equal("20", zero.Max);
+    }
+
     [Fact]
     public void MissingOrExcessiveCrewEvidenceAbortsBeforeSourceMutation()
     {

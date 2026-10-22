@@ -26,6 +26,7 @@ namespace CrusaderWars
                     if (StatFidelitySession.PreparedDatabase is PreparedAttilaDatabase prepared)
                         prepared.Generate(StatFidelitySession.PendingProfiles, sources);
                     else StatFidelityBackend.Generate(runtimeRoot, attila, StatFidelitySession.PendingProfiles);
+                    GeneratedUnitLabels.Apply(sources);
                 }
                 catch (Exception ex)
                 {

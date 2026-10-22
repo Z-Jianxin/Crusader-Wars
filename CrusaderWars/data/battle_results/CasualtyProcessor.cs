@@ -149,6 +149,7 @@ namespace CrusaderWars.data.battle_results
             // Crew counts remain raw at every battle scale; native equipment is
             // weighted by explicit per-formation representation, not template size.
             var siegeSurvivors = GetSiegeSourceSurvivors(army);
+            var guardSurvivors = StatFidelity.StatFidelitySession.GetCommanderGuardCasualties(army);
 
             // Separate ArmyRegiments into levy and non-levy regiments
             var levyArmyRegiments = new List<ArmyRegiment>();
@@ -195,12 +196,27 @@ namespace CrusaderWars.data.battle_results
 
                 foreach (Regiment regiment in armyRegiment.Regiments)
                 {
+                    var guardSource = guardSurvivors.SingleOrDefault(g => g.Representation.DonorType == RegimentType.MenAtArms &&
+                        g.Representation.SourceArmyRegimentId == armyRegiment.ID && g.Representation.SourceRegimentId == regiment.ID &&
+                        (g.Representation.SourceChunkIndex ?? "0") == (regiment.Index ?? "0"));
+                    if (guardSource != null)
+                    {
+                        if (int.Parse(regiment.CurrentNum, CultureInfo.InvariantCulture) != guardSource.Representation.NativeSoldiers)
+                            throw new InvalidOperationException("Commander donor native source changed before casualty import.");
+                        regiment.SetSoldiers(guardSource.FinalSurvivors.ToString(CultureInfo.InvariantCulture));
+                        continue;
+                    }
                     string siegeKey = StatFidelity.SiegeSourceBudget.Key(army.ID, armyRegiment.ID, regiment.ID, regiment.Index);
                     if (siegeSurvivors.TryGetValue(siegeKey, out int survivingMachines))
                     {
                         regiment.SetSoldiers(survivingMachines.ToString(CultureInfo.InvariantCulture));
                         continue;
                     }
+                    // A zero native source creates no deployment/ledger entry.
+                    // Do not let another same-type siege report revive it from Max.
+                    if (StatFidelity.StatFidelitySession.HasBoundExport &&
+                        int.TryParse(regiment.CurrentNum, NumberStyles.None, CultureInfo.InvariantCulture, out int nativeCurrent) && nativeCurrent == 0)
+                        continue;
                     if (regiment.Culture is null || string.IsNullOrEmpty(regiment.CurrentNum)) continue;
 
                     // Direct-stat variants of identical culture/type can have different losses.
@@ -279,7 +295,10 @@ namespace CrusaderWars.data.battle_results
                 if (StatFidelity.StatFidelitySession.HasBoundExport)
                 {
                     int[] originals = regimentsInGroup.Select(r => int.Parse(r.CurrentNum, NumberStyles.None, CultureInfo.InvariantCulture)).ToArray();
-                    long survivors = originals.Sum(n => (long)n) - levyReports.Sum(r => (long)r.GetCasualties());
+                    var guardPool = guardSurvivors.SingleOrDefault(g => g.Representation.DonorType == RegimentType.Levy && g.Representation.DonorCultureId == cultureId);
+                    if (guardPool != null && originals.Sum(n => (long)n) != guardPool.Representation.NativeSoldiers)
+                        throw new InvalidOperationException("Commander donor native levy cohort changed before casualty import.");
+                    long survivors = guardPool?.FinalSurvivors ?? (originals.Sum(n => (long)n) - levyReports.Sum(r => (long)r.GetCasualties()));
                     int[] allocated = StatFidelity.SurvivorApportionment.Allocate(originals, survivors);
                     for (int index = 0; index < regimentsInGroup.Count; index++)
                         regimentsInGroup[index].SetSoldiers(allocated[index].ToString(CultureInfo.InvariantCulture));
@@ -508,7 +527,9 @@ namespace CrusaderWars.data.battle_results
                 int effectiveNumGuns = matchingUnit.GetNumGuns();
                 if (matchingUnit.IsSiegeEnginePerUnit() && effectiveNumGuns <= 0) effectiveNumGuns = 1;
 
-                if (matchingUnit.IsSiege() && StatFidelity.StatFidelitySession.HasBoundExport)
+                if (StatFidelity.StatFidelitySession.IsGuardBoundFormation(script))
+                    starting = matchingUnit.GetSoldiers();
+                else if (matchingUnit.IsSiege() && StatFidelity.StatFidelitySession.HasBoundExport)
                 {
                     var metadata = matchingUnit.SiegeRepresentation ?? throw new InvalidOperationException(
                         "Siege formation lacks exact deployed crew/equipment metadata; regenerate the battle before result import: " + script);

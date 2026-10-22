@@ -16,6 +16,7 @@ using CrusaderWars.twbattle;
 using CrusaderWars.unit_mapper;
 using static CrusaderWars.terrain.Lands;
 using System.Text;
+using System.Xml.Linq;
 using CrusaderWars.data.battle_results;
 
 
@@ -28,6 +29,33 @@ namespace CrusaderWars
 
         //Get User Path
         static string battlePath = Directory.GetFiles("data\\battle files\\script", "tut_battle.xml", SearchOption.AllDirectories)[0];
+        private static List<XElement>? bufferedArmyUnits;
+
+        internal static void BeginArmyUnitBuffer()
+        {
+            if (bufferedArmyUnits != null) throw new InvalidOperationException("An army unit buffer is already active.");
+            bufferedArmyUnits = new();
+        }
+        internal static void CompleteArmyUnitBuffer(Army army)
+        {
+            var units = bufferedArmyUnits ?? throw new InvalidOperationException("No army unit buffer is active.");
+            StatFidelity.StatFidelitySession.FundCommanderGuard(army, units);
+            bufferedArmyUnits = null;
+            foreach (var unit in units) CommitGeneratedUnit(unit.Attribute("script_name")!.Value, unit.ToString(SaveOptions.DisableFormatting) + "\n\n");
+        }
+        internal static void DiscardArmyUnitBuffer() => bufferedArmyUnits = null;
+        private static void EmitGeneratedUnit(string scriptName, string xml)
+        {
+            if (bufferedArmyUnits != null) bufferedArmyUnits.Add(XElement.Parse(xml));
+            else CommitGeneratedUnit(scriptName, xml);
+        }
+        private static void CommitGeneratedUnit(string scriptName, string xml)
+        {
+            DeclarationsFile.AddUnitDeclaration("UNIT" + scriptName, scriptName);
+            BattleScript.SetLocals(scriptName, "UNIT" + scriptName);
+            Data.units_scripts.Add((scriptName, "UNIT" + scriptName));
+            File.AppendAllText(battlePath, xml);
+        }
 
         public static void ClearFile()
         {
@@ -1142,12 +1170,7 @@ namespace CrusaderWars
                 if (i == 0) numSoldiers -= numRest;
 
                 //Adds Declarations and Locals to the Battle Files
-                DeclarationsFile.AddUnitDeclaration("UNIT" + Unit_Script_Name, Unit_Script_Name);
-                BattleScript.SetLocals(Unit_Script_Name, "UNIT" + Unit_Script_Name);
-                Data.units_scripts.Add((Unit_Script_Name, "UNIT" + Unit_Script_Name));
-
-                //Write to file
-                File.AppendAllText(battlePath, PR_Unit);
+                EmitGeneratedUnit(Unit_Script_Name, PR_Unit);
             }
 
             //Add vertical spacing between units
@@ -1222,10 +1245,7 @@ namespace CrusaderWars
                         Position.AddUnitYSpacing(direction);
                     }
 
-                    DeclarationsFile.AddUnitDeclaration("UNIT" + Unit_Script_Name, Unit_Script_Name);
-                    BattleScript.SetLocals(Unit_Script_Name, "UNIT" + Unit_Script_Name);
-                    Data.units_scripts.Add((Unit_Script_Name, "UNIT" + Unit_Script_Name));
-                    File.AppendAllText(battlePath, PR_General);
+                    EmitGeneratedUnit(Unit_Script_Name, PR_General);
                 }
 
                 //Add vertical spacing between units
@@ -1306,10 +1326,7 @@ namespace CrusaderWars
                     Position.AddUnitXSpacing(direction);
 
 
-                DeclarationsFile.AddUnitDeclaration("UNIT" + Unit_Script_Name, Unit_Script_Name);
-                BattleScript.SetLocals(Unit_Script_Name, "UNIT" + Unit_Script_Name);
-                Data.units_scripts.Add((Unit_Script_Name, "UNIT" + Unit_Script_Name));
-                File.AppendAllText(battlePath, PR_Unit);
+                EmitGeneratedUnit(Unit_Script_Name, PR_Unit);
             }
 
             //Add vertical spacing between units

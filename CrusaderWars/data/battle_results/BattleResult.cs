@@ -2362,7 +2362,7 @@ namespace CrusaderWars.data.battle_results
                 foreach (var armyRegiment in army.ArmyRegiments)
                 {
                     if (armyRegiment == null || (armyRegiment.Type == RegimentType.Knight && !StatFidelitySession.HasBoundExport)) continue;
-                    string currentNum = armyRegiment.CurrentNum.ToString();
+                    string currentNum = NativeCombatCurrent(army, armyRegiment).ToString(CultureInfo.InvariantCulture);
                     // BUG FIX: Changed `\d+` to `[\d\.]+` to handle decimals. Added support for top-level current= for Levies.
                     modifiedAttackerBlock = Regex.Replace(modifiedAttackerBlock, $@"(regiment={Regex.Escape(armyRegiment.ID)}(?!\d)(?:(?!regiment=)[\s\S])*?current=)[\d\.]+", $"${{1}}{currentNum}");
                 }
@@ -2380,7 +2380,7 @@ namespace CrusaderWars.data.battle_results
                 foreach (var armyRegiment in army.ArmyRegiments)
                 {
                     if (armyRegiment == null || (armyRegiment.Type == RegimentType.Knight && !StatFidelitySession.HasBoundExport)) continue;
-                    string currentNum = armyRegiment.CurrentNum.ToString();
+                    string currentNum = NativeCombatCurrent(army, armyRegiment).ToString(CultureInfo.InvariantCulture);
                     // BUG FIX: Changed `\d+` to `[\d\.]+` to handle decimals. Added support for top-level current= for Levies.
                     modifiedDefenderBlock = Regex.Replace(modifiedDefenderBlock, $@"(regiment={Regex.Escape(armyRegiment.ID)}(?!\d)(?:(?!regiment=)[\s\S])*?current=)[\d\.]+", $"${{1}}{currentNum}");
                 }
@@ -2407,12 +2407,27 @@ namespace CrusaderWars.data.battle_results
         static int GetArmiesTotalFightingMen(List<Army> armies)
         {
             int total = StatFidelitySession.HasBoundExport
-                ? FlattenBattleArmies(armies).SelectMany(a => a.ArmyRegiments).DistinctBy(r => r.ID).Sum(r => r.CurrentNum)
+                ? FlattenBattleArmies(armies).SelectMany(a => a.ArmyRegiments.Select(r => (Army: a, Regiment: r)))
+                    .DistinctBy(r => r.Regiment.ID).Sum(r => NativeCombatCurrent(r.Army, r.Regiment))
                 : armies.Where(army => army != null).Sum(army => army.GetTotalSoldiers());
 
             string logMessage = string.Format("Calculated total fighting men for armies: {0}", total);
             Program.Logger.Debug(logMessage);
             return total;
+        }
+
+        private static int NativeCombatCurrent(Army army, ArmyRegiment regiment)
+        {
+            if (!StatFidelitySession.HasBoundExport) return regiment.CurrentNum;
+            // Surviving equipment stock includes machines that never joined the
+            // field combat. Keep those in global/source records, not local current
+            // or total_fighting_men. Partial active equipment returns separately.
+            long reserved = ArmiesReader.FieldSiegeParticipation
+                .Where(r => r.Side == army.CombatSide && r.ArmyId == army.ID && r.ArmyRegimentId == regiment.ID)
+                .Sum(r => (long)r.ReservedMachines);
+            if (reserved > regiment.CurrentNum || reserved < 0)
+                throw new InvalidDataException("Returned siege stock is below its untouched field reserve: " + army.ID + ":" + regiment.ID);
+            return checked(regiment.CurrentNum - (int)reserved);
         }
 
         static int GetArmiesTotalLevyMen(List<Army> armies)

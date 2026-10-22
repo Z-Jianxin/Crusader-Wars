@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
@@ -75,7 +76,7 @@ namespace CrusaderWars
             }
 
             // Process the parent army
-            BETA_AddArmyUnits(army);
+            GenerateOneArmy(army);
             processedArmyIDs.Add(army.ID);
 
             // Process merged armies
@@ -88,10 +89,23 @@ namespace CrusaderWars
                         Program.Logger.Debug($"BETA_ConvertandAddArmyUnits: Merged army {merged_army.ID} was already processed. This is unexpected but handled. Skipping.");
                         continue;
                     }
-                    BETA_AddArmyUnits(merged_army);
+                    GenerateOneArmy(merged_army);
                     processedArmyIDs.Add(merged_army.ID);
                 }
             }
+        }
+
+        private static void GenerateOneArmy(Army army)
+        {
+            if (!StatFidelity.StatFidelitySession.HasBoundExport) { BETA_AddArmyUnits(army); return; }
+            StatFidelity.StatFidelitySession.RestoreCommanderGuardDonation(army);
+            BattleFile.BeginArmyUnitBuffer();
+            try
+            {
+                BETA_AddArmyUnits(army);
+                BattleFile.CompleteArmyUnitBuffer(army);
+            }
+            finally { BattleFile.DiscardArmyUnitBuffer(); }
         }
 
         public static CommanderTraits? GetCommanderTraitsObj(bool isPlayer)
@@ -180,15 +194,15 @@ namespace CrusaderWars
                 {
                     army.Units.Insert(0, commander_unit);
                     string general_script_name = $"{i}_{army.CombatSide}_army{army.ID}_TYPEcommander{commander.ID}_{commander_unit.UniqueID}_CULTURE{commander.GetCultureObj()?.ID ?? "unknown"}_";
-                    var commanderProfile = StatFidelity.StatFidelitySession.Apply(commander_unit, army, commanderAttilaKey);
+                    var commanderProfile = StatFidelity.StatFidelitySession.Apply(commander_unit, army, commanderAttilaKey, includeCommanderKnightBudget: false);
                     if (commanderProfile.CommanderApplied)
                     {
                         commander_xp = 0;
                         commander_unit.SetUnitKey(commanderProfile.BaseUnitKey);
-                        commander_unit.SetInitialSoldiers(commanderProfile.RepresentedSoldiers ?? StatFidelity.StatFidelitySession.Settings.CommanderBodyguardSoldiers);
+                        commander_unit.SetInitialSoldiers(2);
                         StatFidelity.StatFidelitySession.Note(commanderProfile.KnightApplied
                             ? "Fighting commander uses its one knight budget through " + commander_unit.GetSoldiers() + " retinue bodies, zero XP and one star; no duplicate knight object or fate roll."
-                            : "Direct commander uses a fixed " + StatFidelity.StatFidelitySession.Settings.CommanderBodyguardSoldiers + "-body representation, zero XP and one star. This engine-required guard is not a CK3 prowess-derived combat budget; title/culture select its appearance.");
+                            : "General placeholder uses two bodies until its actual same-army donor detachment is planned; martial advantage remains army-wide once.");
                     }
                     BattleFile.AddGeneralUnit(commander, commanderProfile.UnitKey, general_script_name, commander_xp, Deployments.beta_GeDirection(army.CombatSide), commanderProfile.CommanderApplied,
                         commanderProfile.CommanderApplied ? commander_unit.GetSoldiers() : null, includeAccoladeAbilities: !commanderProfile.CommanderApplied);
@@ -427,8 +441,29 @@ namespace CrusaderWars
             var newMAAUnits = new List<Unit>();
             foreach (var unit in maa_units)
             {
-                if (StatFidelity.StatFidelitySession.HasBoundExport && unit.IsSiege())
+                int? activeSiegeMachines = null;
+                var nativeDefinition = StatFidelity.StatFidelitySession.HasBoundExport && !BattleState.IsSiegeBattle
+                    ? ArmiesReader.RequireNativeMaaDefinition(unit) : null;
+                // Native type semantics override only the bookkeeping category,
+                // never the selected Attila appearance key. A mapper infantry
+                // proxy cannot turn excluded native equipment into field troops.
+                if (nativeDefinition?.IsSiegeEquipment == true) unit.SetIsSiege(true);
+                if (StatFidelity.StatFidelitySession.HasBoundExport && (unit.IsSiege() || nativeDefinition?.IsFieldNoncombatant == true))
+                {
                     StatFidelity.StatFidelitySession.RegisterSiegeSource(army, unit);
+                    if (!BattleState.IsSiegeBattle)
+                    {
+                        activeSiegeMachines = ArmiesReader.GetFieldSiegeActiveMachines(army, unit);
+                        if (activeSiegeMachines == 0)
+                        {
+                            StatFidelity.StatFidelitySession.Note("Native field-combat siege source " + unit.SourceIdentity +
+                                " has explicit zero participation. No Attila formation emitted; surviving equipment remains reserved in its exact native source budget.");
+                            continue;
+                        }
+                        if (!unit.IsSiege())
+                            throw new InvalidDataException("Native noncombatant has positive field participation with no supported equipment representation: " + unit.SourceIdentity);
+                    }
+                }
                 if (unit.SourceIdentity != null && !unit.IsSiege() && unit.GetSoldiers() <= 0)
                     throw new InvalidOperationException("Battle scaling removed source regiment " + unit.SourceIdentity + ". Increase the battle scale to preserve its identity and casualties.");
                 if (!BattleState.IsSiegeBattle && !siegeEnginesInFieldBattles && unit.IsSiege())
@@ -454,7 +489,7 @@ namespace CrusaderWars
 
                 if (StatFidelity.StatFidelitySession.HasBoundExport && unit.IsSiege())
                 {
-                    AddFidelitySiegeBatteries(army, unit, newMAAUnits, army_xp);
+                    AddFidelitySiegeBatteries(army, unit, newMAAUnits, army_xp, activeSiegeMachines);
                     i++;
                     continue;
                 }
@@ -596,7 +631,7 @@ namespace CrusaderWars
         }
 
 
-        private static void AddFidelitySiegeBatteries(Army army, Unit source, List<Unit> emitted, int experience)
+        private static void AddFidelitySiegeBatteries(Army army, Unit source, List<Unit> emitted, int experience, int? activeNativeMachines = null)
         {
             if (source.SourceIdentity == null)
                 throw new InvalidOperationException("Siege generation requires an exact native source identity; no anonymous source can be discarded or merged.");
@@ -624,8 +659,9 @@ namespace CrusaderWars
             template ??= database.QuerySiegeUnit(baseKey);
             if (source.SiegeRepresentation != null && source.SiegeRepresentation.Kind != "artillery")
                 throw new InvalidOperationException("A legacy siege proxy cannot be reinterpreted as artillery during regeneration. Generate a fresh battle from its native source save.");
-            int nativeMachines = source.SiegeRepresentation?.SourceMachines ?? source.GetOriginalSoldiers();
-            int scaledEngines = source.SiegeRepresentation?.AttilaEngines ?? source.GetSoldiers();
+            int nativeMachines = source.SiegeRepresentation?.SourceMachines ?? activeNativeMachines ?? source.GetOriginalSoldiers();
+            int scaledEngines = source.SiegeRepresentation?.AttilaEngines ?? (activeNativeMachines.HasValue
+                ? checked((int)Math.Floor(activeNativeMachines.Value * (ArmyProportions.BattleScale / 100.0))) : source.GetSoldiers());
             var batteries = StatFidelity.SiegeBatteryPlanner.Plan(nativeMachines, scaledEngines, template);
             StatFidelity.StatFidelitySession.Note("Siege source " + source.SourceIdentity + ": " + nativeMachines +
                 " native machines represented by " + scaledEngines + " Attila engines in " + batteries.Count +

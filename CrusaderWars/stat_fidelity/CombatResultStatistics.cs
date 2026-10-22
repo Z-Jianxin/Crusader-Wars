@@ -91,6 +91,16 @@ public static class CombatResultStatistics
         var names = new HashSet<string>(StringComparer.Ordinal);
         var boundIds = new HashSet<int>();
         int excludedMain = 0, excludedPursuit = 0;
+        var guardCohortIds = new HashSet<int>();
+        foreach (var army in armies.Values)
+        foreach (var outcome in StatFidelitySession.GetCommanderGuardCasualties(army))
+        {
+            var binding = outcome.Representation;
+            Key donorKey = GuardDonorKey(army.CombatSide, binding);
+            if (!groups.TryGetValue(donorKey, out var totals)) throw new InvalidDataException("Guard donor has no native result-statistics group.");
+            totals.NormalPursuit = checked(totals.NormalPursuit + outcome.PursuitLosses);
+            foreach (int id in binding.CohortUnitIds) guardCohortIds.Add(id);
+        }
         foreach (var formation in roster)
         {
             var identity = Regex.Match(formation.ScriptName, @"_(?<side>attacker|defender)_army(?<army>\d+)_TYPE.*_(?<unit>\d+)_CULTURE", RegexOptions.CultureInvariant);
@@ -129,6 +139,23 @@ public static class CombatResultStatistics
                     }
                     continue;
                 case RegimentType.Commander:
+                    if (unit.CommanderGuardRepresentation is { } guard)
+                    {
+                        Key donorKey = GuardDonorKey(side, guard);
+                        var mainShares = CommanderGuardAccounting.SplitCredits(mainKills, guard.PersonalDamageShare);
+                        var pursuitShares = CommanderGuardAccounting.SplitCredits(pursuitKills, guard.PersonalDamageShare);
+                        AddCredits(donorKey, mainShares.Donor, pursuitShares.Donor);
+                        if (guard.NativeKnightId != null)
+                        {
+                            Key knightKey = new(side, null, guard.NativeKnightId);
+                            if (!directKnights.Add(knightKey)) throw new InvalidDataException("Commander knight credit is duplicated.");
+                            AddCredits(knightKey, mainShares.Personal, pursuitShares.Personal);
+                        }
+                        else if (mainShares.Personal != 0 || pursuitShares.Personal != 0)
+                            throw new InvalidDataException("Commander guard personal kills lack a native knight.");
+                        diagnostics.Add("Funded commander guard credits return to its ordinary donor; any native knight share is modeled from the separately evidenced aggregate damage budget, not measured personal kills.");
+                        continue;
+                    }
                     key = new(side, null, unit.GetCharacterID());
                     if (key.Knight != null && groups.ContainsKey(key))
                     {
@@ -145,6 +172,7 @@ public static class CombatResultStatistics
                     throw new InvalidDataException("No native combat-statistics mapping for formation type " + unit.GetRegimentType());
             }
             AddCredits(key, mainKills, pursuitKills);
+            if (guardCohortIds.Contains(unit.UniqueID)) continue;
             if (unit.IsSiege())
             {
                 var representation = unit.SiegeRepresentation;
@@ -221,6 +249,14 @@ public static class CombatResultStatistics
             if (!groups.TryGetValue(key, out var value)) throw new InvalidDataException("Formation credit has no exact native side/type/knight record.");
             value.MainKills = checked(value.MainKills + main);
             value.PursuitKills = checked(value.PursuitKills + pursuit);
+        }
+        Key GuardDonorKey(string side, CommanderGuardRepresentation guard)
+        {
+            if (guard.DonorType == RegimentType.Levy) return new(side, null, null);
+            if (guard.DonorType != RegimentType.MenAtArms || guard.SourceArmyRegimentId == null ||
+                !native.TryGetValue((side, guard.SourceArmyRegimentId), out var regiment) || regiment.Type != RegimentType.MenAtArms)
+                throw new InvalidDataException("Commander guard lacks its exact native donor source.");
+            return NativeKey(side, regiment);
         }
     }
 

@@ -2,6 +2,7 @@ using System.Reflection;
 using CrusaderWars;
 using CrusaderWars.client;
 using CrusaderWars.data.battle_results.editors;
+using CrusaderWars.data.battle_results;
 using CrusaderWars.data.save_file;
 using CrusaderWars.StatFidelity;
 using Xunit;
@@ -83,6 +84,29 @@ public sealed class NativeSourceCurrentTests : IDisposable
         Assert.Equal("477", source.Max); Assert.Equal(300, regiment.StartingNum);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void BoundFightingCommanderKeepsNativeKnightIdentityWithoutDuplicateKnightObject(bool fidelity)
+    {
+        Bind(fidelity);
+        // Membership/cached-fate preservation is required independently of the
+        // user's separate choice of personal knight budget calibration.
+        StatFidelitySession.Settings.EnableKnightCalibration = false;
+        var army = new Army("4", "attacker", true) { CommanderID = "10" };
+        var nativeKnight = new ArmyRegiment("12") { CurrentNum = 1, StartingNum = 1 };
+        nativeKnight.SetType(RegimentType.Knight, "10"); army.SetArmyRegiments([nativeKnight]); SetArmies([army], []);
+        Invoke("RemoveCommandersAsKnights");
+        if (!fidelity) { Assert.Empty(army.ArmyRegiments); return; }
+        Assert.Same(nativeKnight, Assert.Single(army.ArmyRegiments));
+        Assert.True(StatFidelitySession.TryCreateNativeKnights(army, new(), out var ordinaryKnights));
+        Assert.Empty(ordinaryKnights.GetKnightsList());
+        BattleResult.CharacterFates.Resolve("10", "traits={}", () => new(false, true, "traits={}"));
+        BattleResult.SynchronizeNativeKnightRegiments(new[] {army});
+        Assert.Equal(0, nativeKnight.CurrentNum); Assert.Equal(1, nativeKnight.StartingNum);
+        BattleResult.CharacterFates.Clear();
+    }
+
     private void Bind(bool enabled, bool bound = true)
     {
         options["StatFidelityMode"] = enabled ? "Enabled" : "Disabled";
@@ -103,6 +127,7 @@ public sealed class NativeSourceCurrentTests : IDisposable
     }
     public void Dispose()
     {
+        BattleResult.CharacterFates.Clear();
         attackers.SetValue(null, oldAttackers); defenders.SetValue(null, oldDefenders);
         options["StatFidelityMode"] = "Disabled"; StatFidelitySession.Begin("");
         if (previousMode == null) options.Remove("StatFidelityMode"); else options["StatFidelityMode"] = previousMode;

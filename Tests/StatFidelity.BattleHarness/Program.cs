@@ -193,6 +193,7 @@ internal static class Replay
                 File.Copy(Path.GetFullPath(originalDeployment, originalDirectory), deployedXml);
             }
             StatFidelitySession.CaptureDeployedRoster(attackers.Concat(defenders), deployedXml, flags.ContainsKey("deployed-xml"));
+            GeneratedUnitLabels.Capture(attackers.Concat(defenders), deployedXml);
             if (BattleLog.HasUnmappedUnits()) throw new InvalidOperationException("Battle generation dropped unmapped units; inspect data/debug.log. Replay is not considered valid.");
             StatFidelitySession.WriteCoverageReport(output);
             WriteJson(Path.Combine(output, "profiles.json"), StatFidelitySession.PendingProfiles);
@@ -205,6 +206,7 @@ internal static class Replay
                 if (StatFidelitySession.PreparedDatabase != null)
                     StatFidelitySession.PreparedDatabase.Generate(StatFidelitySession.PendingProfiles, Path.Combine(output, "data", "battle files"));
                 else StatFidelityBackend.Generate(output, Path.GetFullPath(attila, originalDirectory), StatFidelitySession.PendingProfiles);
+                GeneratedUnitLabels.Apply(Path.Combine(output, "data", "battle files"));
                 databaseGenerated = true;
             }
             var battleXml = Directory.GetFiles(Path.Combine(output, "data", "battle files"), "tut_battle.xml", SearchOption.AllDirectories).Single();
@@ -272,7 +274,7 @@ internal static class Replay
     private static object ArmySummary(Army army) => new
     {
         army.ID, army.CombatSide, army.CommanderID,
-        units = army.Units.Select(u => new { u.UniqueID, name = u.GetName(), type = u.GetRegimentType().ToString(), soldiers = u.GetSoldiers(), u.SourceIdentity, u.SourceOwnerId, u.SourceOriginProvinceId, u.OriginalAttilaKey, u.SiegeRepresentation, key = u.GetAttilaUnitKey() }),
+        units = army.Units.Select(u => new { u.UniqueID, name = u.GetName(), type = u.GetRegimentType().ToString(), soldiers = u.GetSoldiers(), u.SourceIdentity, u.SourceOwnerId, u.SourceOriginProvinceId, u.OriginalAttilaKey, u.SiegeRepresentation, u.CommanderGuardRepresentation, key = u.GetAttilaUnitKey() }),
         merged = (army.MergedArmies ?? new List<Army>()).Select(ArmySummary)
     };
 

@@ -108,6 +108,7 @@ namespace CrusaderWars.data.save_file
         // Native equipment, emitted bodies and actual Attila engines are distinct
         // quantities. Legacy proxy recovery may have no verified engine count.
         public SiegeFormationRepresentation? SiegeRepresentation { get; set; }
+        public StatFidelity.CommanderGuardRepresentation? CommanderGuardRepresentation { get; set; }
         public string? SourceIdentity => SourceRegimentId == null ? null : SourceArmyId + ":" + SourceArmyRegimentId + ":" + SourceRegimentId + ":" + SourceChunkIndex;
 
         public void SetSourceIdentity(string armyId, string armyRegimentId, string regimentId, string chunkIndex, string ownerId, string? originProvinceId = null)

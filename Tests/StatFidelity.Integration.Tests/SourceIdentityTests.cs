@@ -370,7 +370,7 @@ public sealed class SourceIdentityTests : IDisposable
     public void VerifiedFightingCommanderGetsOneKnightBudgetAcrossRegeneration()
     {
         Directory.CreateDirectory(Path.Combine(scratch, "settings"));
-        File.WriteAllText(Path.Combine(scratch, "settings", "StatFidelity.json"), "{\"EnableKnightCalibration\":true,\"KnightBudgetMode\":\"TemplateRelative\"}");
+        File.WriteAllText(Path.Combine(scratch, "settings", "StatFidelity.json"), "{\"EnableKnightCalibration\":true,\"KnightBudgetMode\":\"TemplateRelative\",\"CommanderBodyguardSoldiers\":2}");
         WithMode("Enabled", () =>
         {
             StatFidelitySession.Begin("CCSTAT|v1|BEGIN|snapshot-1\n" +
@@ -378,13 +378,16 @@ public sealed class SourceIdentityTests : IDisposable
                 "CCSTAT|v1|KNIGHT|attacker|10|20|2|50|10\nCCSTAT|v1|KNIGHT|attacker|11|10|1|50|10\n" +
                 "CCSTAT|v1|END|snapshot-1");
             StatFidelitySession.ValidateSaveEvidence(new StringReader("living={\n42={\n variables={ data={ { flag=ccstat_snapshot_serial data={type=value identity=100000} } { flag=ccstat_combat data={type=com identity=123} } } }\n}\n}"), "42", "123");
-            var commanderRegiment = new ArmyRegiment("900"); commanderRegiment.SetType(RegimentType.Knight, "10");
-            var knightRegiment = new ArmyRegiment("901"); knightRegiment.SetType(RegimentType.Knight, "11");
+            var commanderRegiment = new ArmyRegiment("900") {CurrentNum = 1}; commanderRegiment.SetType(RegimentType.Knight, "10");
+            var knightRegiment = new ArmyRegiment("901") {CurrentNum = 1}; knightRegiment.SetType(RegimentType.Knight, "11");
             var army = new Army("5", "attacker", true) { CommanderID = "10" };
             army.SetArmyRegiments(new List<ArmyRegiment> { commanderRegiment, knightRegiment });
-            StatFidelitySession.CaptureCommanderKnightBudget(army);
-            // The real reader removes the commander from the knight roster after capture.
-            army.ArmyRegiments.Remove(commanderRegiment);
+            var nativeCombatField = typeof(ArmiesReader).GetField("nativeCombatParticipation", BindingFlags.NonPublic | BindingFlags.Static)!;
+            var oldCombat = nativeCombatField.GetValue(null);
+            nativeCombatField.SetValue(null, NativeCombatParticipation.Parse("attacker={armies={5} men_at_arms={ {regiment=900 current=1} }} defender={armies={6}}"));
+            try { StatFidelitySession.CaptureCommanderKnightBudget(army); }
+            finally { nativeCombatField.SetValue(null, oldCombat); }
+            // Keep the native record, but exclude this character from pooled knights.
             Assert.True(StatFidelitySession.TryCreateNativeKnights(army, new(), out var nativeKnights));
             army.SetKnights(nativeKnights);
             Assert.Equal("11", Assert.Single(army.Knights.GetKnightsList()).GetID());
