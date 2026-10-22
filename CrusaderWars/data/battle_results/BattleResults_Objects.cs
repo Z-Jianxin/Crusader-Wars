@@ -140,7 +140,8 @@ namespace CrusaderWars
             {
                 var unit = list[i];
                 // Calibrated knight formations are never scaled with the rank-and-file army.
-                if (StatFidelity.StatFidelitySession.IsKnightPoolType(unit.Item2) || unit.Item2.StartsWith("commander", StringComparison.Ordinal)) continue;
+                if (StatFidelity.StatFidelitySession.IsKnightPoolType(unit.Item2) || unit.Item2.StartsWith("commander", StringComparison.Ordinal) ||
+                    StatFidelity.StatFidelitySession.IsSiegeFormation(unit.Item1)) continue;
                 double remainingRatio = Math.Round(Int32.Parse(unit.Item4) / porcentage);
                 unit = (unit.Item1, unit.Item2, unit.Item3, remainingRatio.ToString());
                 list[i] = unit;

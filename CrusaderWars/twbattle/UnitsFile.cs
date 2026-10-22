@@ -427,6 +427,8 @@ namespace CrusaderWars
             var newMAAUnits = new List<Unit>();
             foreach (var unit in maa_units)
             {
+                if (StatFidelity.StatFidelitySession.HasBoundExport && unit.IsSiege())
+                    StatFidelity.StatFidelitySession.RegisterSiegeSource(army, unit);
                 if (unit.SourceIdentity != null && !unit.IsSiege() && unit.GetSoldiers() <= 0)
                     throw new InvalidOperationException("Battle scaling removed source regiment " + unit.SourceIdentity + ". Increase the battle scale to preserve its identity and casualties.");
                 if (!BattleState.IsSiegeBattle && !siegeEnginesInFieldBattles && unit.IsSiege())
@@ -438,6 +440,8 @@ namespace CrusaderWars
                 string attilaUnitKey = unit.GetAttilaUnitKey();
                 if (string.IsNullOrEmpty(attilaUnitKey) || attilaUnitKey == UnitMappers_BETA.NOT_FOUND_KEY)
                 {
+                    if (StatFidelity.StatFidelitySession.HasBoundExport && unit.IsSiege())
+                        throw new InvalidOperationException("No artillery mapping for siege source " + unit.SourceIdentity + ". Battle generation stopped before dropping its machines.");
                     // Strict fidelity must not bypass source coverage merely because the
                     // mapper failed before the normal profile-application step.
                     StatFidelity.StatFidelitySession.Apply(unit, army, attilaUnitKey);
@@ -447,6 +451,13 @@ namespace CrusaderWars
                 }
 
                 Program.Logger.Debug($"  Processing MAA unit: Name={unit.GetName()}, Soldiers={unit.GetSoldiers()}, Culture={unit.GetCulture()}");
+
+                if (StatFidelity.StatFidelitySession.HasBoundExport && unit.IsSiege())
+                {
+                    AddFidelitySiegeBatteries(army, unit, newMAAUnits, army_xp);
+                    i++;
+                    continue;
+                }
 
                 // Determine XP
                 string baseAttilaUnitKey = attilaUnitKey;
@@ -584,6 +595,68 @@ namespace CrusaderWars
             army.PrintUnits();
         }
 
+
+        private static void AddFidelitySiegeBatteries(Army army, Unit source, List<Unit> emitted, int experience)
+        {
+            if (source.SourceIdentity == null)
+                throw new InvalidOperationException("Siege generation requires an exact native source identity; no anonymous source can be discarded or merged.");
+            var database = StatFidelity.StatFidelitySession.PreparedDatabase
+                ?? throw new InvalidOperationException("Siege generation requires the active Attila database before creating battle units.");
+            string baseKey = source.GetAttilaUnitKey();
+            bool explicitReplacement = BattleState.ManualUnitReplacements.ContainsKey((baseKey, army.IsPlayer()))
+                || BattleState.ManualUnitReplacements.ContainsKey((source.OriginalAttilaKey, army.IsPlayer()))
+                || BattleProcessor.AutofixReplacements.ContainsKey(baseKey)
+                || BattleProcessor.AutofixReplacements.ContainsKey(source.OriginalAttilaKey);
+            StatFidelity.AttilaSiegeUnitStats? template = null;
+            string? corrected = SiegeMappingCompatibility.Resolve(UnitMappers_BETA.ActivePlaythroughTag,
+                UnitMappers_BETA.GetLoadedUnitMapperName(), source.GetAttilaFaction(), source.GetName(), baseKey,
+                source.OriginalAttilaKey, explicitReplacement, key => {
+                    try { template = database.QuerySiegeUnit(key); return true; }
+                    catch (System.IO.InvalidDataException) { return false; }
+                });
+            if (corrected != null)
+            {
+                StatFidelity.StatFidelitySession.Note("Automatic Early919 siege compatibility correction for source " + source.SourceIdentity +
+                    ": " + baseKey + " -> " + corrected + ". The mapped asset is infantry, not artillery; replacement is selected from existing authored siege mappings in " +
+                    SiegeMappingCompatibility.Provenance + ". Native source identity/counts are preserved; manual replacements are not changed.");
+                baseKey = corrected;
+            }
+            template ??= database.QuerySiegeUnit(baseKey);
+            if (source.SiegeRepresentation != null && source.SiegeRepresentation.Kind != "artillery")
+                throw new InvalidOperationException("A legacy siege proxy cannot be reinterpreted as artillery during regeneration. Generate a fresh battle from its native source save.");
+            int nativeMachines = source.SiegeRepresentation?.SourceMachines ?? source.GetOriginalSoldiers();
+            int scaledEngines = source.SiegeRepresentation?.AttilaEngines ?? source.GetSoldiers();
+            var batteries = StatFidelity.SiegeBatteryPlanner.Plan(nativeMachines, scaledEngines, template);
+            StatFidelity.StatFidelitySession.Note("Siege source " + source.SourceIdentity + ": " + nativeMachines +
+                " native machines represented by " + scaledEngines + " Attila engines in " + batteries.Count +
+                " batteries; active template " + baseKey + " has " + template.NominalCrew + " crew / " + template.NominalEngines +
+                " engines. No side-cap truncation; siege progress is not converted to field damage.");
+            for (int batteryIndex = 0; batteryIndex < batteries.Count; batteryIndex++)
+            {
+                var battery = batteries[batteryIndex];
+                string emittedKey = baseKey;
+                if (battery.AttilaEngines != template.NominalEngines)
+                {
+                    string profileId = "siege:" + source.SourceIdentity + ":" + baseKey + ":" + battery.AttilaEngines;
+                    emittedKey = StatFidelity.StatFidelitySession.RegisterSiegeProfile(new StatFidelity.UnitStatProfile(
+                        profileId, baseKey, 1, 1, battery.AttilaEngines, battery.Crew));
+                }
+                var unit = new Unit(source.GetName(), battery.Crew, source.GetObjCulture(), RegimentType.MenAtArms, source.IsMerc(), army.Owner);
+                unit.CopySourceIdentity(source);
+                unit.SetUnitKey(baseKey);
+                unit.SetOriginalAttilaKey(baseKey);
+                unit.SetIsSiege(true);
+                unit.SetNumGuns(battery.AttilaEngines);
+                unit.SetAttilaFaction(source.GetAttilaFaction());
+                unit.SetIsPlayer(army.IsPlayer());
+                unit.KnightCommander = source.KnightCommander;
+                unit.SiegeRepresentation = new SiegeFormationRepresentation(battery.SourceMachines, battery.Crew, battery.AttilaEngines, "artillery");
+                emitted.Add(unit);
+                string script = $"{i}_{batteryIndex}_{army.CombatSide}_army{army.ID}_TYPE{source.GetName()}_{unit.UniqueID}_CULTURE{source.GetObjCulture()?.ID ?? "unknown"}_";
+                BattleFile.AddUnit(emittedKey, battery.Crew, 1, 0, script, experience.ToString(),
+                    Deployments.beta_GeDirection(army.CombatSide), source.KnightCommander, allowSingleSoldier: true);
+            }
+        }
 
         // Resolve the effective local pool without allocating Units, drawing RNG or
         // emitting battle XML. Knight calibration can inspect this same mapping

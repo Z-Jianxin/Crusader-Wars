@@ -96,6 +96,51 @@ public sealed class CombatResultStatisticsTests
         Assert.Throws<InvalidDataException>(() => CombatResultStatistics.Build([missingArmy], [], missing.Roster, missing.Reports()));
     }
 
+    [Fact]
+    public void SiegePursuitUsesEachSourcesCrewRatioAndPreservesNativeTotalsAndRawCredits()
+    {
+        var f = new Fixture(); var army = new Army("1", "attacker", true);
+        var small = Regiment(army, "10", RegimentType.MenAtArms, "onager", 0);
+        var large = Regiment(army, "11", RegimentType.MenAtArms, "onager", 4);
+        f.Add(army, RegimentType.MenAtArms, "one_engine", 20, 20, 0, 2, 3, small,
+            siege: new(1, 20, 1, "artillery"));
+        f.Add(army, RegimentType.MenAtArms, "four_engines", 40, 40, 40, 5, 7, large,
+            siege: new(4, 40, 4, "artillery"));
+        var result = CombatResultStatistics.Build([army], [], f.Roster, f.Reports());
+        var update = Assert.Single(result.Updates);
+        Assert.Equal(1, update.PursuitLosses); // Pooled 5 machines *20/60 crew would incorrectly round to2.
+        Assert.Equal(4, update.FinalCount);
+        Assert.Equal(7, update.MainKills);
+        Assert.Equal(3, update.PursuitKills);
+        Assert.Equal(0, small.CurrentNum); Assert.Equal(4, large.CurrentNum);
+        Assert.Contains(result.Diagnostics, value => value.Contains("per exact native source") && value.Contains("not observed"));
+    }
+
+    [Theory]
+    [InlineData("0", 1)]
+    [InlineData("1", 2)]
+    public void SiegeRoundingCombinesSplitBatteriesButKeepsNativeChunksSeparate(string secondChunk, int expectedPursuit)
+    {
+        var f = new Fixture(); var army = new Army("1", "attacker", true);
+        var source = Regiment(army, "10", RegimentType.MenAtArms, "mangonel", 0);
+        f.Add(army, RegimentType.MenAtArms, "first", 20, 10, 0, 0, 0, source,
+            siege: new(1, 20, 1, "artillery"));
+        f.Add(army, RegimentType.MenAtArms, "second", 20, 10, 0, 0, 0, source,
+            siege: new(1, 20, 1, "artillery"), sourceChunk: secondChunk);
+        var update = Assert.Single(CombatResultStatistics.Build([army], [], f.Roster, f.Reports()).Updates);
+        Assert.Equal(expectedPursuit, update.PursuitLosses);
+    }
+
+    [Fact]
+    public void SiegeWithoutExplicitCrewMetadataFailsInsteadOfUsingLegacyGuessedRatios()
+    {
+        var f = new Fixture(); var army = new Army("1", "attacker", true);
+        var source = Regiment(army, "10", RegimentType.MenAtArms, "mangonel", 1);
+        f.Add(army, RegimentType.MenAtArms, "engine", 20, 20, 10, 0, 0, source);
+        army.Units.Single().SetIsSiege(true);
+        Assert.Throws<InvalidDataException>(() => CombatResultStatistics.Build([army], [], f.Roster, f.Reports()));
+    }
+
     private static ArmyRegiment Regiment(Army army, string id, RegimentType type, string name, int current)
     {
         var regiment = new ArmyRegiment(id) { CurrentNum = current, StartingNum = 100 };
@@ -112,10 +157,12 @@ public sealed class CombatResultStatisticsTests
         public List<DeployedFormation> Roster { get; } = new();
         private readonly List<string> main = new(), final = new(), killsMain = new(), killsFinal = new();
         public void Add(Army army, RegimentType type, string name, int deployed, int before, int after,
-            int creditedMain, int creditedFinal, ArmyRegiment? source = null, int normalizedScale = 1)
+            int creditedMain, int creditedFinal, ArmyRegiment? source = null, int normalizedScale = 1,
+            SiegeFormationRepresentation? siege = null, string sourceChunk = "0")
         {
             var unit = new Unit(name, deployed, Culture, type);
-            if (source != null) unit.SetSourceIdentity(army.ID, source.ID, "native" + source.ID, "0", "owner");
+            if (source != null) unit.SetSourceIdentity(army.ID, source.ID, "native" + source.ID, sourceChunk, "owner");
+            if (siege != null) { unit.SetIsSiege(true); unit.SiegeRepresentation = siege; }
             army.Units.Add(unit);
             string script = $"0_{army.CombatSide}_army{army.ID}_TYPE{name}_{unit.UniqueID}_CULTURE_0";
             Roster.Add(new(script, deployed));

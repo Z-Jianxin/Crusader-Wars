@@ -33,6 +33,8 @@ public sealed class PreparedAttilaDatabase
         SourcePacks = Array.AsReadOnly(sourcePacks.ToArray());
     }
 
+    public AttilaSiegeUnitStats QuerySiegeUnit(string unitKey) => AttilaSiegeUnitStats.Read(database, unitKey);
+
     public AttilaUnitCombatStats Query(string unitKey)
     {
         var main = database.Require("main_units_tables", unitKey);

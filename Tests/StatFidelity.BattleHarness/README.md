@@ -28,6 +28,7 @@ The default replay enables strict stat export/coverage checks, disables automati
 
 Optional arguments:
 
+- `--battle-scale PERCENT`: explicitly exercise a whole battlefield scale from 1 through 100, instead of the default 100. The input manifest records the chosen value. This changes only the isolated replay and permits source-conservation checks for scaled artillery.
 - `--export-only`: stop after the real save/army/mapper readers and strict source-regiment coverage validation. This isolates export/identity failures from battle-layout generation. `profiles.json` contains planned regiment profiles only; no battle or database is generated.
 - `--snapshot-only --player-id ID`: validate a native CCSTAT frame against the saved combat and source-regiment/knight roster without requiring the legacy GUI handoff fields. It uses the production parser/save readers, does not invent missing log fields, and emits `native-coverage.json`. It does not validate mapping or generate a battle.
 - `--ck3-user-dir DIR`: select the CK3 user directory whose active mod definitions the army reader needs. The default is `Documents/Paradox Interactive/Crusader Kings III`. The harness reads its active-mod/landed-title definitions and snapshots its launcher mod list; it does not write that directory or persist application settings.

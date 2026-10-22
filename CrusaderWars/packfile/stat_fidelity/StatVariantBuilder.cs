@@ -29,6 +29,13 @@ public sealed class StatVariantBuilder
             throw new InvalidOperationException($"Stat fidelity cannot change naval unit '{profile.BaseUnitKey}'.");
         string oldLandKey = originalMain["land_unit"];
         var originalLand = source.Require("land_units_tables", oldLandKey);
+        if (profile.SiegeEngineCount.HasValue)
+        {
+            var siege = AttilaSiegeUnitStats.Read(source, profile.BaseUnitKey);
+            if (profile.SiegeEngineCount > siege.NominalEngines || profile.SiegeCrewCount !=
+                checked(profile.SiegeEngineCount.Value * (siege.NominalCrew / siege.NominalEngines)))
+                throw new InvalidOperationException("Siege battery counts must preserve the active template's crew/engine ratio without exceeding its native battery size.");
+        }
         bool mounted = !string.IsNullOrWhiteSpace(originalLand.GetValueOrDefault("mount"));
         bool special = new[] { "engine", "animal", "chariot", "articulated_record" }
             .Any(field => !string.IsNullOrWhiteSpace(originalLand.GetValueOrDefault(field)));
@@ -39,6 +46,11 @@ public sealed class StatVariantBuilder
         var land = Clone("land_units_tables", originalLand, "key", key);
         var main = Clone("main_units_tables", originalMain, "unit", key);
         main["land_unit"] = key;
+        if (profile.SiegeEngineCount.HasValue)
+        {
+            land["num_guns"] = profile.SiegeEngineCount.Value.ToString(CultureInfo.InvariantCulture);
+            main["num_men"] = profile.SiegeCrewCount!.Value.ToString(CultureInfo.InvariantCulture);
+        }
         // This identifier is separate from the unit key. Keep generated records out of the encyclopedia.
         if (main.ContainsKey("unique_index")) main["unique_index"] = (Convert.ToInt64(key[6..18], 16) + 1000000000).ToString(CultureInfo.InvariantCulture);
         if (main.ContainsKey("in_encyclopedia")) main["in_encyclopedia"] = "false";

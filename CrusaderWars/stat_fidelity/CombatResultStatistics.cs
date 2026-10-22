@@ -19,7 +19,7 @@ public static class CombatResultStatistics
     private sealed class Totals
     {
         public int Final, MainKills, PursuitKills;
-        public long NormalPursuit, SiegeStarting, SiegeMain, SiegeFinal, SiegeMachines;
+        public long NormalPursuit, SiegePursuit;
     }
 
     public static CombatResultStatisticsAggregation Build(IEnumerable<Army> attackers, IEnumerable<Army> defenders,
@@ -86,6 +86,7 @@ public static class CombatResultStatistics
 
         int mainPhase = reports.SurvivorPhases.Count > 1 ? reports.SurvivorPhases.Count - 2 : 0;
         var poolCredits = new Dictionary<(string Side, string Army), (int Main, int Pursuit)>();
+        var siegeResults = new Dictionary<(Key Group, string Source), List<(SiegeCrewResult Main, SiegeCrewResult Final)>>();
         var directKnights = new HashSet<Key>();
         var names = new HashSet<string>(StringComparer.Ordinal);
         var boundIds = new HashSet<int>();
@@ -144,6 +145,23 @@ public static class CombatResultStatistics
                     throw new InvalidDataException("No native combat-statistics mapping for formation type " + unit.GetRegimentType());
             }
             AddCredits(key, mainKills, pursuitKills);
+            if (unit.IsSiege())
+            {
+                var representation = unit.SiegeRepresentation;
+                if (representation == null || representation.DeployedBodies != formation.InitialSoldiers
+                    || representation.SourceMachines < 0 || unit.SourceArmyId != armyId
+                    || string.IsNullOrEmpty(unit.SourceArmyRegimentId) || string.IsNullOrEmpty(unit.SourceRegimentId)
+                    || !reports.SurvivorPhases[mainPhase].TryGetValue(formation.ScriptName, out int mainCrew)
+                    || !reports.FinalSurvivors.TryGetValue(formation.ScriptName, out int finalCrew)
+                    || mainCrew < finalCrew)
+                    throw new InvalidDataException("Siege pursuit lacks an exact source and deployed crew representation: " + formation.ScriptName);
+                string sourceKey = SiegeSourceBudget.Key(unit.SourceArmyId, unit.SourceArmyRegimentId, unit.SourceRegimentId, unit.SourceChunkIndex);
+                var identityKey = (key, sourceKey);
+                if (!siegeResults.TryGetValue(identityKey, out var results)) siegeResults.Add(identityKey, results = new());
+                results.Add((new(representation.SourceMachines, representation.DeployedBodies, mainCrew),
+                    new(representation.SourceMachines, representation.DeployedBodies, finalCrew)));
+                continue;
+            }
             if (!casualtyReports.TryGetValue(formation.ScriptName, out var normalized))
                 throw new InvalidDataException("Missing exact normalized casualty report: " + formation.ScriptName);
             int before = normalized.GetAliveBeforePursuit();
@@ -151,19 +169,29 @@ public static class CombatResultStatistics
             if (before < 0 || after < 0 || after > before || before > normalized.GetStarting())
                 throw new InvalidDataException("Invalid normalized pursuit counts: " + formation.ScriptName);
             var totals = groups[key];
-            if (unit.IsSiege())
-            {
-                if (normalized.GetStarting() <= 0 || normalized.GetStartingMachines() <= 0)
-                    throw new InvalidDataException("Siege pursuit conversion lacks an explicit crew/machine denominator.");
-                totals.SiegeStarting = checked(totals.SiegeStarting + normalized.GetStarting());
-                totals.SiegeMain = checked(totals.SiegeMain + before);
-                totals.SiegeFinal = checked(totals.SiegeFinal + after);
-                totals.SiegeMachines = checked(totals.SiegeMachines + normalized.GetStartingMachines());
-            }
-            else totals.NormalPursuit = checked(totals.NormalPursuit + before - after);
+            totals.NormalPursuit = checked(totals.NormalPursuit + before - after);
         }
         if (!names.SetEquals(reports.FinalSurvivors.Keys) || !names.SetEquals(reports.FinalKills!.Keys))
             throw new InvalidDataException("Statistics report coverage differs from the exact deployed roster.");
+
+        foreach (var source in siegeResults)
+        {
+            int original = checked((int)source.Value.Sum(result => (long)result.Main.SourceMachines));
+            if (StatFidelitySession.HasBoundExport)
+            {
+                if (!StatFidelitySession.SiegeSources.TryGetValue(source.Key.Source, out var budget))
+                    throw new InvalidDataException("Siege statistics lack the registered native source budget: " + source.Key.Source);
+                original = budget.OriginalMachines;
+            }
+            // Omitted equipment is included in both phases and therefore cancels.
+            // Round per exact source (including its split batteries), never per
+            // battery or a pooled side/type crew ratio from different templates.
+            int mainMachines = SiegeCasualtyAccounting.Survivors(original, source.Value.Select(result => result.Main).ToArray());
+            int finalMachines = SiegeCasualtyAccounting.Survivors(original, source.Value.Select(result => result.Final).ToArray());
+            groups[source.Key.Group].SiegePursuit = checked(groups[source.Key.Group].SiegePursuit + mainMachines - finalMachines);
+        }
+        if (siegeResults.Count > 0)
+            diagnostics.Add("Siege pursuit losses are modeled per exact native source from raw deployed crew survival, rounded once per source and phase; they are not observed engine destruction counts.");
 
         foreach (var pool in poolCredits.OrderBy(p => p.Key.Side, StringComparer.Ordinal).ThenBy(p => p.Key.Army, StringComparer.Ordinal))
         {
@@ -183,9 +211,8 @@ public static class CombatResultStatistics
         diagnostics.Add($"Excluded abstract commander/guard credits with no native regiment_stats counterpart: {excludedMain} main/{excludedPursuit} pursuit Attila kills.");
         var updates = groups.OrderBy(g => g.Key.Side, StringComparer.Ordinal).ThenBy(g => g.Key.Type ?? "", StringComparer.Ordinal)
             .ThenBy(g => g.Key.Knight ?? "", StringComparer.Ordinal).Select(g => {
-                long siegePursuit = g.Value.SiegeStarting == 0 ? 0 : checked((long)decimal.Round((decimal)g.Value.SiegeMachines * (g.Value.SiegeMain - g.Value.SiegeFinal) / g.Value.SiegeStarting, 0, MidpointRounding.AwayFromZero));
                 return new CombatResultStatisticsUpdate(g.Key.Side, g.Key.Type, g.Key.Knight,
-                    g.Value.MainKills, g.Value.PursuitKills, g.Value.Final, checked((int)(g.Value.NormalPursuit + siegePursuit)));
+                    g.Value.MainKills, g.Value.PursuitKills, g.Value.Final, checked((int)(g.Value.NormalPursuit + g.Value.SiegePursuit)));
             }).ToArray();
         return new(Array.AsReadOnly(updates), diagnostics.AsReadOnly());
 

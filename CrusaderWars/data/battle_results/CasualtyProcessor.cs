@@ -145,6 +145,10 @@ namespace CrusaderWars.data.battle_results
         static void ChangeRegimentsSoldiers(Army army)
         {
             Program.Logger.Debug($"Entering ChangeRegimentsSoldiers for army {army.ID}.");
+            // Validate every exact siege source before mutating any source counts.
+            // Crew counts remain raw at every battle scale; native equipment is
+            // weighted by explicit per-formation representation, not template size.
+            var siegeSurvivors = GetSiegeSourceSurvivors(army);
 
             // Separate ArmyRegiments into levy and non-levy regiments
             var levyArmyRegiments = new List<ArmyRegiment>();
@@ -191,6 +195,12 @@ namespace CrusaderWars.data.battle_results
 
                 foreach (Regiment regiment in armyRegiment.Regiments)
                 {
+                    string siegeKey = StatFidelity.SiegeSourceBudget.Key(army.ID, armyRegiment.ID, regiment.ID, regiment.Index);
+                    if (siegeSurvivors.TryGetValue(siegeKey, out int survivingMachines))
+                    {
+                        regiment.SetSoldiers(survivingMachines.ToString(CultureInfo.InvariantCulture));
+                        continue;
+                    }
                     if (regiment.Culture is null || string.IsNullOrEmpty(regiment.CurrentNum)) continue;
 
                     // Direct-stat variants of identical culture/type can have different losses.
@@ -318,6 +328,38 @@ namespace CrusaderWars.data.battle_results
                 Program.Logger.Debug(
                     $"Updated ArmyRegiment {armyRegiment.ID} total soldiers to: {army_regiment_total}");
             }
+        }
+
+        private static Dictionary<string, int> GetSiegeSourceSurvivors(Army army)
+        {
+            var result = new Dictionary<string, int>(StringComparer.Ordinal);
+            if (!StatFidelity.StatFidelitySession.HasBoundExport) return result;
+            foreach (var unit in army.Units.Where(u => u.IsSiege()))
+            {
+                string key = StatFidelity.SiegeSourceBudget.Key(unit.SourceArmyId ?? "", unit.SourceArmyRegimentId ?? "", unit.SourceRegimentId ?? "", unit.SourceChunkIndex);
+                if (unit.SiegeRepresentation == null || !StatFidelity.StatFidelitySession.SiegeSources.ContainsKey(key))
+                    throw new InvalidOperationException("Missing exact siege deployment/source metadata; regenerate this battle before importing results: " + key);
+            }
+            foreach (var budget in StatFidelity.StatFidelitySession.SiegeSources.Values.Where(b => b.ArmyId == army.ID))
+            {
+                var source = army.ArmyRegiments.Where(ar => ar.ID == budget.ArmyRegimentId).SelectMany(ar => ar.Regiments)
+                    .Single(r => r.ID == budget.RegimentId && (string.IsNullOrEmpty(r.Index) ? "0" : r.Index) == budget.ChunkIndex);
+                if (int.Parse(source.CurrentNum, CultureInfo.InvariantCulture) != budget.OriginalMachines)
+                    throw new InvalidOperationException("Native siege source population changed before import: " + budget.Identity);
+                var formations = new List<StatFidelity.SiegeCrewResult>();
+                foreach (var unit in army.Units.Where(u => u.SiegeRepresentation != null &&
+                    StatFidelity.SiegeSourceBudget.Key(u.SourceArmyId ?? "", u.SourceArmyRegimentId ?? "", u.SourceRegimentId ?? "", u.SourceChunkIndex) == budget.Identity))
+                {
+                    var metadata = unit.SiegeRepresentation!;
+                    var reports = army.CasualitiesReports.Where(r => r.Script.Contains("_" + unit.UniqueID + "_CULTURE", StringComparison.Ordinal)).ToArray();
+                    if (reports.Length != 1 || reports[0].GetStarting() != metadata.DeployedBodies)
+                        throw new InvalidOperationException("Missing or inconsistent raw crew report for exact siege source: " + budget.Identity);
+                    int remaining = reports[0].GetAliveAfterPursuit() >= 0 ? reports[0].GetAliveAfterPursuit() : reports[0].GetAliveBeforePursuit();
+                    formations.Add(new(metadata.SourceMachines, metadata.DeployedBodies, remaining));
+                }
+                result.Add(budget.Identity, StatFidelity.SiegeCasualtyAccounting.Survivors(budget.OriginalMachines, formations));
+            }
+            return result;
         }
 
         static void CreateUnitsReports(Army army)
@@ -466,7 +508,16 @@ namespace CrusaderWars.data.battle_results
                 int effectiveNumGuns = matchingUnit.GetNumGuns();
                 if (matchingUnit.IsSiegeEnginePerUnit() && effectiveNumGuns <= 0) effectiveNumGuns = 1;
 
-                if (matchingUnit.IsSiege() && effectiveNumGuns > 0)
+                if (matchingUnit.IsSiege() && StatFidelity.StatFidelitySession.HasBoundExport)
+                {
+                    var metadata = matchingUnit.SiegeRepresentation ?? throw new InvalidOperationException(
+                        "Siege formation lacks exact deployed crew/equipment metadata; regenerate the battle before result import: " + script);
+                    if (metadata.DeployedBodies <= 0 || metadata.SourceMachines < 0)
+                        throw new InvalidOperationException("Invalid siege representation metadata: " + script);
+                    starting = metadata.DeployedBodies;
+                    startingMachines = metadata.SourceMachines;
+                }
+                else if (matchingUnit.IsSiege() && effectiveNumGuns > 0)
                 {
                     startingMachines = effectiveNumGuns;
                     starting = unit_mapper.UnitMappers_BETA.ConvertMachinesToMen(startingMachines);
@@ -519,7 +570,8 @@ namespace CrusaderWars.data.battle_results
                 }
 
                 UnitCasualitiesReport unitReport;
-                if (requiresExactReport && (remaining > starting + 1 || pursuitRemaining > remaining + 1))
+                int tolerance = matchingUnit.SiegeRepresentation != null ? 0 : 1;
+                if (requiresExactReport && (remaining > starting + tolerance || pursuitRemaining > remaining + tolerance))
                     throw new InvalidOperationException("Impossible survivor totals for identified stat-fidelity unit " + script + ". Save update aborted.");
                 if (pursuitRemaining.HasValue)
                 {

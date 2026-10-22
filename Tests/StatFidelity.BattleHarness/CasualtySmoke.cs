@@ -21,20 +21,21 @@ internal static class CasualtySmoke
         Directory.CreateDirectory(root);
         string inputHash = Hash(gamestate);
         var armies = attackers.Concat(defenders).SelectMany(a => new[] { a }.Concat(a.MergedArmies)).DistinctBy(a => a.ID).ToArray();
-        var sourceUnits = armies.SelectMany(a => a.Units.Where(u => u.SourceIdentity != null && !u.IsSiege()).Select(u => (army: a, unit: u))).ToArray();
+        var sourceUnits = armies.SelectMany(a => a.Units.Where(u => u.SourceIdentity != null).Select(u => (army: a, unit: u))).ToArray();
         if (sourceUnits.Length == 0) throw new InvalidOperationException("Casualty smoke requires at least one real source MAA unit.");
-        var identities = sourceUnits.Select(x => Key(x.unit)).Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray();
+        var identities = sourceUnits.Select(x => Key(x.unit)).Concat(CrusaderWars.StatFidelity.StatFidelitySession.SiegeSources.Keys)
+            .Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray();
         var ratios = identities.Select((id, index) => (id, ratio: new[] { 0.25, 0.5, 0.75 }[index % 3])).ToDictionary(x => x.id, x => x.ratio);
         var sources = armies.SelectMany(a => a.ArmyRegiments.Where(r => r.Type == RegimentType.MenAtArms)
             .SelectMany(r => r.Regiments.Select(s => new Source(Key(a.ID, r.ID, s.ID, s.Index), a, r, s, int.Parse(s.CurrentNum, CultureInfo.InvariantCulture)))))
             .Where(s => ratios.ContainsKey(s.Identity)).ToArray();
-        var expected = sources.ToDictionary(s => s.Identity, s => checked((int)Math.Round(s.Starting * ratios[s.Identity])));
+        var expected = new Dictionary<string, int>();
         var byUniqueId = sourceUnits.ToDictionary(x => x.unit.UniqueID);
         var rows = new List<Row>();
         foreach (var element in XDocument.Load(battleXml).Descendants("unit"))
         {
             string script = element.Attribute("script_name")?.Value ?? "";
-            var parsed = Regex.Match(script, @"_army(?<army>\d+)_TYPE(?<type>.+?)_CULTURE(?<culture>[^_]+)_");
+            var parsed = Regex.Match(script, @"_army(?<army>\d+)_TYPE(?<type>.+?)_CULTURE(?<culture>[^_]*)_");
             if (!parsed.Success) continue;
             int deployed = int.Parse(element.Attribute("num_soldiers")?.Value ?? "0", CultureInfo.InvariantCulture);
             int remaining = deployed;
@@ -45,6 +46,29 @@ internal static class CasualtySmoke
                 parsed.Groups["culture"].Value, deployed, remaining.ToString(CultureInfo.InvariantCulture)));
         }
         if (rows.Count == 0) throw new InvalidOperationException("No generated XML unit scripts were available for the casualty smoke.");
+        // Independent expected native counts from the actual emitted body reports.
+        // Raw crew denominators remain raw at50%, and partial batteries carry their
+        // own equipment budget. Unrepresented registered sources remain untouched.
+        foreach (var source in sources)
+        {
+            var emitted = sourceUnits.Where(s => Key(s.unit) == source.Identity).Select(s =>
+                (s.unit, row: rows.Single(r => r.Type.EndsWith("_" + s.unit.UniqueID, StringComparison.Ordinal)))).ToArray();
+            if (CrusaderWars.StatFidelity.StatFidelitySession.SiegeSources.ContainsKey(source.Identity))
+            {
+                int represented = emitted.Sum(e => e.unit.SiegeRepresentation?.SourceMachines ?? throw new InvalidDataException("Synthetic siege fixture lacks exact metadata."));
+                decimal survivors = emitted.Sum(e => (decimal)e.unit.SiegeRepresentation!.SourceMachines *
+                    int.Parse(e.row.Remaining, CultureInfo.InvariantCulture) / e.row.Deployed);
+                expected[source.Identity] = checked(source.Starting - represented + (int)decimal.Round(survivors, 0, MidpointRounding.AwayFromZero));
+            }
+            else
+            {
+                double scale = CrusaderWars.client.ModOptions.GetBattleScale() / 100.0;
+                long starting = emitted.Sum(e => (long)Math.Round(e.row.Deployed / scale));
+                long remaining = emitted.Sum(e => (long)Math.Round(int.Parse(e.row.Remaining, CultureInfo.InvariantCulture) / scale));
+                if (starting <= 0) throw new InvalidDataException("Synthetic regular-source fixture has no deployed denominator.");
+                expected[source.Identity] = Math.Min(source.Starting, checked((int)Math.Round(source.Starting * Math.Min(1.0, (double)remaining / starting))));
+            }
+        }
         var chosen = sourceUnits[0];
         Row chosenRow = rows.Single(r => r.Type.EndsWith("_" + chosen.unit.UniqueID, StringComparison.Ordinal));
         var negative = new List<object>();
@@ -118,7 +142,9 @@ internal static class CasualtySmoke
         {
             success = true, syntheticResults = true, source = "Real converted battle XML plus deterministic artificial survivor reports",
             negativeCases = negative,
-            sources = sources.Select(s => new { s.Identity, starting = s.Starting, survivalFraction = ratios[s.Identity], expected = expected[s.Identity], reloaded = reloaded[s.Identity] }),
+            sources = sources.Select(s => new { s.Identity, starting = s.Starting, survivalFraction = ratios[s.Identity], expected = expected[s.Identity], reloaded = reloaded[s.Identity],
+                siege = sourceUnits.Any(u => Key(u.unit) == s.Identity && u.unit.SiegeRepresentation != null) || CrusaderWars.StatFidelity.StatFidelitySession.SiegeSources.ContainsKey(s.Identity),
+                formations = sourceUnits.Where(u => Key(u.unit) == s.Identity).Select(u => new {u.unit.UniqueID,u.unit.SiegeRepresentation}) }),
             inputGamestateUnchanged = Hash(gamestate) == inputHash,
             armyRegimentTotalsMatch = true,
             achievementEligibilityFlagsPreserved = true,

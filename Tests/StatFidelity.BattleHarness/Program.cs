@@ -7,6 +7,7 @@ using CrusaderWars.locs;
 using CrusaderWars.StatFidelity;
 using CrusaderWars.twbattle;
 using CrusaderWars.unit_mapper;
+using System.Globalization;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
@@ -29,7 +30,7 @@ internal static class Replay
             var flags = ParseArguments(args);
             if (flags.ContainsKey("help"))
             {
-                Console.WriteLine("Offline CK3 battle replay: --runtime DIR --save FILE --log FILE --out NEW_DIR [--mapper DefaultCK3] [--export-only | --snapshot-only --player-id ID] [--attila EXE] [--stat-cache DIR] [--stat-settings JSON] [--casualty-smoke]");
+                Console.WriteLine("Offline CK3 battle replay: --runtime DIR --save FILE --log FILE --out NEW_DIR [--mapper DefaultCK3] [--battle-scale 1..100] [--export-only | --snapshot-only --player-id ID] [--attila EXE] [--stat-cache DIR] [--stat-settings JSON] [--casualty-smoke]");
                 Console.WriteLine("Copies inputs into a new output directory. Never launches games or overwrites a personal campaign. --attila additionally generates database TSV variants from installed packs, without loading a game.");
                 Console.WriteLine("--native-aar FILE --deployed-xml FILE --observed-fates FILE replays hash-bound actual results and original fate decisions into an isolated result save.");
                 Console.WriteLine("--ck3-user-dir DIR selects the source CK3 user directory for read-only active-mod/landed-title lookups; defaults to Documents/Paradox Interactive/Crusader Kings III.");
@@ -46,6 +47,9 @@ internal static class Replay
                 throw new ArgumentException("--out must be outside the installed runtime, so copying assets cannot recurse into its own output.");
             if (!Directory.Exists(runtime) || !File.Exists(save) || !File.Exists(log)) throw new FileNotFoundException("The runtime, save and log inputs must exist.");
             string mapperTag = flags.GetValueOrDefault("mapper", "DefaultCK3");
+            if (!int.TryParse(flags.GetValueOrDefault("battle-scale", "100"), NumberStyles.None, CultureInfo.InvariantCulture, out int battleScale)
+                || battleScale < 1 || battleScale > 100)
+                throw new ArgumentException("--battle-scale must be a whole percentage from 1 through 100.");
             var activeSubmods = flags.GetValueOrDefault("active-submods", "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
                 .Distinct(StringComparer.Ordinal).ToList();
             string? capturedSettings = flags.TryGetValue("settings", out var settingsSource) ? Path.GetFullPath(settingsSource, originalDirectory) : null;
@@ -65,7 +69,7 @@ internal static class Replay
             File.Copy(save, Path.Combine(output, "inputs", "handoff.ck3"));
             var manifest = new
             {
-                schemaVersion = 1, createdUtc = DateTime.UtcNow, runtime, save, log, mapperTag, activeSubmods, capturedSettings,
+                schemaVersion = 1, createdUtc = DateTime.UtcNow, runtime, save, log, mapperTag, activeSubmods, capturedSettings, battleScale,
                 optionsSha256 = Hash(Path.Combine(output, "settings", "Options.xml")),
                 saveSha256 = Hash(Path.Combine(output, "inputs", "handoff.ck3")), logSha256 = Hash(Path.Combine(output, "inputs", "console.log")),
                 gameLaunched = false, campaignSaveWritten = false,
@@ -86,7 +90,7 @@ internal static class Replay
             File.WriteAllText(settingsPath, flags.TryGetValue("stat-settings", out var customSettings)
                 ? File.ReadAllText(Path.GetFullPath(customSettings, originalDirectory))
                 : JsonSerializer.Serialize(new StatFidelitySettings(), Json));
-            LoadOptions();
+            LoadOptions(battleScale);
             Data.Reset();
             Unit.ResetUniqueIDCounter();
             string isolatedSave = Path.Combine(output, "inputs", "handoff.ck3");
@@ -145,9 +149,9 @@ internal static class Replay
             BattleFile.SetArmiesSides(attackers, defenders);
             UnitsFile.ResetProcessedArmies();
             StatFidelitySession.ResetGeneration();
-            if (StatFidelitySession.Settings.EnableKnightCalibration && StatFidelitySession.Settings.KnightBudgetMode == "Anchored")
+            if (StatFidelitySession.HasBoundExport)
             {
-                stage = "prepare-knight-database";
+                stage = "prepare-active-database";
                 EnsureBackendAssets(runtime, output);
                 string attilaForBudget = flags.TryGetValue("attila", out var selectedAttila) ? Path.GetFullPath(selectedAttila, originalDirectory) : CrusaderWars.Properties.Settings.Default.VAR_attila_path;
                 string? cache = flags.TryGetValue("stat-cache", out var selectedCache) ? Path.GetFullPath(selectedCache, originalDirectory) : null;
@@ -268,7 +272,7 @@ internal static class Replay
     private static object ArmySummary(Army army) => new
     {
         army.ID, army.CombatSide, army.CommanderID,
-        units = army.Units.Select(u => new { u.UniqueID, name = u.GetName(), type = u.GetRegimentType().ToString(), soldiers = u.GetSoldiers(), u.SourceIdentity, u.SourceOwnerId, u.SourceOriginProvinceId, u.OriginalAttilaKey, key = u.GetAttilaUnitKey() }),
+        units = army.Units.Select(u => new { u.UniqueID, name = u.GetName(), type = u.GetRegimentType().ToString(), soldiers = u.GetSoldiers(), u.SourceIdentity, u.SourceOwnerId, u.SourceOriginProvinceId, u.OriginalAttilaKey, u.SiegeRepresentation, key = u.GetAttilaUnitKey() }),
         merged = (army.MergedArmies ?? new List<Army>()).Select(ArmySummary)
     };
 
@@ -342,7 +346,7 @@ internal static class Replay
     private static void InvokeArmyReader(string method, params object[] arguments) =>
         typeof(ArmiesReader).GetMethod(method, BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, arguments);
 
-    private static void LoadOptions()
+    private static void LoadOptions(int battleScale)
     {
         // Read the same option names without invoking WinForms validation dialogs.
         var document = XDocument.Load(Path.Combine("settings", "Options.xml"));
@@ -353,7 +357,7 @@ internal static class Replay
         ModOptions.optionsValuesCollection["CloseCK3"] = "Disabled";
         ModOptions.optionsValuesCollection["CloseAttila"] = "Disabled";
         ModOptions.optionsValuesCollection["AutoScaleUnits"] = "Disabled";
-        ModOptions.optionsValuesCollection["BattleScale"] = "100%";
+        ModOptions.optionsValuesCollection["BattleScale"] = battleScale.ToString(CultureInfo.InvariantCulture) + "%";
     }
 
     private static void ConfigureReadOnlyGamePaths(string userDirectory, string output)
@@ -426,7 +430,7 @@ internal static class Replay
             if (args[i] is "--help" or "--export-only" or "--snapshot-only" or "--casualty-smoke") { result[args[i][2..]] = ""; continue; }
             if (!args[i].StartsWith("--") || i + 1 == args.Length) throw new ArgumentException("Expected --name value. Use --help.");
             string key = args[i][2..];
-            if (key is not ("runtime" or "save" or "log" or "out" or "mapper" or "attila" or "stat-settings" or "player-id" or "ck3-user-dir" or "stat-cache" or "development-controller" or "native-aar" or "deployed-xml" or "observed-fates" or "settings" or "active-submods")) throw new ArgumentException("Unknown option: " + key);
+            if (key is not ("runtime" or "save" or "log" or "out" or "mapper" or "attila" or "stat-settings" or "player-id" or "ck3-user-dir" or "stat-cache" or "development-controller" or "native-aar" or "deployed-xml" or "observed-fates" or "settings" or "active-submods" or "battle-scale")) throw new ArgumentException("Unknown option: " + key);
             if (!result.TryAdd(key, args[++i])) throw new ArgumentException("Repeated option: " + key);
         }
         return result;

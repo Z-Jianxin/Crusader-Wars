@@ -273,7 +273,8 @@ if (BattleResult.Player_Combat is not null)
             ReadRegiments();
             ReadOriginsKeys();
 
-            // Correct regiment soldiers to use starting values from combat data
+            // Legacy reconstruction uses combat starting values. A bound fidelity
+            // handoff keeps the exact surviving native source chunks instead.
             CorrectRegimentSoldiers();
 
             // Log army counts before proceeding
@@ -1128,6 +1129,15 @@ if (BattleResult.Player_Combat is not null)
 
         private static void CorrectRegimentSoldiers()
         {
+            if (StatFidelity.StatFidelitySession.HasBoundExport)
+            {
+                // StartingNum is historical combat deployment, not the population
+                // still available at handoff. Restoring it resurrects prior losses
+                // and can redistribute other chunks. ReadRegiments already read
+                // each exact source's current count; preserve it and the history.
+                Program.Logger.Debug("Bound stat-fidelity handoff preserves native source current counts; historical combat starting counts are not restored.");
+                return;
+            }
             Program.Logger.Debug("Correcting regiment soldiers to use starting values from combat data...");
 
             // Process attacker armies

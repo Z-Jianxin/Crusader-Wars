@@ -79,6 +79,9 @@ namespace CrusaderWars.StatFidelity
         private static readonly Dictionary<string, KnightBudgetPlan> knightBudgetPlans = new Dictionary<string, KnightBudgetPlan>(StringComparer.Ordinal);
         private static readonly List<DeployedFormation> deployedRoster = new();
         private static readonly List<object> deployedSourceBindings = new();
+        private static readonly Dictionary<string, SiegeSourceBudget> siegeSources = new(StringComparer.Ordinal);
+        private static readonly Dictionary<string, SiegeFormationRepresentation> siegeFormations = new(StringComparer.Ordinal);
+        public static IReadOnlyDictionary<string, SiegeSourceBudget> SiegeSources => new System.Collections.ObjectModel.ReadOnlyDictionary<string, SiegeSourceBudget>(siegeSources);
         public static IReadOnlyList<DeployedFormation> DeployedRoster => deployedRoster.AsReadOnly();
         public static PreparedAttilaDatabase? PreparedDatabase { get; private set; }
         public static bool Enabled { get; private set; }
@@ -95,6 +98,7 @@ namespace CrusaderWars.StatFidelity
             profiles.Clear(); messages.Clear(); coverage.Clear(); preparedKnightArmies.Clear(); calibratedKnightUnits.Clear(); regimentLookup.Clear();
             commanderKnightBudgets.Clear();
             knightBudgetPlans.Clear(); deployedRoster.Clear(); deployedSourceBindings.Clear(); PreparedDatabase = null;
+            siegeSources.Clear(); siegeFormations.Clear();
             SaveEvidenceValidated = false;
             Enabled = ModOptions.optionsValuesCollection.TryGetValue("StatFidelityMode", out string? mode) && (mode == "Validated" || mode == "Enabled");
             Export = Enabled ? StatExportParser.Parse(log) : new StatExport();
@@ -129,6 +133,7 @@ namespace CrusaderWars.StatFidelity
         {
             profiles.Clear(); messages.Clear(); coverage.Clear(); preparedKnightArmies.Clear(); calibratedKnightUnits.Clear();
             regimentLookup.Clear(); commanderKnightBudgets.Clear(); knightBudgetPlans.Clear(); deployedRoster.Clear(); deployedSourceBindings.Clear();
+            siegeSources.Clear(); siegeFormations.Clear();
             PreparedDatabase = null; SaveEvidenceValidated = false; Export = new StatExport(); Settings = new StatFidelitySettings();
             Enabled = ModOptions.optionsValuesCollection.TryGetValue("StatFidelityMode", out string? mode) && (mode == "Enabled" || mode == "Validated");
             return Failure(reason);
@@ -165,7 +170,7 @@ namespace CrusaderWars.StatFidelity
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, JsonSerializer.Serialize(new { schemaVersion = 1, battleId = Export.BattleId, complete = Export.Complete, saveEvidenceValidated = SaveEvidenceValidated,
                 acceptedRegiments = Export.Regiments.Count, acceptedLevies = Export.Levies.Count, acceptedCommanders = Export.Commanders.Count, acceptedKnights = Export.Knights.Count,
-                generatedProfiles = profiles.Count, deployedFormations = deployedSourceBindings, settings = Settings,
+                generatedProfiles = profiles.Count, deployedFormations = deployedSourceBindings, siegeSourceBudgets = siegeSources.Values, settings = Settings,
                 scope = new {
                     regimentScaling = "effective/base ratios on mapped Attila templates",
                     commanderScaling = "difference of exported character commander advantage; not complete combat advantage",
@@ -185,6 +190,7 @@ namespace CrusaderWars.StatFidelity
                 throw Failure("Archived deployed roster binding is restricted to an explicit isolated development replay.");
             deployedRoster.Clear();
             deployedSourceBindings.Clear();
+            siegeFormations.Clear();
             var units = new Dictionary<int, Unit>();
             var visited = new HashSet<Army>();
             void visit(Army army)
@@ -210,14 +216,30 @@ namespace CrusaderWars.StatFidelity
                     !units.TryGetValue(unitId, out var source) || !emittedNames.Add(script) || !emittedIds.Add(unitId))
                     throw Failure("Generated formation cannot be bound uniquely to its source unit: " + script + ". Save result import is disabled.");
                 deployedRoster.Add(new DeployedFormation(script, bodies));
+                if (deployedRoster.Count > BattleReportEvidence.MaximumFormations)
+                    throw Failure("The emitted battle exceeds the complete-report formation limit; no unreimportable pack was generated.");
+                if (source.IsSiege())
+                {
+                    var siege = source.SiegeRepresentation ?? throw Failure("Emitted siege formation lacks exact equipment/crew metadata: " + script);
+                    if (siege.DeployedBodies != bodies || siege.SourceMachines < 0 || siege.AttilaEngines is <= 0 || string.IsNullOrWhiteSpace(siege.Kind))
+                        throw Failure("Invalid emitted siege metadata: " + script);
+                    string sourceKey = SiegeSourceBudget.Key(source.SourceArmyId ?? "", source.SourceArmyRegimentId ?? "", source.SourceRegimentId ?? "", source.SourceChunkIndex);
+                    if (!siegeSources.ContainsKey(sourceKey)) throw Failure("Unregistered exact siege source: " + sourceKey);
+                    siegeFormations.Add(script, siege);
+                }
                 deployedSourceBindings.Add(new {
                     scriptName = script, deployedBodies = bodies, unitId,
                     armyId = identity.Groups["army"].Value, unitType = source.GetRegimentType().ToString(),
                     source.SourceIdentity, source.SourceOwnerId, source.SourceOriginProvinceId,
+                    source.SiegeRepresentation,
                     emittedUnitKey = element.Element("unit_type")?.Attribute("type")?.Value
                 });
             }
             if (deployedRoster.Count == 0) throw Failure("The deployed native roster is empty.");
+            foreach (var group in units.Values.Where(u => u.SiegeRepresentation != null).GroupBy(u =>
+                SiegeSourceBudget.Key(u.SourceArmyId ?? "", u.SourceArmyRegimentId ?? "", u.SourceRegimentId ?? "", u.SourceChunkIndex)))
+                if (!siegeSources.TryGetValue(group.Key, out var budget) || group.Sum(u => (long)u.SiegeRepresentation!.SourceMachines) > budget.OriginalMachines)
+                    throw Failure("Siege formations exceed or lack their exact native source budget: " + group.Key);
             var generatedNames = Data.units_scripts.Select(u => u.unitName).ToHashSet(StringComparer.Ordinal);
             if (!emittedNames.SetEquals(generatedNames))
             {
@@ -526,13 +548,44 @@ namespace CrusaderWars.StatFidelity
             deployedRoster.Clear(); deployedSourceBindings.Clear();
             profiles.Clear(); coverage.Clear(); preparedKnightArmies.Clear(); calibratedKnightUnits.Clear();
             knightBudgetPlans.Clear();
+            siegeSources.Clear(); siegeFormations.Clear();
         }
 
         public static void PrepareKnightBudgetDatabase(string runtimeRoot, string attilaExecutable, string? cacheRoot = null)
         {
-            if (!HasBoundExport || !Settings.EnableKnightCalibration || Settings.KnightBudgetMode != "Anchored" || Export.Knights.Count == 0) return;
+            // Siege batteries also require the active database, independently of
+            // whether knights exist or knight calibration was explicitly disabled.
+            if (!HasBoundExport) return;
             if (PreparedDatabase == null) PreparedDatabase = StatFidelityBackend.Prepare(runtimeRoot, attilaExecutable, cacheRoot);
             else PreparedDatabase.AssertFresh();
+        }
+
+        public static bool IsSiegeFormation(string script) => HasBoundExport && siegeFormations.ContainsKey(
+            script.StartsWith("kills_", StringComparison.Ordinal) ? script[6..] : script);
+
+        public static void RegisterSiegeSource(Army army, Unit source)
+        {
+            if (!HasBoundExport) return;
+            if (source.SourceArmyId != army.ID || string.IsNullOrEmpty(source.SourceArmyRegimentId) || string.IsNullOrEmpty(source.SourceRegimentId))
+                throw Failure("Siege source identity does not belong to its native army.");
+            string chunk = string.IsNullOrEmpty(source.SourceChunkIndex) ? "0" : source.SourceChunkIndex;
+            var matches = army.ArmyRegiments.Where(ar => ar.ID == source.SourceArmyRegimentId)
+                .SelectMany(ar => ar.Regiments).Where(r => r.ID == source.SourceRegimentId && (string.IsNullOrEmpty(r.Index) ? "0" : r.Index) == chunk).ToArray();
+            if (matches.Length != 1 || !int.TryParse(matches[0].CurrentNum, NumberStyles.None, CultureInfo.InvariantCulture, out int current))
+                throw Failure("Siege source has no unique bounded native population: " + source.SourceIdentity);
+            var budget = new SiegeSourceBudget(army.ID, source.SourceArmyRegimentId, source.SourceRegimentId, chunk, current);
+            if (siegeSources.TryGetValue(budget.Identity, out var previous) && previous != budget)
+                throw Failure("Siege source changed during generation: " + budget.Identity);
+            siegeSources[budget.Identity] = budget;
+        }
+
+        public static string RegisterSiegeProfile(UnitStatProfile profile)
+        {
+            if (!HasBoundExport) throw Failure("Siege profile requires a bound battle export.");
+            if (profiles.TryGetValue(profile.Id, out var existing) && existing != profile)
+                throw Failure("Conflicting siege database profile: " + profile.Id);
+            profiles[profile.Id] = profile;
+            return StatFidelityBackend.GeneratedKey(profile);
         }
 
         private static KnightBudgetPlan PlanKnightBudget(Army army, string mappedKey, IReadOnlyList<KnightStats> rows)
