@@ -101,6 +101,57 @@ public sealed class LevyCohortScalingTests : IDisposable
         Assert.Throws<InvalidOperationException>(() => StatFidelitySession.ValidateLevyCohortDeployment(army));
     }
 
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public void EntirelyWoundedPopulationKeepsStockWithoutAnActorOrFalseOmission(bool maa)
+    {
+        ArmyProportions.SetRatio(100);
+        var levy = Source("20", "200", 101); Emit(101);
+        var menAtArms = MaaSource(); EmitMaa(101);
+        Population("20", RegimentType.Levy, maa ? 101m : 0m, maa ? 0m : 100.2m);
+        Population("10", RegimentType.MenAtArms, maa ? 0m : 101m, maa ? 100.2m : 0m);
+        StatFidelitySession.ApplyNativeActiveDeployment(army);
+        StatFidelitySession.RegisterLevyCohorts(army, verifyOriginalStrength: true);
+        StatFidelitySession.RegisterMaaSourceCohorts(army, verifyOriginalStrength: true);
+        StatFidelitySession.ValidateLevyCohortDeployment(army);
+        StatFidelitySession.ValidateMaaSourceDeployment(army);
+        Assert.Equal("101", levy.CurrentNum); Assert.Equal("101", menAtArms.CurrentNum);
+        Assert.DoesNotContain(army.Units, u => u.GetRegimentType() == (maa ? RegimentType.MenAtArms : RegimentType.Levy));
+        Assert.Equal(0, maa ? Assert.Single(StatFidelitySession.MaaSourceCohorts).DeployedBodies : Assert.Single(StatFidelitySession.LevyCohorts).DeployedBodies);
+        Assert.Equal(101, maa ? Assert.Single(StatFidelitySession.MaaSourceCohorts).NativeSoldiers : Assert.Single(StatFidelitySession.LevyCohorts).NativeSoldiers);
+        StatFidelitySession.ResetGeneration();
+        StatFidelitySession.ApplyNativeActiveDeployment(army);
+        StatFidelitySession.RegisterLevyCohorts(army, verifyOriginalStrength: true);
+        StatFidelitySession.RegisterMaaSourceCohorts(army, verifyOriginalStrength: true);
+    }
+
+    [Theory]
+    [InlineData(25)] [InlineData(50)] [InlineData(75)] [InlineData(100)]
+    public void MixedActiveAndWoundedCohortProofUsesActiveBodiesAndRejectsLossOnRegeneration(int scale)
+    {
+        ArmyProportions.SetRatio(scale);
+        Source("20", "200", 101); Emit(101);
+        MaaSource(); EmitMaa(101);
+        Population("20", RegimentType.Levy, 60.2m, 40.3m);
+        Population("10", RegimentType.MenAtArms, 60.2m, 40.3m);
+        StatFidelitySession.ApplyNativeActiveDeployment(army);
+        int expected = (int)Math.Round(60.2m * scale / 100m, MidpointRounding.AwayFromZero);
+        StatFidelitySession.RegisterLevyCohorts(army, verifyOriginalStrength: true);
+        StatFidelitySession.RegisterMaaSourceCohorts(army, verifyOriginalStrength: true);
+        Assert.Equal(expected, Assert.Single(StatFidelitySession.LevyCohorts).DeployedBodies);
+        Assert.Equal(expected, Assert.Single(StatFidelitySession.MaaSourceCohorts).DeployedBodies);
+        Assert.All(army.ArmyRegiments, r => Assert.Equal(101, r.CurrentNum));
+        foreach (var unit in army.Units) unit.SetInitialSoldiers(unit.GetSoldiers());
+        StatFidelitySession.ResetGeneration();
+        StatFidelitySession.ApplyNativeActiveDeployment(army);
+        StatFidelitySession.RegisterLevyCohorts(army, verifyOriginalStrength: true);
+        StatFidelitySession.RegisterMaaSourceCohorts(army, verifyOriginalStrength: true);
+        army.Units.Single(u => u.GetRegimentType() == RegimentType.Levy).ChangeSoldiers(expected - 1);
+        Assert.Throws<InvalidOperationException>(() => StatFidelitySession.ValidateLevyCohortDeployment(army));
+        army.Units.Single(u => u.GetRegimentType() == RegimentType.MenAtArms).ChangeSoldiers(expected - 1);
+        Assert.Throws<InvalidOperationException>(() => StatFidelitySession.ValidateMaaSourceDeployment(army));
+    }
+
     [Fact]
     public void InitialPartialMissingSourceCannotHideBehindAnotherPositiveLevyOfSameCulture()
     {
@@ -197,10 +248,29 @@ public sealed class LevyCohortScalingTests : IDisposable
         Assert.Equal(10, unit.GetSoldiers()); Assert.Equal(12, unknown.GetSoldiers()); Assert.Equal(2, army.Units.Count);
     }
 
+    [Fact]
+    public void EmptyNativeLevyCultureUsesVerifiedOwnerAppearanceAndKeepsExactSource()
+    {
+        ArmyProportions.SetRatio(100);
+        var source = Source("20", "200", 10); source.SetCulture(""); Emit(10);
+        StatFidelitySession.RegisterLevyCohorts(army, verifyOriginalStrength: true);
+        var budget = Assert.Single(StatFidelitySession.LevyCohorts);
+        Assert.Equal("7", budget.CultureId);
+        Assert.Equal(new NativeLevySource("20", "200", "0", 10), Assert.Single(budget.Sources));
+        Assert.Equal("", source.Culture.ID); Assert.Equal("10", source.CurrentNum);
+    }
+
     private Regiment Source(string armyRegiment, string id, int count)
     {
         var source = new Regiment(id, "0"); source.SetSoldiers(count.ToString()); source.SetMax((count + 10).ToString()); source.SetCulture("7"); source.SetOwner("42");
         var regiment = new ArmyRegiment(armyRegiment) {CurrentNum = count}; regiment.SetType(RegimentType.Levy, ""); regiment.SetRegiments(new() {source}); army.ArmyRegiments.Add(regiment); return source;
+    }
+    private void Population(string id, RegimentType kind, decimal active, decimal soft)
+    {
+        var regiment = army.ArmyRegiments.Single(r => r.ID == id);
+        StatFidelitySession.RegisterNativePopulationBudget(NativePopulationLedger.Create("attacker", "1", id, kind,
+            regiment.MAA_Name, regiment.CurrentNum, active, soft, regiment.Regiments.Select(s =>
+                new NativePopulationSourceStock(s.ID, s.Index, int.Parse(s.CurrentNum), s.Culture.ID)).ToArray()));
     }
     private Regiment MaaSource()
     {

@@ -22,16 +22,19 @@ public static class NativeMappingPolicy
         if (CohortCategory(category) == null) return "unsupported-native-family:" + category;
         if (unit.IsNaval || unit.EngineKey.Length > 0) return "ship-or-combat-artillery";
         bool foot = !unit.IsMounted && !unit.HasSpecialEntity && unit.Category is "inf_melee" or "inf_ranged";
-        bool horse = unit.IsMounted && unit.Category == "cavalry" && unit.MountEntityType == "horse";
+        bool horse = unit.IsMounted && unit.Category == "cavalry" && (unit.MountEntityType == "horse" || unit.CavalryAdapter != null);
         bool ranged = unit.HasMissileWeapon && unit.MissilePrecursor == false && unit.Ammunition > 0;
+        var reviewedRoles = unit.CavalryAdapter?.Role.Split(',') ?? Array.Empty<string>();
+        bool heavy = unit.CavalryAdapter != null ? reviewedRoles.Contains("heavy") : unit.Weight is "heavy" or "very_heavy" or "super_heavy";
+        bool light = unit.CavalryAdapter != null ? reviewedRoles.Contains("light") : unit.Weight is "very_light" or "light" or "medium";
         return category switch {
             "heavy_infantry" or "pikemen" or "skirmishers" or "peasant_militia" => foot ? null : "foot-native-with-nonfoot-template",
             "archers" => foot && ranged ? null : "foot-archers-without-sustained-missile",
-            "heavy_cavalry" => horse && (unit.Weight is "heavy" or "very_heavy" or "super_heavy") &&
-                (nativeType == "cataphract_archers" ? ranged : !unit.HasMissileWeapon || unit.MissilePrecursor == true)
+            "heavy_cavalry" => horse && heavy &&
+                (nativeType == "cataphract_archers" ? ranged && (unit.CavalryAdapter == null || reviewedRoles.Contains("archer")) : !unit.HasMissileWeapon || unit.MissilePrecursor == true)
                 ? null : "heavy-cavalry-with-incompatible-horse-template",
-            "light_cavalry" => horse && unit.Weight is "very_light" or "light" or "medium" ? null : "light-cavalry-with-nonlight-horse-template",
-            "archer_cavalry" => horse && ranged ? null : "horse-archers-without-mounted-missile-template",
+            "light_cavalry" => horse && light ? null : "light-cavalry-with-nonlight-horse-template",
+            "archer_cavalry" => horse && ranged && (unit.CavalryAdapter == null || reviewedRoles.Contains("archer")) ? null : "horse-archers-without-mounted-missile-template",
             _ => "unsupported-native-family:" + category
         };
     }

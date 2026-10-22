@@ -21,7 +21,8 @@ public sealed record MaaSourceCasualties(MaaSourceBudget Budget, int MainSurvivo
 public static partial class StatFidelitySession
 {
     private static readonly Dictionary<string, MaaSourceBudget> maaSources = new(StringComparer.Ordinal);
-    private sealed record MaaStrengthProof(int NativeSoldiers, int PlannedBodies, int BattleScale);
+    private sealed record MaaStrengthProof(int NativeSoldiers, int PlannedBodies, int BattleScale,
+        decimal? Active, decimal? Soft);
     private static readonly Dictionary<string, MaaStrengthProof> maaStrengthProofs = new(StringComparer.Ordinal);
     private static readonly HashSet<string> maaRawFormations = new(StringComparer.Ordinal);
     public static IReadOnlyList<MaaSourceBudget> MaaSourceCohorts => maaSources.Values.ToArray();
@@ -46,24 +47,37 @@ public static partial class StatFidelitySession
             var guards = army.Units.Where(u => u.CommanderGuardRepresentation is {DonorType: RegimentType.MenAtArms} g &&
                 MaaSourceBudget.Key(g.ArmyId, g.SourceArmyRegimentId!, g.SourceRegimentId!, g.SourceChunkIndex) == identity).ToArray();
             int bodies = checked(units.Sum(u => u.GetSoldiers()) + guards.Sum(u => u.CommanderGuardRepresentation!.BorrowedBodies));
+            bool hasPopulation = TryGetNativeMaaDeployment(identity, out var population);
+            if (HasNativePopulationForArmy(army.ID) && !hasPopulation)
+                throw Failure("Native MAA source lacks its active/reserve deployment plan: " + identity);
+            if (hasPopulation && (population.Stock != native || population.DeployedBodies != bodies ||
+                population.BattleScale != ArmyProportions.BattleScale))
+                throw Failure("Native MAA stock or active representation differs from its immutable population plan: " + identity);
+            decimal active = hasPopulation ? population.Active : native;
+            decimal? proofActive = hasPopulation ? population.Active : null, proofSoft = hasPopulation ? population.Soft : null;
             if (verifyOriginalStrength)
             {
                 if (maaStrengthProofs.TryGetValue(identity, out var prior))
                 {
-                    if (prior.NativeSoldiers != native || prior.PlannedBodies != bodies || prior.BattleScale != ArmyProportions.BattleScale)
+                    if (prior.NativeSoldiers != native || prior.PlannedBodies != bodies || prior.BattleScale != ArmyProportions.BattleScale ||
+                        prior.Active != proofActive || prior.Soft != proofSoft)
                         throw Failure("MAA regeneration changed its native strength, represented body total, or battle scale. Rebuild from the native handoff: " + identity);
                 }
                 else
                 {
-                    int original = checked(units.Sum(u => u.GetOriginalSoldiers()));
-                    if (original != native || guards.Length > 0)
-                        throw Failure("Initial MAA representation does not prove its full native source strength: " + identity);
-                    maaStrengthProofs.Add(identity, new(native, bodies, ArmyProportions.BattleScale));
+                    if (!hasPopulation)
+                    {
+                        int original = checked(units.Sum(u => u.GetOriginalSoldiers()));
+                        if (original != native || guards.Length > 0)
+                            throw Failure("Initial MAA representation does not prove its full native source strength: " + identity);
+                    }
+                    maaStrengthProofs.Add(identity, new(native, bodies, ArmyProportions.BattleScale,
+                        proofActive, proofSoft));
                 }
             }
             if (maaSources.ContainsKey(identity)) continue;
-            if (native > 0 && bodies <= 0) throw Failure("Positive native MAA source has no represented formation: " + identity);
-            if (native == 0 && bodies > 0) throw Failure("Zero native MAA source has positive generated strength: " + identity);
+            if (active > 0 && bodies <= 0) throw Failure("Positive active native MAA source has no represented formation: " + identity);
+            if (active == 0 && bodies > 0) throw Failure("Inactive native MAA source has positive generated strength: " + identity);
             maaSources.Add(identity, new(army.ID, army.CombatSide, regiment.ID, source.ID,
                 string.IsNullOrEmpty(source.Index) ? "0" : source.Index, native, bodies));
         }
@@ -79,7 +93,10 @@ public static partial class StatFidelitySession
                 MaaSourceBudget.Key(u.SourceArmyId ?? "", u.SourceArmyRegimentId ?? "", u.SourceRegimentId ?? "", u.SourceChunkIndex) == budget.Identity).Sum(u => u.GetSoldiers()) +
                 army.Units.Where(u => u.CommanderGuardRepresentation is {DonorType: RegimentType.MenAtArms} g &&
                     MaaSourceBudget.Key(g.ArmyId, g.SourceArmyRegimentId!, g.SourceRegimentId!, g.SourceChunkIndex) == budget.Identity).Sum(u => u.CommanderGuardRepresentation!.BorrowedBodies));
-            if (represented != budget.DeployedBodies) throw Failure("MAA source deployment changed its planned body count: " + budget.Identity);
+            bool hasPopulation = TryGetNativeMaaDeployment(budget.Identity, out var population);
+            if (represented != budget.DeployedBodies ||
+                hasPopulation && (population.Stock != budget.NativeSoldiers || population.DeployedBodies != represented))
+                throw Failure("MAA source deployment changed its planned body count: " + budget.Identity);
         }
     }
 

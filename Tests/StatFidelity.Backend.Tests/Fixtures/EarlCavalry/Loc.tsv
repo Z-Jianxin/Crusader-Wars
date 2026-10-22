@@ -1,0 +1,9 @@
+key	text	tooltip
+#Loc;1;text/db/Loc		
+land_units_onscreen_name_mk_fre_t1_chevaliers_mounted	Chevaliers (Early)	true
+land_units_onscreen_name_mk_fre_t1_arbaletriers_mounted	Arbalestriers a Cheval (Early)	true
+land_units_onscreen_name_mk_fre_t1_mounted_sergeants	Sergents a Cheval (Early)	true
+land_units_onscreen_name_mk_eng_t1_knights	English Knights (Early)	true
+land_units_onscreen_name_mk_fre_t3_gendarmes	Gens d'Armes (Late)	true
+land_units_onscreen_name_mk_abb_t1_caliph_bodyguard	Humat al-Khalifah (Early)	true
+land_units_onscreen_name_mk_fre_t3_gentilshommes_a_bec_de_corbin	Gentilshommes a bec de Corbin	true

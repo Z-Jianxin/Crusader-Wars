@@ -561,6 +561,9 @@ namespace CrusaderWars.data.battle_results
                     if (regiment.CurrentNum is < 0 or > 1)
                         throw new InvalidDataException("Native knight regiment has an invalid character count: " + regiment.ID);
                     if (regiment.CurrentNum == 0) continue;
+                    if (StatFidelitySession.TryGetNativePopulationBudget(army.CombatSide, regiment.ID, out var population) &&
+                        population.InitialActive == 0 && !(army.Commander?.IsTrackedCharacter == true && army.Commander.ID == regiment.MAA_Name && army.Units.Any(unit =>
+                            unit.GetRegimentType() == RegimentType.Commander && unit.GetCharacterID() == regiment.MAA_Name))) continue;
                     var fate = CharacterFates.Get(regiment.MAA_Name);
                     if (fate.IsSlain || fate.IsCaptured) regiment.CurrentNum = 0;
                 }
@@ -2325,6 +2328,19 @@ namespace CrusaderWars.data.battle_results
                 return;
             }
 
+            if (StatFidelitySession.HasBoundExport)
+            {
+                var armies = FlattenBattleArmies(attacker_armies.Concat(defender_armies)).ToArray();
+                StatFidelitySession.FinalizeNativePopulationOutcomes(armies);
+                bool hasPopulations = armies.Any(a => a.ArmyRegiments.Any(r =>
+                    StatFidelitySession.TryGetNativePopulationBudget(a.CombatSide, r.ID, out _)));
+                if (hasPopulations || StatFidelitySession.NativeEquipmentInputs.Count > 0)
+                {
+                    EditNativePopulationCombatFile(armies);
+                    return;
+                }
+            }
+
             // 1. Set winner and phase changes on the main Player_Combat string
             string winner = IsAttackerVictorious ? "attacker" : "defender";
             SetWinner(winner); // This modifies Player_Combat in memory
@@ -2388,13 +2404,8 @@ namespace CrusaderWars.data.battle_results
             }
 
             // 4. Replace the original blocks in Player_Combat with the modified ones
-            if (StatFidelitySession.HasBoundExport)
-            {
-                // Direct native survivor counts already replace the interrupted CK3
-                // combat's damage. Do not apply its old fractional casualties again.
-                modifiedAttackerBlock = Regex.Replace(modifiedAttackerBlock, @"(?m)^([\t ]*soft_casualties=)[^\r\n]+", "${1}0");
-                modifiedDefenderBlock = Regex.Replace(modifiedDefenderBlock, @"(?m)^([\t ]*soft_casualties=)[^\r\n]+", "${1}0");
-            }
+            // Never erase a pre-existing native wounded pool wholesale. The bound
+            // population path above writes its exact active/soft state together.
             Player_Combat = Player_Combat!.Replace(originalAttackerBlock, modifiedAttackerBlock);
             Player_Combat = Player_Combat.Replace(originalDefenderBlock, modifiedDefenderBlock);
 
@@ -2403,6 +2414,107 @@ namespace CrusaderWars.data.battle_results
             string updatedFileContent = fullFileContent.Replace(Original_Player_Combat!, Player_Combat);
             File.WriteAllText(Writter.DataTEMPFilesPaths.Combats_Path(), updatedFileContent);
             Program.Logger.Debug("Finished editing Combat file.");
+        }
+
+        private static void EditNativePopulationCombatFile(IReadOnlyList<Army> armies)
+        {
+            string original = Original_Player_Combat ?? throw new InvalidDataException("Native population return lacks its original combat.");
+            var updates = new List<editors.NativeCombatReturnUpdate>();
+            foreach (var group in armies.SelectMany(a => a.ArmyRegiments.Select(r => (Army: a, Regiment: r)))
+                .Where(row => row.Regiment.Type != RegimentType.Commander)
+                .GroupBy(row => (row.Army.CombatSide, row.Regiment.ID)))
+            {
+                var row = group.First();
+                if (group.Any(other => !ReferenceEquals(other.Regiment, row.Regiment)))
+                    throw new InvalidDataException("Ambiguous native population return identity: " + group.Key);
+                if (StatFidelitySession.TryGetNativePopulationBudget(row.Army.CombatSide, row.Regiment.ID, out var budget))
+                {
+                    if (!StatFidelitySession.TryGetNativePopulationOutcome(row.Army.CombatSide, row.Regiment.ID, out var outcome))
+                        throw new InvalidDataException("Missing finalized native population outcome: " + group.Key);
+                    if (row.Regiment.CurrentNum != outcome.ReturnedStock || outcome.Budget != budget ||
+                        outcome.CharacterUnavailable && !budget.IsKnight ||
+                        outcome.FinalSoft != (outcome.CharacterUnavailable ? 0 : budget.PreservedSoft))
+                        throw new InvalidDataException("Native population return and cached source strength disagree: " + group.Key);
+                    if (outcome.IndependentCommanderRemoval)
+                    {
+                        var owner = armies.Single(a => a.ID == budget.ArmyId && a.CombatSide == budget.Side);
+                        if (!outcome.CharacterUnavailable || budget.InitialActive != 0 || owner.Commander?.IsTrackedCharacter != true || owner.Commander.ID != budget.NativeType ||
+                            !owner.Units.Any(unit => unit.GetRegimentType() == RegimentType.Commander && unit.GetCharacterID() == budget.NativeType) ||
+                            !CharacterFates.Entries.TryGetValue(budget.NativeType, out var decision) ||
+                            !(decision.Fate.IsSlain || decision.Fate.IsCaptured))
+                            throw new InvalidDataException("Inactive personal knight removal lacks its independently deployed commander fate.");
+                    }
+                    if (!budget.IsKnight)
+                    {
+                        var sourceRows = row.Regiment.Regiments.ToDictionary(source =>
+                            (source.ID, string.IsNullOrEmpty(source.Index) ? "0" : source.Index));
+                        if (sourceRows.Count != outcome.SourceOutcomes.Count)
+                            throw new InvalidDataException("Native source coverage differs from the population return: " + group.Key);
+                        foreach (var projected in outcome.SourceOutcomes)
+                        {
+                            if (!sourceRows.TryGetValue((projected.Budget.RegimentId, projected.Budget.ChunkIndex), out var source) ||
+                                !int.TryParse(source.CurrentNum, NumberStyles.None, CultureInfo.InvariantCulture, out int count) ||
+                                count != projected.ReturnedStock || count > projected.Budget.Stock)
+                                throw new InvalidDataException("Exact native source chunk disagrees with its population return: " + projected.Budget.Identity);
+                        }
+                        if (outcome.SourceOutcomes.Sum(source => source.ReturnedStock) != outcome.ReturnedStock)
+                            throw new InvalidDataException("Native source chunks disagree with the finalized population total: " + group.Key);
+                    }
+                    updates.Add(new(row.Army.CombatSide, row.Regiment.ID, budget.InitialActive, budget.PreservedSoft,
+                        outcome.FinalActiveRemaining, budget.Stock, outcome.ReturnedStock,
+                        CharacterUnavailable: outcome.CharacterUnavailable, IsCharacter: budget.IsKnight,
+                        IndependentCommanderRemoval: outcome.IndependentCommanderRemoval));
+                    continue;
+                }
+                // Equipment stock has its own immutable input, including exact
+                // zero sources which intentionally never created a Unit or ledger.
+                if (!StatFidelitySession.TryGetNativeEquipmentInput(row.Army.CombatSide, row.Regiment.ID, out var input) ||
+                    input.Active != decimal.Truncate(input.Active) || input.Soft != 0 || input.Active > input.Stock)
+                    throw new InvalidDataException("Native combat return lacks supported exact equipment input: " + group.Key);
+                var equipment = ArmiesReader.FieldSiegeParticipation.Where(p =>
+                    p.Side == row.Army.CombatSide && p.ArmyRegimentId == row.Regiment.ID).ToArray();
+                int sourceStock = 0, reserved = 0;
+                foreach (var source in row.Regiment.Regiments)
+                {
+                    string chunk = string.IsNullOrEmpty(source.Index) ? "0" : source.Index;
+                    var originalSource = input.Sources.SingleOrDefault(p => p.RegimentId == source.ID && p.ChunkIndex == chunk);
+                    var evidence = equipment.SingleOrDefault(p => p.SourceRegimentId == source.ID && p.ChunkIndex == chunk);
+                    if (originalSource == null || !int.TryParse(source.CurrentNum, NumberStyles.None, CultureInfo.InvariantCulture, out int count) ||
+                        count < 0 || count > originalSource.Stock)
+                        throw new InvalidDataException("Equipment source differs from its exact immutable stock input.");
+                    int sourceReserve;
+                    if (originalSource.Stock == 0)
+                    {
+                        if (count != 0 || evidence != null && (evidence.NativeStock != 0 || evidence.ActiveMachines != 0))
+                            throw new InvalidDataException("Zero original equipment source acquired returned machines.");
+                        sourceReserve = 0;
+                    }
+                    else
+                    {
+                        if (evidence == null || evidence.ArmyId != input.ArmyId || evidence.NativeStock != originalSource.Stock ||
+                            evidence.CombatCurrent != input.Active || count < evidence.ReservedMachines)
+                            throw new InvalidDataException("Equipment source return differs from its exact preserved reserve.");
+                        sourceReserve = evidence.ReservedMachines;
+                    }
+                    reserved = checked(reserved + sourceReserve);
+                    sourceStock = checked(sourceStock + count);
+                }
+                if (input.Sources.Count != row.Regiment.Regiments.Count || sourceStock != row.Regiment.CurrentNum ||
+                    reserved != input.Stock - input.Active || equipment.Any(e => !input.Sources.Any(p => p.RegimentId == e.SourceRegimentId && p.ChunkIndex == e.ChunkIndex)))
+                    throw new InvalidDataException("Equipment source coverage, reserve or cached return is inconsistent.");
+                updates.Add(new(row.Army.CombatSide, row.Regiment.ID, input.Active, input.Soft,
+                    row.Regiment.CurrentNum - reserved, input.Stock, row.Regiment.CurrentNum, reserved));
+            }
+            string edited = editors.NativeCombatReturnEditor.Edit(original,
+                IsAttackerVictorious ? "attacker" : "defender", updates,
+                CombatID ?? throw new InvalidDataException("Bound combat identity is absent."));
+            string full = File.ReadAllText(Writter.DataFilesPaths.Combats_Path());
+            string result = editors.NativeCombatReturnEditor.ReplaceInSection(full, CombatID!, original, edited);
+            // Validation above finishes before publishing the temporary section or
+            // changing in-memory state. Every repeat starts from the native input.
+            File.WriteAllText(Writter.DataTEMPFilesPaths.Combats_Path(), result);
+            Player_Combat = edited;
+            Program.Logger.Debug("Returned exact active populations with original wounded pools; native side bootstrap totals and historical counts preserved. Native wounded aftermath remains experimental pending engine controls.");
         }
 
         static int GetArmiesTotalFightingMen(List<Army> armies)

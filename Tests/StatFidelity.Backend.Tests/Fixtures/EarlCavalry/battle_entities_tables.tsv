@@ -1,0 +1,11 @@
+key	type	walk_speed	run_speed	acceleration	deceleration	charge_speed	crawl_speed	charge_distance_commence_run	charge_distance_adopt_charge_pose	charge_distance_pick_target	radius	shape	radii_ratio	mass	height	fire_arc_close	fire_arc_loose	turn_speed	hit_points	allow_turn_to_move_anim	allow_static_turn_anim	tracking_threshold	min_turning_speed	display_model_offset_z
+#battle_entities_tables;5;db/battle_entities_tables/battle_entities_tables																								
+earl_man_rider_poor_medium	man	1.4000	4.2075	1.5000	1.5000	4.2075	0.7000	45.0000	35.0000	30.0000	0.3500	circle	1.0000	131.0000	1.7000	150.0000	150.0000	90.0000	112	true	true	2.0000	0.0000	0.0000
+earl_man_rider_train_heavy	man	1.4000	3.9525	1.5000	1.5000	3.9525	0.7000	45.0000	35.0000	30.0000	0.4000	circle	1.0000	215.0000	1.8000	150.0000	150.0000	80.0000	148	true	true	2.0000	0.0000	0.0000
+earl_man_rider_elite_heavy	man	1.4000	3.9525	1.5000	1.5000	3.9525	0.7000	45.0000	35.0000	30.0000	0.4000	circle	1.0000	293.0000	1.8000	150.0000	150.0000	80.0000	172	true	true	2.0000	0.0000	0.0000
+earl_man_rider_elite_heavy_plate	man	1.4000	3.9525	1.5000	1.5000	3.9525	0.6000	45.0000	35.0000	30.0000	0.4000	circle	1.0000	315.0000	1.9000	150.0000	150.0000	70.0000	195	true	true	2.0000	0.0000	0.0000
+earl_elite_lancer_norman_A6_metal	horse	2.0000	5.3000	2.1000	2.1000	15.5000	1.0000	205.0000	145.0000	33.0000	1.2000	ellipse	0.5000	2100.0000	3.0000	150.0000	150.0000	30.0000	120	true	true	3.0000	1.5000	0.0000
+earl_elite_cataphract_premium-arabian_A4_lamellar	giant	2.0000	6.0000	2.8000	6.6000	8.0000	1.0000	170.0000	60.0000	33.0000	1.1500	ellipse	0.4000	1308.0000	2.8000	150.0000	150.0000	60.0000	195	true	true	3.0000	1.5000	0.0000
+earl_normal_eur_H2_rouncey_A1_body	horse	2.0000	9.0000	6.5000	6.5000	10.0000	1.0000	140.0000	60.0000	33.0000	1.1500	ellipse	0.4000	500.0000	2.8000	150.0000	150.0000	70.0000	60	true	true	3.0000	1.5000	0.0000
+earl_normal_lancer_eur_H3_warhorse_A2_caparisoned	horse	2.0000	9.0000	2.9400	2.9400	15.0000	1.0000	180.0000	120.0000	33.0000	1.2000	ellipse	0.5000	1100.0000	3.0000	150.0000	150.0000	40.0000	71	true	true	3.0000	1.5000	0.0000
+earl_elite_trample_norman_A6_metal	giant	2.0000	5.3000	2.1000	3.0000	15.5000	1.0000	205.0000	45.0000	33.0000	1.2000	ellipse	0.5000	2100.0000	3.0000	150.0000	150.0000	30.0000	120	true	true	3.0000	1.5000	0.0000

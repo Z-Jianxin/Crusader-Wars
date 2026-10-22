@@ -149,9 +149,27 @@ namespace CrusaderWars.data.battle_results
             // Crew counts remain raw at every battle scale; native equipment is
             // weighted by explicit per-formation representation, not template size.
             var siegeSurvivors = GetSiegeSourceSurvivors(army);
-            var guardSurvivors = StatFidelity.StatFidelitySession.GetCommanderGuardCasualties(army);
-            var levySurvivors = StatFidelity.StatFidelitySession.GetLevyCohortCasualties(army);
-            var maaSurvivors = StatFidelity.StatFidelitySession.GetMaaSourceCasualties(army);
+            bool populationCovered = StatFidelity.StatFidelitySession.HasNativePopulationForArmy(army.ID);
+            IReadOnlyList<StatFidelity.CommanderGuardCasualtyProjection> guardSurvivors = populationCovered ? Array.Empty<StatFidelity.CommanderGuardCasualtyProjection>() : StatFidelity.StatFidelitySession.GetCommanderGuardCasualties(army);
+            IReadOnlyList<StatFidelity.LevyCohortCasualties> levySurvivors = populationCovered ? Array.Empty<StatFidelity.LevyCohortCasualties>() : StatFidelity.StatFidelitySession.GetLevyCohortCasualties(army);
+            IReadOnlyList<StatFidelity.MaaSourceCasualties> maaSurvivors = populationCovered ? Array.Empty<StatFidelity.MaaSourceCasualties>() : StatFidelity.StatFidelitySession.GetMaaSourceCasualties(army);
+            var populationSources = populationCovered ? StatFidelity.StatFidelitySession.ProjectOrdinaryNativePopulations(army)
+                .SelectMany(o => o.SourceOutcomes).ToDictionary(o => o.Budget.Identity, StringComparer.Ordinal)
+                : new Dictionary<string, StatFidelity.NativePopulationSourceOutcome>(StringComparer.Ordinal);
+            if (populationCovered)
+            {
+                foreach (var regiment in army.ArmyRegiments.Where(r => r.Type is RegimentType.MenAtArms or RegimentType.Levy))
+                    if (!StatFidelity.StatFidelitySession.TryGetNativePopulationBudget(army.CombatSide, regiment.ID, out _) &&
+                        !StatFidelity.StatFidelitySession.TryGetNativeEquipmentInput(army.CombatSide, regiment.ID, out _))
+                        throw new InvalidOperationException("Native population return lacks an exact participating regiment: " + regiment.ID);
+                foreach (var source in populationSources.Values)
+                {
+                    var original = army.ArmyRegiments.Single(r => r.ID == source.Budget.ArmyRegimentId).Regiments.Single(r =>
+                        r.ID == source.Budget.RegimentId && (string.IsNullOrEmpty(r.Index) ? "0" : r.Index) == source.Budget.ChunkIndex);
+                    if (int.Parse(original.CurrentNum, CultureInfo.InvariantCulture) != source.Budget.Stock)
+                        throw new InvalidOperationException("Native source stock changed before active/soft casualty return: " + source.Budget.Identity);
+                }
+            }
             foreach (var outcome in maaSurvivors)
             {
                 var source = outcome.Budget;
@@ -214,6 +232,12 @@ namespace CrusaderWars.data.battle_results
 
                 foreach (Regiment regiment in armyRegiment.Regiments)
                 {
+                    string populationKey = StatFidelity.MaaSourceBudget.Key(army.ID, armyRegiment.ID, regiment.ID, regiment.Index);
+                    if (populationSources.TryGetValue(populationKey, out var populationSource))
+                    {
+                        regiment.SetSoldiers(populationSource.ReturnedStock.ToString(CultureInfo.InvariantCulture));
+                        continue;
+                    }
                     var maaSource = maaSurvivors.SingleOrDefault(g => g.Budget.Identity ==
                         StatFidelity.MaaSourceBudget.Key(army.ID, armyRegiment.ID, regiment.ID, regiment.Index));
                     if (maaSource != null)
@@ -226,6 +250,13 @@ namespace CrusaderWars.data.battle_results
                     {
                         regiment.SetSoldiers(survivingMachines.ToString(CultureInfo.InvariantCulture));
                         continue;
+                    }
+                    if (populationCovered)
+                    {
+                        if (StatFidelity.StatFidelitySession.TryGetNativeEquipmentInput(army.CombatSide, armyRegiment.ID, out var equipment) &&
+                            equipment.Sources.Any(s => s.RegimentId == regiment.ID && s.ChunkIndex == (string.IsNullOrEmpty(regiment.Index) ? "0" : regiment.Index) && s.Stock == 0) &&
+                            regiment.CurrentNum == "0") continue;
+                        throw new InvalidOperationException("Native population return cannot infer an uncovered source: " + populationKey);
                     }
                     // A zero native source creates no deployment/ledger entry.
                     // Do not let another same-type siege report revive it from Max.
@@ -285,6 +316,15 @@ namespace CrusaderWars.data.battle_results
             }
 
             // Process levy regiments correctly by culture group
+            if (populationCovered)
+                foreach (var regiment in levyArmyRegiments)
+                    foreach (var source in regiment.Regiments)
+                    {
+                        string key = StatFidelity.MaaSourceBudget.Key(army.ID, regiment.ID, source.ID, source.Index);
+                        if (!populationSources.TryGetValue(key, out var outcome))
+                            throw new InvalidOperationException("Native levy source has no active/soft return outcome: " + key);
+                        source.SetSoldiers(outcome.ReturnedStock.ToString(CultureInfo.InvariantCulture));
+                    }
             foreach (var outcome in levySurvivors)
             {
                 int[] allocated = StatFidelity.SurvivorApportionment.Allocate(outcome.Budget.Sources.Select(s => s.Soldiers).ToArray(), outcome.FinalSurvivors);

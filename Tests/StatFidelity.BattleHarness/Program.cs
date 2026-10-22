@@ -24,6 +24,7 @@ internal static class Replay
     {
         string originalDirectory = Environment.CurrentDirectory;
         string? output = null;
+        bool ownsOutput = false;
         string stage = "arguments";
         try
         {
@@ -35,8 +36,14 @@ internal static class Replay
                 Console.WriteLine("--native-aar FILE --deployed-xml FILE --observed-fates FILE replays hash-bound actual results and original fate decisions into an isolated result save.");
                 Console.WriteLine("--ck3-user-dir DIR selects the source CK3 user directory for read-only active-mod/landed-title lookups; defaults to Documents/Paradox Interactive/Crusader Kings III.");
                 Console.WriteLine("--settings DIR overlays captured settings into the isolated replay; --active-submods TAG[,TAG] explicitly selects mapper submods (historical default: none).");
+                Console.WriteLine("--casualty-mode partial|none and --smoke-winner attacker|defender select deliberately synthetic casualty controls; require --casualty-smoke.");
                 return 0;
             }
+            string smokeMode = flags.GetValueOrDefault("casualty-mode", "partial");
+            string smokeWinner = flags.GetValueOrDefault("smoke-winner", "attacker");
+            if (smokeMode is not ("partial" or "none") || smokeWinner is not ("attacker" or "defender") ||
+                (!flags.ContainsKey("casualty-smoke") && (flags.ContainsKey("casualty-mode") || flags.ContainsKey("smoke-winner"))))
+                throw new ArgumentException("Synthetic casualty controls require --casualty-smoke, mode partial|none and winner attacker|defender.");
             string runtime = Path.GetFullPath(Required(flags, "runtime"));
             string save = Path.GetFullPath(Required(flags, "save"));
             string log = Path.GetFullPath(Required(flags, "log"));
@@ -54,6 +61,7 @@ internal static class Replay
                 .Distinct(StringComparer.Ordinal).ToList();
             string? capturedSettings = flags.TryGetValue("settings", out var settingsSource) ? Path.GetFullPath(settingsSource, originalDirectory) : null;
             Directory.CreateDirectory(output);
+            ownsOutput = true;
             stage = "isolate-inputs";
             CopyTree(Path.Combine(runtime, "data", "battle files"), Path.Combine(output, "data", "battle files"));
             CopyTree(Path.Combine(runtime, "data", "traits"), Path.Combine(output, "data", "traits"));
@@ -223,7 +231,7 @@ internal static class Replay
             if (flags.ContainsKey("casualty-smoke"))
             {
                 stage = "synthetic-casualty-roundtrip";
-                casualtySmoke = CasualtySmoke.Run(attackers, defenders, gamestate, battleXml, output);
+                casualtySmoke = CasualtySmoke.Run(attackers, defenders, gamestate, battleXml, output, smokeMode, smokeWinner == "attacker");
             }
             object? actualCasualties = null;
             if (flags.TryGetValue("native-aar", out var actualAar))
@@ -260,7 +268,7 @@ internal static class Replay
         catch (Exception exception)
         {
             var error = exception is TargetInvocationException { InnerException: not null } invocation ? invocation.InnerException : exception;
-            if (output != null && Directory.Exists(output) && Environment.CurrentDirectory == output)
+            if (ownsOutput && output != null && Environment.CurrentDirectory == output)
             {
                 StatFidelitySession.WriteCoverageReport(output);
                 WriteJson(Path.Combine(output, "result.json"), new { success = false, stage, error = error.ToString(), gameLaunched = false, campaignSaveWritten = false });
@@ -274,7 +282,7 @@ internal static class Replay
     private static object ArmySummary(Army army) => new
     {
         army.ID, army.CombatSide, army.CommanderID,
-        units = army.Units.Select(u => new { u.UniqueID, name = u.GetName(), type = u.GetRegimentType().ToString(), soldiers = u.GetSoldiers(), u.SourceIdentity, u.SourceOwnerId, u.SourceOriginProvinceId, u.OriginalAttilaKey, u.SiegeRepresentation, u.CommanderGuardRepresentation, key = u.GetAttilaUnitKey() }),
+        units = army.Units.Select(u => new { u.UniqueID, name = u.GetName(), type = u.GetRegimentType().ToString(), soldiers = u.GetSoldiers(), cultureId = u.GetObjCulture()?.ID, u.SourceIdentity, u.SourceOwnerId, u.SourceOriginProvinceId, u.OriginalAttilaKey, u.SiegeRepresentation, u.CommanderGuardRepresentation, key = u.GetAttilaUnitKey() }),
         merged = (army.MergedArmies ?? new List<Army>()).Select(ArmySummary)
     };
 
@@ -432,7 +440,7 @@ internal static class Replay
             if (args[i] is "--help" or "--export-only" or "--snapshot-only" or "--casualty-smoke") { result[args[i][2..]] = ""; continue; }
             if (!args[i].StartsWith("--") || i + 1 == args.Length) throw new ArgumentException("Expected --name value. Use --help.");
             string key = args[i][2..];
-            if (key is not ("runtime" or "save" or "log" or "out" or "mapper" or "attila" or "stat-settings" or "player-id" or "ck3-user-dir" or "stat-cache" or "development-controller" or "native-aar" or "deployed-xml" or "observed-fates" or "settings" or "active-submods" or "battle-scale")) throw new ArgumentException("Unknown option: " + key);
+            if (key is not ("runtime" or "save" or "log" or "out" or "mapper" or "attila" or "stat-settings" or "player-id" or "ck3-user-dir" or "stat-cache" or "development-controller" or "native-aar" or "deployed-xml" or "observed-fates" or "settings" or "active-submods" or "battle-scale" or "casualty-mode" or "smoke-winner")) throw new ArgumentException("Unknown option: " + key);
             if (!result.TryAdd(key, args[++i])) throw new ArgumentException("Repeated option: " + key);
         }
         return result;

@@ -63,3 +63,6 @@
 #*.RTF   diff=astextplain
 # Enforce Unix-style line endings for shell scripts to ensure they are executable on Linux
 *.sh text eol=lf
+
+# RPFM fixture TSVs retain trailing empty columns, including schema metadata.
+Tests/StatFidelity.Backend.Tests/Fixtures/EarlCavalry/*.tsv whitespace=-blank-at-eol

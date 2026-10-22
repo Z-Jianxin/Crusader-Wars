@@ -2,6 +2,8 @@
 
 The earlier updates followed reported failures and shared paths; they did not constitute an exhaustive mapping audit. This pass inventories native definitions, culture inheritance, mapper defaults and overlays, effective installed assets, formation/source accounting and casualty return. No UI test, game launch, recovered campaign result or character-fate decision was performed.
 
+This is the historical baseline. The subsequent [active-population update](./active-population-validation.md) and [reviewed Earl cavalry adapters](./cavalry-adapters-validation.md) address the two major limits identified below. Their receipts distinguish new offline checks from earlier native gameplay evidence.
+
 ## Scope and reproducibility
 
 The active 46-mod CK3 configuration contains 111 native MAA definitions, 244 static cultures and 59 heritages. Native definitions, ordered enabled descriptors, file replacements and `replace_path` masks are read from disk. Every culture resolves to a heritage. The catalog also retains conditional recruitment/innovation/era gates; it does not evaluate them or assume every culture recruits every type.

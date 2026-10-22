@@ -364,6 +364,7 @@ if (BattleResult.Player_Combat is not null)
                 ReadCourtPositions();
                 CheckForNullCultures();
                 ReadCultureManager();
+                StatFidelity.StatFidelitySession.CaptureNativePopulations(attacker_armies.Concat(defender_armies));
                 foreach (var army in attacker_armies.Concat(defender_armies)) StatFidelity.StatFidelitySession.EnsureNativeCommanderRepresentation(army);
                 CreateUnits();
 

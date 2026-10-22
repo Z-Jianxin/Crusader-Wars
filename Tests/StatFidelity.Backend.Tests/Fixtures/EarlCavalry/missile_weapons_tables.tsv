@@ -1,0 +1,3 @@
+key	precursor	default_projectile	can_fire_at_buildings
+#missile_weapons_tables;6;db/missile_weapons_tables/missile_weapons_tables			
+mk_crossbow_hand	false	mk_crossbow_hand	false

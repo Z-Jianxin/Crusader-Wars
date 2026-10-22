@@ -99,6 +99,7 @@ namespace CrusaderWars
         {
             if (!StatFidelity.StatFidelitySession.HasBoundExport) { BETA_AddArmyUnits(army); return; }
             StatFidelity.StatFidelitySession.RestoreCommanderGuardDonation(army);
+            StatFidelity.StatFidelitySession.ApplyNativeActiveDeployment(army);
             StatFidelity.StatFidelitySession.ValidateNativeUnitCultures(army);
             UnitMappers_BETA.RefreshNativeMappings(army);
             StatFidelity.StatFidelitySession.RegisterLevyCohorts(army, verifyOriginalStrength: true);

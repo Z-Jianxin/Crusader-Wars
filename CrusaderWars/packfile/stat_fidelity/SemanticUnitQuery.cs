@@ -19,12 +19,14 @@ public sealed record AttilaUnitSemanticStats
     public int NominalSoldiers { get; init; }
     public string ManEntityKey { get; init; } = "";
     public string ManEntityType { get; init; } = "";
+    public string ManAnimation { get; init; } = "";
     public int? EntityHitPoints { get; init; }
     public int BonusHitPoints { get; init; }
     public string MountKey { get; init; } = "";
     public string MountEntityKey { get; init; } = "";
     public string MountEntityType { get; init; } = "";
     public string MountVariant { get; init; } = "";
+    public string MountAnimation { get; init; } = "";
     public int MountCount { get; init; }
     public int? MountHitPoints { get; init; }
     public string EngineKey { get; init; } = "";
@@ -54,10 +56,15 @@ public sealed record AttilaUnitSemanticStats
     public int ChargeBonus { get; init; }
     public bool HasVisualVariant { get; init; }
     public IReadOnlyList<string> MissingReferences { get; init; } = Array.Empty<string>();
+    public CavalryBodyAdapter? CavalryAdapter { get; init; }
+    public int PlannedMountCount => CavalryAdapter?.PlannedMounts ?? MountCount;
+    public string? CavalryAdapterIssue => IsMounted && !HasSpecialEntity && CavalryAdapter == null &&
+        (MountCount != NominalSoldiers || MountEntityType != "horse")
+        ? "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph." : null;
     public bool IsMounted => MountKey.Length > 0;
     public bool HasMissileWeapon => MissileWeaponKey.Length > 0;
     public bool HasSpecialEntity => EngineKey.Length > 0 || AnimalKey.Length > 0 || ChariotKey.Length > 0 || ArticulatedKey.Length > 0;
-    public bool HasOrdinaryMount => IsMounted && Category == "cavalry" && MountCount == NominalSoldiers && !HasSpecialEntity && MountHitPoints.HasValue;
+    public bool HasOrdinaryMount => IsMounted && Category == "cavalry" && PlannedMountCount == NominalSoldiers && !HasSpecialEntity && MountHitPoints.HasValue && (MountEntityType == "horse" || CavalryAdapter != null);
     public bool CanScaleHitPoints => !IsNaval && !HasSpecialEntity && EntityHitPoints.HasValue && (!IsMounted || HasOrdinaryMount);
     public int? EffectiveHitPoints => CanScaleHitPoints ? checked(EntityHitPoints!.Value + BonusHitPoints + (MountHitPoints ?? 0)) : null;
 }
@@ -104,9 +111,9 @@ public sealed partial class PreparedAttilaDatabase
         return new() {
             UnitKey = unitKey, LandUnitKey = landKey, ScreenName = Value(database.Lookup("Loc", "land_units_onscreen_name_" + landKey), "text"),
             Category = Value(land, "category"), UnitClass = Value(land, "class"), Weight = Value(main, "weight"), Caste = Value(main, "caste"),
-            NominalSoldiers = OptionalNumber(main, "num_men"), ManEntityKey = manKey, ManEntityType = Value(man, "type"),
+            NominalSoldiers = OptionalNumber(main, "num_men"), ManEntityKey = manKey, ManEntityType = Value(man, "type"), ManAnimation = Value(land, "man_animation"),
             EntityHitPoints = NumberOrNull(man, "hit_points"), BonusHitPoints = OptionalNumber(land, "bonus_hit_points"),
-            MountKey = mountKey, MountEntityKey = mountEntityKey, MountEntityType = Value(mountEntity, "type"), MountVariant = Value(mount, "variant"),
+            MountKey = mountKey, MountEntityKey = mountEntityKey, MountEntityType = Value(mountEntity, "type"), MountVariant = Value(mount, "variant"), MountAnimation = Value(mount, "animation"),
             MountCount = OptionalNumber(land, "num_mounts"), MountHitPoints = NumberOrNull(mountEntity, "hit_points"),
             EngineKey = engineKey, EngineType = Value(engine, "engine_type"), EngineCount = OptionalNumber(land, "num_guns"),
             AnimalKey = Value(land, "animal"), ChariotKey = Value(land, "chariot"), ArticulatedKey = Value(land, "articulated_record"),
@@ -117,7 +124,8 @@ public sealed partial class PreparedAttilaDatabase
             ProjectileDamage = NumberOrNull(projectile, "damage"), ProjectileApDamage = NumberOrNull(projectile, "ap_damage"),
             Ammunition = OptionalNumber(land, "ammo"), ArmourKey = Value(land, "armour"), ShieldKey = Value(land, "shield"), AttributeGroup = Value(land, "attribute_group"),
             MeleeAttack = OptionalNumber(land, "melee_attack"), MeleeDefence = OptionalNumber(land, "melee_defence"), ChargeBonus = OptionalNumber(land, "charge_bonus"),
-            HasVisualVariant = semanticVisualUnits.Contains(landKey), MissingReferences = missing.AsReadOnly()
+            HasVisualVariant = semanticVisualUnits.Contains(landKey), MissingReferences = missing.AsReadOnly(),
+            CavalryAdapter = mountKey.Length == 0 ? null : CavalryBodyAdapters.Resolve(database, main, land)
         };
     }
 

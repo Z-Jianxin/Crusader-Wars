@@ -1,0 +1,65 @@
+[
+  {
+    "unit": "mk_abb_t1_caliph_bodyguard",
+    "variantPath": "variantmeshes/variantmeshdefinitions/mk_abb_t1_lamellar_barding_horses.VariantMeshDefinition",
+    "variantHash": "9ED84B527A7A5A4A1DCEAB366B5064E1404467A61CAA2910D17E9C8EB000CE7B",
+    "riderAnimation": "rome_man_destrier_lance_cataphract_horse",
+    "riderHash": "C7D1877FC61F228C3C3A0FB97FCEE67E23A79F82BC9F12C527A11637F96001F6",
+    "mountAnimation": "rome_mount_horse_destrier_2h_spear_shield",
+    "mountHash": "96B87F9DE787B95B3D0F099C03F27DE28FA0E2D910DD9B014E1E87AA7803158B"
+  },
+  {
+    "unit": "mk_eng_t1_knights",
+    "variantPath": "variantmeshes/variantmeshdefinitions/mk_eng_t1_barded_horse.VariantMeshDefinition",
+    "variantHash": "389F5B27840004DA26C778B3D810EFA4F2ADFFE3BFDB7C2E4B0452C617A3CEA2",
+    "riderAnimation": "rome_man_destrier_lance_sword_shield_knight",
+    "riderHash": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+    "mountAnimation": "rome_mount_horse_destrier_sword_shield",
+    "mountHash": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886"
+  },
+  {
+    "unit": "mk_fre_t1_arbaletriers_mounted",
+    "variantPath": "variantmeshes/variantmeshdefinitions/earl_horse_eur_light_body.variantmeshdefinition",
+    "variantHash": "D0C0748C88F9A3D067BEE26E0A8C399FDD6BC553AC47BCED5ADA5CB92361C4A0",
+    "riderAnimation": "rome_man_sword_earl_hand_crossbow_horse",
+    "riderHash": "BC0B82F296713EBC198D821BCF12D155A5ED4973AF80A4BD9CF378716FC3C658",
+    "mountAnimation": "rome_mount_horse_sword",
+    "mountHash": "DB4EAB5B221799E3248D26F2221055F7DBDFCF25D55ABDD516A59A1BE8ADCECF"
+  },
+  {
+    "unit": "mk_fre_t1_chevaliers_mounted",
+    "variantPath": "variantmeshes/variantmeshdefinitions/mk_fre_t1_barded_horse.VariantMeshDefinition",
+    "variantHash": "E78DF890C224336E4740F8595601B0873ABB3EA44F5CC49C64DC9781E304AC72",
+    "riderAnimation": "rome_man_destrier_lance_sword_shield_knight",
+    "riderHash": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+    "mountAnimation": "rome_mount_horse_destrier_sword_shield",
+    "mountHash": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886"
+  },
+  {
+    "unit": "mk_fre_t1_mounted_sergeants",
+    "variantPath": "variantmeshes/variantmeshdefinitions/earl_horse_eur_light_body.variantmeshdefinition",
+    "variantHash": "D0C0748C88F9A3D067BEE26E0A8C399FDD6BC553AC47BCED5ADA5CB92361C4A0",
+    "riderAnimation": "rome_man_sword_shield_javelin_precursor_horse",
+    "riderHash": "4E33B885E0778E2640382191E221F9383689B314BCDB690A56E0C3EB00BB6412",
+    "mountAnimation": "rome_mount_horse_sword_shield",
+    "mountHash": "0751A7EC02BA8031871116CDCEE4D61009033DAEE45119B888393FD077EF4C21"
+  },
+  {
+    "unit": "mk_fre_t3_gendarmes",
+    "variantPath": "variantmeshes/variantmeshdefinitions/mk_euro_plate_gothic_italian_horses.VariantMeshDefinition",
+    "variantHash": "D458BFD536249B0100D00F7FA2B4F23C7DC0BE9258AF0639A68DD435BF12375B",
+    "riderAnimation": "rome_man_destrier_lance_sword_shield_knight",
+    "riderHash": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+    "mountAnimation": "rome_mount_horse_destrier_sword_shield",
+    "mountHash": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886"
+  },
+  {
+    "unit": "mk_fre_t3_gentilshommes_a_bec_de_corbin",
+    "variantPath": "variantmeshes/variantmeshdefinitions/mk_euro_plate_gothic_italian_horses.VariantMeshDefinition",
+    "variantHash": "D458BFD536249B0100D00F7FA2B4F23C7DC0BE9258AF0639A68DD435BF12375B",
+    "riderAnimation": "rome_man_destrier_lance_sword_shield_knight",
+    "riderHash": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+    "mountAnimation": "rome_mount_horse_destrier_sword_shield",
+    "mountHash": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886"
+  }
+]

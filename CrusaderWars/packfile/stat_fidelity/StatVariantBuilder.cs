@@ -39,13 +39,23 @@ public sealed class StatVariantBuilder
         bool mounted = !string.IsNullOrWhiteSpace(originalLand.GetValueOrDefault("mount"));
         bool special = new[] { "engine", "animal", "chariot", "articulated_record" }
             .Any(field => !string.IsNullOrWhiteSpace(originalLand.GetValueOrDefault(field)));
+        var cavalryAdapter = mounted ? CavalryBodyAdapters.Resolve(source, originalMain, originalLand) : null;
         bool ordinaryMount = mounted && !special && originalLand.GetValueOrDefault("category") == "cavalry" &&
-            Integer(originalLand, "num_mounts") == Integer(originalMain, "num_men");
+            (cavalryAdapter != null || Integer(originalLand, "num_mounts") == Integer(originalMain, "num_men"));
+        if (ordinaryMount && cavalryAdapter == null)
+        {
+            var mount = source.Require("mounts_tables", originalLand["mount"]);
+            var mountEntity = source.Require("battle_entities_tables", mount["entity"]);
+            if (mountEntity.TryGetValue("type", out var type) && type != "horse") ordinaryMount = false;
+        }
         if ((special || (mounted && !ordinaryMount)) && profile.HitPointMultiplier != 1)
             throw new InvalidOperationException($"Stat fidelity cannot validate multi-rider/chariot/animal/engine toughness for '{profile.BaseUnitKey}' (profile '{profile.Id}'). Only infantry and ordinary one-rider cavalry HP have engine evidence.");
         var land = Clone("land_units_tables", originalLand, "key", key);
         var main = Clone("main_units_tables", originalMain, "unit", key);
         main["land_unit"] = key;
+        // One private mount per nominal rider. Source rows, XML cohort counts and CK3
+        // active/soft/reserve population accounting are untouched by this adapter.
+        if (cavalryAdapter != null) land["num_mounts"] = cavalryAdapter.PlannedMounts.ToString(CultureInfo.InvariantCulture);
         if (profile.SiegeEngineCount.HasValue)
         {
             land["num_guns"] = profile.SiegeEngineCount.Value.ToString(CultureInfo.InvariantCulture);

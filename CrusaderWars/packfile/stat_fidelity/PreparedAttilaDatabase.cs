@@ -10,7 +10,8 @@ public sealed record AttilaUnitCombatStats(
     string UnitKey, string LandUnitKey, string Category, int NominalSoldiers,
     int MeleeDamage, int ArmourPiercingDamage, int EntityHitPoints, int BonusHitPoints,
     bool IsMounted, bool HasSpecialEntity, bool HasMissileWeapon, bool IsNaval,
-    int MeleeAttack, int MeleeDefence, int ChargeBonus, int? MountHitPoints = null)
+    int MeleeAttack, int MeleeDefence, int ChargeBonus, int? MountHitPoints = null,
+    CavalryBodyAdapter? CavalryAdapter = null)
 {
     public int TotalMeleeDamage => checked(MeleeDamage + ArmourPiercingDamage);
     public bool CanScaleHitPoints => !IsNaval && !HasSpecialEntity && (!IsMounted || MountHitPoints.HasValue);
@@ -47,18 +48,21 @@ public sealed partial class PreparedAttilaDatabase
         bool mounted = !string.IsNullOrWhiteSpace(land.GetValueOrDefault("mount"));
         bool special = new[] { "engine", "animal", "chariot", "articulated_record" }
             .Any(field => !string.IsNullOrWhiteSpace(land.GetValueOrDefault(field)));
-        if (mounted && (land.GetValueOrDefault("category") != "cavalry" || OptionalNumber(land, "num_mounts") != Number(main, "num_men")))
+        var adapter = mounted ? CavalryBodyAdapters.Resolve(database, main, land) : null;
+        if (mounted && adapter == null && (land.GetValueOrDefault("category") != "cavalry" || OptionalNumber(land, "num_mounts") != Number(main, "num_men")))
             special = true;
         int? mountHp = null;
         if (mounted && !special)
         {
             var mount = database.Require("mounts_tables", land["mount"]);
-            mountHp = Number(database.Require("battle_entities_tables", mount["entity"]), "hit_points");
+            var mountEntity = database.Require("battle_entities_tables", mount["entity"]);
+            if (adapter == null && mountEntity.TryGetValue("type", out var type) && type != "horse") special = true;
+            else mountHp = Number(mountEntity, "hit_points");
         }
         return new(unitKey, main["land_unit"], land.GetValueOrDefault("category") ?? "", Number(main, "num_men"),
             Number(melee, "damage"), Number(melee, "ap_damage"), Number(entity, "hit_points"), Number(land, "bonus_hit_points"),
             mounted, special, !string.IsNullOrWhiteSpace(land.GetValueOrDefault("primary_missile_weapon")), false,
-            OptionalNumber(land, "melee_attack"), OptionalNumber(land, "melee_defence"), OptionalNumber(land, "charge_bonus"), mountHp);
+            OptionalNumber(land, "melee_attack"), OptionalNumber(land, "melee_defence"), OptionalNumber(land, "charge_bonus"), mountHp, adapter);
     }
 
     public IReadOnlyDictionary<string, string> Generate(IReadOnlyCollection<UnitStatProfile> profiles, string battleRoot)
@@ -66,6 +70,7 @@ public sealed partial class PreparedAttilaDatabase
         AssertFresh();
         // Per-battle name overlays must not leak into another generation using this snapshot.
         var battleDatabase = new AttilaDatabase();
+        battleDatabase.CavalryAssets = database.CavalryAssets;
         foreach (var table in database.Tables.Values) battleDatabase.Merge(table);
         if (Directory.Exists(battleRoot))
             foreach (string path in Directory.GetFiles(battleRoot, "*.loc.tsv", SearchOption.AllDirectories)

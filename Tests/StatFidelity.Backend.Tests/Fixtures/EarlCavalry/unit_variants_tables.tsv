@@ -1,0 +1,9 @@
+faction	unit	name	variant	height_variation	height_scale	unit_card
+#unit_variants_tables;4;db/unit_variants_tables/unit_variants_tables						
+	mk_abb_t1_caliph_bodyguard	mk_abb_t1_caliph_bodyguard	mk_abb_t1_caliph_bodyguard	0.1000	1.0000	mk_abb_t1_caliph_bodyguard
+	mk_eng_t1_knights	mk_eng_t1_knights	mk_eng_t1_maa_mounted	0.1000	1.0000	eng Knightly Retinue
+	mk_fre_t1_arbaletriers_mounted	mk_fre_t1_arbaletriers_mounted	earl_mk_fre_t1_arbaletriers_mounted	0.1000	1.0000	Arbalestriers a Cheval
+	mk_fre_t1_chevaliers_mounted	mk_fre_t1_chevaliers_mounted	mk_fre_t1_chevaliers_mounted	0.1000	1.0000	fre Chevaliers
+	mk_fre_t1_mounted_sergeants	mk_fre_t1_mounted_sergeants	mk_fre_t1_mounted_sergeants	0.1000	1.0000	mk_fre_t1_mounted_sergeants
+	mk_fre_t3_gendarmes	mk_fre_t3_gendarmes	mk_fre_t3_gendarmes	0.1000	1.0000	Gens d'Armes_Late
+	mk_fre_t3_gentilshommes_a_bec_de_corbin	mk_fre_t3_gentilshommes	mk_fre_t3_gentilshommes	0.1000	1.0000	Gentilshommes a bec de corbin_Late

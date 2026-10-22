@@ -9,6 +9,22 @@ public sealed class KnightBudgetTests
     private static readonly KnightBudgetTemplate Horse = new("cha_gen_knights", 6, 4, 100, false);
 
     [Fact]
+    public void FractionalActiveParticipationWeightsPowerWithoutChangingCharacterIdentity()
+    {
+        var whole = Knight("1", 20); var partial = Knight("1", 20); partial.ActiveFraction = 0.5;
+        var full = KnightBudgetPlanner.Plan(new[] { whole }, Huscarl, Horse, 1, new());
+        var half = KnightBudgetPlanner.Plan(new[] { partial }, Huscarl, Horse, 1, new());
+        Assert.Equal(full.Ck3Damage / 2, half.Ck3Damage);
+        Assert.Equal(full.Ck3Toughness / 2, half.Ck3Toughness);
+        Assert.Equal("1", Assert.Single(half.Characters).CharacterId);
+        Assert.Equal(20, partial.Prowess);
+        partial.ActiveFraction = 0;
+        Assert.Equal(0, KnightBudgetPlanner.Plan(new[] { partial }, Huscarl, Horse, 1, new()).Bodies);
+        partial.ActiveFraction = 1.01;
+        Assert.Throws<InvalidOperationException>(() => KnightBudgetPlanner.Plan(new[] { partial }, Huscarl, Horse, 1, new()));
+    }
+
+    [Fact]
     public void SnapshotSixBudgetsAreIndependentAndUseMinimumFeasibleBodyCount()
     {
         var plan = KnightBudgetPlanner.Plan(new[] { Knight("34252", 18), Knight("30961", 8), Knight("37088", 11), Knight("33709", 16), Knight("37572", 11) }, Huscarl, Horse, 1, new());

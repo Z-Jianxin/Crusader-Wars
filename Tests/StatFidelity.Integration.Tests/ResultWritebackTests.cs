@@ -133,7 +133,7 @@ public sealed class ResultWritebackTests : IDisposable
         Assert.Contains("initial_men=4837", result);
         Assert.Contains("initial_levies=8000", result);
         Assert.Contains("initial_levies=4837", result);
-        Assert.DoesNotContain("0.75", result);
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(result, @"soft_casualties=0\.75").Count);
     }
 
     public void Dispose()

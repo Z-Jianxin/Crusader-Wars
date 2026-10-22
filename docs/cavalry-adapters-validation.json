@@ -1,0 +1,1324 @@
+{
+  "formatVersion": 1,
+  "date": "2026-10-22",
+  "status": "OFFLINE_AUDIT_COMPLETE",
+  "engineValidated": false,
+  "gameLaunched": false,
+  "installedFilesWritten": false,
+  "scope": "Actual resolver over all111 native types and reachable static culture/heritage/default contexts in four DefaultCK3 eras; authored roles/assets inventoried. These are synthetic resolution queries, not recruitment eligibility, native UI or combat tests.",
+  "selectedSubmods": {
+    "allEras": [
+      "DahanChina"
+    ]
+  },
+  "commands": [
+    "dotnet build Tests/UnitMapping.Audit/UnitMapping.Audit.csproj --no-restore",
+    "dotnet <AUDITOR>/UnitMapping.Audit.dll --runtime <RUNTIME> --ck3 <CK3_EXE> --ck3-user-dir <CK3_USER> --attila <ATTILA_EXE> --native-catalog <NATIVE_CATALOG> --context-handoff <NATIVE_HANDOFF> --context-living <NATIVE_LIVING> --context-player <PLAYER_ID> --context-combat <COMBAT_ID> --out <NEW_OUTPUT> --cache <EXTERNAL_CACHE>"
+  ],
+  "mappingAssemblySha256": "C2C297A04131BA43ACECFB4BC93D9E751A6818FF334A2C19716000BA6103D962",
+  "auditorAssemblySha256": "238D53FB76F047B355223881A478B20AF9F95ACCCF6D64540F4C6D962498047B",
+  "nativeCatalogSha256": "FC1C08C116DD4AB9B2389A3B3CDDD086A876430C2F2D7C265735A9DD174930FB",
+  "activeModListSha256": "4450D481ACABE52774A6A0C3703580FBDD7927E9C85EE64EE63E41331619FBE0",
+  "policySources": {
+    "CrusaderWars/unit_mapper/UnitMappers.Semantics.cs": "8a7463abaa85331757093d3e5dc0136723f15178cae475f33a071e368ab17727",
+    "CrusaderWars/unit_mapper/NativeMappingPolicy.cs": "936bbf4a2e038f84357ed92a67d2e9f479d4dfebe2aab700431e7fa6e325740b",
+    "CrusaderWars/unit_mapper/CavalryRoleCatalog.cs": "4b40b832b38c2369f155f28f3e56056f8064efd7c281594cd4ebce66df2fbe13",
+    "CrusaderWars/packfile/stat_fidelity/CavalryBodyAdapter.cs": "9f6d12f71d9cf536f37bb0e9ff87df2b7710be93fa7567fbe0f3c87c0877ac6f",
+    "CrusaderWars/packfile/stat_fidelity/CavalryBodyAdapter.Catalog.cs": "3d7b67382f61b06b15fbf87773fc696f45de1123b2aa87f7a3a8f592d1fa063f",
+    "CrusaderWars/packfile/stat_fidelity/CavalryAssetEvidence.cs": "85ed1ffcd7676d9bcec7e2578bda0f9896947defb056763a044725185995e28b",
+    "CrusaderWars/packfile/stat_fidelity/PreparedAttilaDatabase.cs": "c564099232631bb7df88003c20e3284bc681a0b9d86a109804dca0265187200a",
+    "CrusaderWars/packfile/stat_fidelity/SemanticUnitQuery.cs": "3511f615bddc7d075d33d93d7b9fd654e320febe2004ae47123b71b56c406f6e",
+    "CrusaderWars/packfile/stat_fidelity/StatVariantBuilder.cs": "70ab9c0c5d4f86d53e6b7bebb20ff2de2c1dfbe5e1c44d632c4567e71e36d2f3",
+    "CrusaderWars/packfile/stat_fidelity/StatFidelityBackend.cs": "04aeffec308634334099c68968ffd89005413dceadf68c42115399f525b96b45"
+  },
+  "externalSummarySha256": "e24fd04fd67d03d426ca80195b7b97beece3eb7a8f695de14603e3d9095e95f5",
+  "globalReviewedAdapters": {
+    "matchingGraphs": 1527,
+    "giantLabelHorseGraphs": 110,
+    "engineValidated": 0,
+    "roleCounts": {
+      "heavy": 677,
+      "light": 488,
+      "mountedMissile": 273,
+      "heavyMountedMissile": 83,
+      "unclassified": 6
+    }
+  },
+  "totalResolutionQueries": 45288,
+  "unexpectedResolverExceptions": 0,
+  "resolutionErrors": 0,
+  "eras": [
+    {
+      "era": "OfficialCC_DefaultCK3_EarlyMedieval_919Mod",
+      "nativeTypes": 111,
+      "cultures": 305,
+      "reachableFactions": 58,
+      "resolutions": 6438,
+      "unexpectedResolverExceptions": 0,
+      "resolutionErrors": 0,
+      "allPolicyCounts": {
+        "retained": 3403,
+        "unsupported": 732,
+        "repaired": 1781,
+        "noncombatant": 522
+      },
+      "previousUnsupported": 726,
+      "unsupportedReasons": {
+        "uncontracted-native-family": 522,
+        "combat-artillery-population-contract": 57,
+        "unreviewed-or-changed-cavalry-graph": 10,
+        "no-compatible-authored-role": 143
+      },
+      "cavalry": {
+        "heavy_cavalry": {
+          "queries": 696,
+          "supported": 551,
+          "unsupported": 145,
+          "supportedWithAdapter": 0,
+          "engineConfirmedAdapters": 0,
+          "previousSupported": 553,
+          "unblocked": 0,
+          "previouslySupportedNowRejected": 2
+        },
+        "light_cavalry": {
+          "queries": 754,
+          "supported": 750,
+          "unsupported": 4,
+          "supportedWithAdapter": 0,
+          "engineConfirmedAdapters": 0,
+          "previousSupported": 752,
+          "unblocked": 0,
+          "previouslySupportedNowRejected": 2
+        },
+        "archer_cavalry": {
+          "queries": 464,
+          "supported": 460,
+          "unsupported": 4,
+          "supportedWithAdapter": 0,
+          "engineConfirmedAdapters": 0,
+          "previousSupported": 462,
+          "unblocked": 0,
+          "previouslySupportedNowRejected": 2
+        }
+      },
+      "typeCoverage": {
+        "conrois": {
+          "queries": 58,
+          "supported": 45,
+          "unsupported": 13
+        },
+        "armored_horsemen": {
+          "queries": 58,
+          "supported": 45,
+          "unsupported": 13
+        },
+        "light_horsemen": {
+          "queries": 58,
+          "supported": 56,
+          "unsupported": 2
+        },
+        "horse_archers": {
+          "queries": 58,
+          "supported": 58,
+          "unsupported": 0
+        },
+        "order_knights": {
+          "queries": 58,
+          "supported": 45,
+          "unsupported": 13
+        },
+        "teulu": {
+          "queries": 58,
+          "supported": 58,
+          "unsupported": 0
+        },
+        "cataphract_archers": {
+          "queries": 58,
+          "supported": 58,
+          "unsupported": 0
+        }
+      },
+      "inputHashes": {
+        "resolutions": "07f84624b4022e2c55607b82781d2756e01c27bbb4960ff27ca8c5e6f06a37bb",
+        "metadata": "f84609dac27ac463896fb3a1f35fe811d3000287c0a529efe3158038f46f7f8b"
+      },
+      "acceptedCombatantMappings": 5184,
+      "previouslySupportedNowRejectedCount": 6,
+      "nativeNormanExamples": [
+        {
+          "culture": "norman",
+          "faction": "Latin",
+          "type": "conrois",
+          "key": "cha_nor_chef",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 80,
+          "rawMounts": 80,
+          "plannedMounts": 80,
+          "rawEntityType": "horse",
+          "adapter": null,
+          "expectedHP": 150,
+          "engineHpValidated": null
+        },
+        {
+          "culture": "norman",
+          "faction": "Latin",
+          "type": "armored_horsemen",
+          "key": "cha_gen_noble_cav",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 120,
+          "rawMounts": 120,
+          "plannedMounts": 120,
+          "rawEntityType": "horse",
+          "adapter": null,
+          "expectedHP": 150,
+          "engineHpValidated": null
+        },
+        {
+          "culture": "norman",
+          "faction": "Latin",
+          "type": "light_horsemen",
+          "key": "cha_fra_horsemen",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 80,
+          "rawMounts": 80,
+          "plannedMounts": 80,
+          "rawEntityType": "horse",
+          "adapter": null,
+          "expectedHP": 150,
+          "engineHpValidated": null
+        },
+        {
+          "culture": "norman",
+          "faction": "Latin",
+          "type": "horse_archers",
+          "key": "cha_avar_horse_archers",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 120,
+          "rawMounts": 120,
+          "plannedMounts": 120,
+          "rawEntityType": "horse",
+          "adapter": null,
+          "expectedHP": 150,
+          "engineHpValidated": null
+        },
+        {
+          "culture": "norman",
+          "faction": "Latin",
+          "type": "cataphract_archers",
+          "key": "bel_rom_clibanarii_1",
+          "status": "repaired",
+          "reason": "heavy-cavalry-with-incompatible-horse-template; same native family heavy_cavalry, authored cataphract in OfficialCC_DefaultCK3_EarlyMedieval_Factions.xml",
+          "rawMen": 120,
+          "rawMounts": 120,
+          "plannedMounts": 120,
+          "rawEntityType": "horse",
+          "adapter": null,
+          "expectedHP": 235,
+          "engineHpValidated": null
+        },
+        {
+          "culture": "norman",
+          "faction": "Latin",
+          "type": "order_knights",
+          "key": "cha_gen_noble_cav",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 120,
+          "rawMounts": 120,
+          "plannedMounts": 120,
+          "rawEntityType": "horse",
+          "adapter": null,
+          "expectedHP": 150,
+          "engineHpValidated": null
+        },
+        {
+          "culture": "norman",
+          "faction": "Latin",
+          "type": "teulu",
+          "key": "cha_fra_horsemen",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 80,
+          "rawMounts": 80,
+          "plannedMounts": 80,
+          "rawEntityType": "horse",
+          "adapter": null,
+          "expectedHP": 150,
+          "engineHpValidated": null
+        }
+      ],
+      "reviewRequiredExamples": [
+        {
+          "faction": "Arabic",
+          "type": "gendarme",
+          "previousKey": "mubs_bedouin_armored_horsemen",
+          "originalKey": "cha_mus_andalusian_cav",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Baltic",
+          "type": "gendarme",
+          "previousKey": "BAL_armoured_retinue",
+          "originalKey": "cha_avar_lancers",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Burman",
+          "type": "caballero",
+          "previousKey": "ARM_light_cavalry",
+          "originalKey": "cha_avar_noble_lancers",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Israelite",
+          "type": "heavy_horse_archers",
+          "previousKey": "HEP_spet_xyon_noble_horse_archers",
+          "originalKey": "cha_spa_royal_cav",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Somalian",
+          "type": "caballero",
+          "previousKey": "GARAM_tribal_horsemen",
+          "originalKey": "cha_avar_noble_lancers",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Yoruba",
+          "type": "heavy_horse_archers",
+          "previousKey": "cha_avar_noble_archers",
+          "originalKey": "cha_mus_andalusian_cav",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        }
+      ]
+    },
+    {
+      "era": "OfficialCC_DefaultCK3_HighMedieval_MK1212Mod",
+      "nativeTypes": 111,
+      "cultures": 305,
+      "reachableFactions": 147,
+      "resolutions": 16317,
+      "unexpectedResolverExceptions": 0,
+      "resolutionErrors": 0,
+      "allPolicyCounts": {
+        "repaired": 5207,
+        "retained": 7013,
+        "unsupported": 2774,
+        "noncombatant": 1323
+      },
+      "previousUnsupported": 4210,
+      "unsupportedReasons": {
+        "uncontracted-native-family": 1323,
+        "combat-artillery-population-contract": 907,
+        "unreviewed-or-changed-cavalry-graph": 372,
+        "no-compatible-authored-role": 25,
+        "missing-active-visual": 144,
+        "unsupported-body-or-hp": 3
+      },
+      "cavalry": {
+        "heavy_cavalry": {
+          "queries": 1764,
+          "supported": 1556,
+          "unsupported": 208,
+          "supportedWithAdapter": 1553,
+          "engineConfirmedAdapters": 0,
+          "previousSupported": 23,
+          "unblocked": 1533,
+          "previouslySupportedNowRejected": 0
+        },
+        "light_cavalry": {
+          "queries": 1911,
+          "supported": 1582,
+          "unsupported": 329,
+          "supportedWithAdapter": 1391,
+          "engineConfirmedAdapters": 0,
+          "previousSupported": 1809,
+          "unblocked": 0,
+          "previouslySupportedNowRejected": 227
+        },
+        "archer_cavalry": {
+          "queries": 1176,
+          "supported": 1089,
+          "unsupported": 87,
+          "supportedWithAdapter": 386,
+          "engineConfirmedAdapters": 0,
+          "previousSupported": 959,
+          "unblocked": 162,
+          "previouslySupportedNowRejected": 32
+        }
+      },
+      "typeCoverage": {
+        "conrois": {
+          "queries": 147,
+          "supported": 147,
+          "unsupported": 0
+        },
+        "armored_horsemen": {
+          "queries": 147,
+          "supported": 120,
+          "unsupported": 27
+        },
+        "light_horsemen": {
+          "queries": 147,
+          "supported": 135,
+          "unsupported": 12
+        },
+        "horse_archers": {
+          "queries": 147,
+          "supported": 101,
+          "unsupported": 46
+        },
+        "order_knights": {
+          "queries": 147,
+          "supported": 147,
+          "unsupported": 0
+        },
+        "teulu": {
+          "queries": 147,
+          "supported": 147,
+          "unsupported": 0
+        },
+        "cataphract_archers": {
+          "queries": 147,
+          "supported": 3,
+          "unsupported": 144
+        }
+      },
+      "inputHashes": {
+        "resolutions": "96ed905ff50fdf6e1b8671930e10f32959f54b41d01aebaa84043f5de6ad610f",
+        "metadata": "16f77f4be68cc161a77019e2d179d822f7fcbfe1e6e1fe33cf8bc4204a160092"
+      },
+      "acceptedCombatantMappings": 12220,
+      "previouslySupportedNowRejectedCount": 259,
+      "nativeNormanExamples": [
+        {
+          "culture": "norman",
+          "faction": "Frankish Separatists",
+          "type": "conrois",
+          "key": "mk_fre_t1_chevaliers_mounted",
+          "status": "repaired",
+          "reason": "Reviewed same-region/era Earl cavalry role; original assets and numeric stats retained in a private single-rider adapter; engine confirmation pending.",
+          "rawMen": 70,
+          "rawMounts": 55,
+          "plannedMounts": 70,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "heavy",
+            "SourceMen": 70,
+            "SourceMounts": 55,
+            "PlannedMen": 70,
+            "PlannedMounts": 70,
+            "GraphFingerprint": "E46C520B4C76EF55081A88041AD54E416D84CC28397CFB3A87CD89FDE5A6BA89",
+            "VariantFingerprint": "E78DF890C224336E4740F8595601B0873ABB3EA44F5CC49C64DC9781E304AC72",
+            "RiderAnimationFingerprint": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+            "MountAnimationFingerprint": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 219,
+          "engineHpValidated": false
+        },
+        {
+          "culture": "norman",
+          "faction": "Frankish Separatists",
+          "type": "armored_horsemen",
+          "key": "mk_merc_eur_t1_knights",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 70,
+          "rawMounts": 55,
+          "plannedMounts": 70,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "heavy",
+            "SourceMen": 70,
+            "SourceMounts": 55,
+            "PlannedMen": 70,
+            "PlannedMounts": 70,
+            "GraphFingerprint": "27D063372BC305C26A5A561D3FD0B67BAA78A9B9790D8C64A0BEA0EEF47116DA",
+            "VariantFingerprint": "E78DF890C224336E4740F8595601B0873ABB3EA44F5CC49C64DC9781E304AC72",
+            "RiderAnimationFingerprint": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+            "MountAnimationFingerprint": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 219,
+          "engineHpValidated": false
+        },
+        {
+          "culture": "norman",
+          "faction": "Frankish Separatists",
+          "type": "light_horsemen",
+          "key": "mk_merc_eng_t1_reivers",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 90,
+          "rawMounts": 55,
+          "plannedMounts": 90,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "light",
+            "SourceMen": 90,
+            "SourceMounts": 55,
+            "PlannedMen": 90,
+            "PlannedMounts": 90,
+            "GraphFingerprint": "189199386EDDDC6F909C6889EBC86A2B79C88EEE2A51A56E544861EEE7C0551E",
+            "VariantFingerprint": "D0C0748C88F9A3D067BEE26E0A8C399FDD6BC553AC47BCED5ADA5CB92361C4A0",
+            "RiderAnimationFingerprint": "5385D25CB64F73DF82A023199A11F76B4EC07DC30F2F3945D35CC2F05145FB7B",
+            "MountAnimationFingerprint": "776C2D2231EA10047330CBCA7C9E8A06D81F8076415808AE654B78621924927B",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 160,
+          "engineHpValidated": false
+        },
+        {
+          "culture": "norman",
+          "faction": "Frankish Separatists",
+          "type": "horse_archers",
+          "key": "bel_rom_foederati_horse_archers",
+          "status": "repaired",
+          "reason": "missing-active-unit; same native family archer_cavalry, authored accolade_maa_horse_archers in OfficialCC_DefaultCK3_HighMedieval_Factions.xml",
+          "rawMen": 80,
+          "rawMounts": 80,
+          "plannedMounts": 80,
+          "rawEntityType": "horse",
+          "adapter": null,
+          "expectedHP": 192,
+          "engineHpValidated": null
+        },
+        {
+          "culture": "norman",
+          "faction": "Frankish Separatists",
+          "type": "cataphract_archers",
+          "key": "",
+          "status": "unsupported",
+          "reason": "Combat artillery needs an explicit native-to-engine population contract.",
+          "rawMen": null,
+          "rawMounts": null,
+          "plannedMounts": null,
+          "rawEntityType": null,
+          "adapter": null,
+          "expectedHP": null,
+          "engineHpValidated": null
+        },
+        {
+          "culture": "norman",
+          "faction": "Frankish Separatists",
+          "type": "order_knights",
+          "key": "mk_merc_eur_t1_knights",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 70,
+          "rawMounts": 55,
+          "plannedMounts": 70,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "heavy",
+            "SourceMen": 70,
+            "SourceMounts": 55,
+            "PlannedMen": 70,
+            "PlannedMounts": 70,
+            "GraphFingerprint": "27D063372BC305C26A5A561D3FD0B67BAA78A9B9790D8C64A0BEA0EEF47116DA",
+            "VariantFingerprint": "E78DF890C224336E4740F8595601B0873ABB3EA44F5CC49C64DC9781E304AC72",
+            "RiderAnimationFingerprint": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+            "MountAnimationFingerprint": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 219,
+          "engineHpValidated": false
+        },
+        {
+          "culture": "norman",
+          "faction": "Frankish Separatists",
+          "type": "teulu",
+          "key": "mk_merc_eng_t1_reivers",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 90,
+          "rawMounts": 55,
+          "plannedMounts": 90,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "light",
+            "SourceMen": 90,
+            "SourceMounts": 55,
+            "PlannedMen": 90,
+            "PlannedMounts": 90,
+            "GraphFingerprint": "189199386EDDDC6F909C6889EBC86A2B79C88EEE2A51A56E544861EEE7C0551E",
+            "VariantFingerprint": "D0C0748C88F9A3D067BEE26E0A8C399FDD6BC553AC47BCED5ADA5CB92361C4A0",
+            "RiderAnimationFingerprint": "5385D25CB64F73DF82A023199A11F76B4EC07DC30F2F3945D35CC2F05145FB7B",
+            "MountAnimationFingerprint": "776C2D2231EA10047330CBCA7C9E8A06D81F8076415808AE654B78621924927B",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 160,
+          "engineHpValidated": false
+        }
+      ],
+      "reviewRequiredExamples": [
+        {
+          "faction": "Abbasid Caliphate",
+          "type": "chasseur",
+          "previousKey": "bel_rom_foederati_cav",
+          "originalKey": "earl_eng_t2_longbowmen_mounted",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "abbasid_caliphate",
+          "type": "chasseur",
+          "previousKey": "bel_rom_foederati_cav",
+          "originalKey": "earl_eng_t2_longbowmen_mounted",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "abbassid_caliphate",
+          "type": "chasseur",
+          "previousKey": "bel_rom_foederati_cav",
+          "originalKey": "earl_eng_t2_longbowmen_mounted",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Abyssinian Pretenders",
+          "type": "sahel_horsemen",
+          "previousKey": "arm_cataphracts",
+          "originalKey": "earl_mar_t1_tuareg_camel_jinetes",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Aethiopian Rebels",
+          "type": "sahel_horsemen",
+          "previousKey": "arm_cataphracts",
+          "originalKey": "earl_mar_t1_tuareg_camel_jinetes",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Africa",
+          "type": "accolade_maa_outriders",
+          "previousKey": "bel_rom_foederati_cav",
+          "originalKey": "mk_mak_t1_nubian_knights",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        }
+      ]
+    },
+    {
+      "era": "OfficialCC_DefaultCK3_LateMedieval_MK1212Mod",
+      "nativeTypes": 111,
+      "cultures": 305,
+      "reachableFactions": 102,
+      "resolutions": 11322,
+      "unexpectedResolverExceptions": 0,
+      "resolutionErrors": 0,
+      "allPolicyCounts": {
+        "repaired": 4478,
+        "retained": 4403,
+        "unsupported": 1523,
+        "noncombatant": 918
+      },
+      "previousUnsupported": 2787,
+      "unsupportedReasons": {
+        "uncontracted-native-family": 918,
+        "unreviewed-or-changed-cavalry-graph": 174,
+        "missing-active-visual": 101,
+        "combat-artillery-population-contract": 330
+      },
+      "cavalry": {
+        "heavy_cavalry": {
+          "queries": 1224,
+          "supported": 1192,
+          "unsupported": 32,
+          "supportedWithAdapter": 1192,
+          "engineConfirmedAdapters": 0,
+          "previousSupported": 0,
+          "unblocked": 1192,
+          "previouslySupportedNowRejected": 0
+        },
+        "light_cavalry": {
+          "queries": 1326,
+          "supported": 1171,
+          "unsupported": 155,
+          "supportedWithAdapter": 489,
+          "engineConfirmedAdapters": 0,
+          "previousSupported": 1259,
+          "unblocked": 0,
+          "previouslySupportedNowRejected": 88
+        },
+        "archer_cavalry": {
+          "queries": 816,
+          "supported": 760,
+          "unsupported": 56,
+          "supportedWithAdapter": 279,
+          "engineConfirmedAdapters": 0,
+          "previousSupported": 600,
+          "unblocked": 175,
+          "previouslySupportedNowRejected": 15
+        }
+      },
+      "typeCoverage": {
+        "conrois": {
+          "queries": 102,
+          "supported": 102,
+          "unsupported": 0
+        },
+        "armored_horsemen": {
+          "queries": 102,
+          "supported": 86,
+          "unsupported": 16
+        },
+        "light_horsemen": {
+          "queries": 102,
+          "supported": 84,
+          "unsupported": 18
+        },
+        "horse_archers": {
+          "queries": 102,
+          "supported": 78,
+          "unsupported": 24
+        },
+        "order_knights": {
+          "queries": 102,
+          "supported": 102,
+          "unsupported": 0
+        },
+        "teulu": {
+          "queries": 102,
+          "supported": 102,
+          "unsupported": 0
+        },
+        "cataphract_archers": {
+          "queries": 102,
+          "supported": 96,
+          "unsupported": 6
+        }
+      },
+      "inputHashes": {
+        "resolutions": "166cf9ef46796951a54cc5c41a6c03221be6d2c2958de7caf470926413511ae1",
+        "metadata": "fed94c5c4c1c751c542240f1859f6ed78ea9d18111d6d64285985ff31185b9e2"
+      },
+      "acceptedCombatantMappings": 8881,
+      "previouslySupportedNowRejectedCount": 103,
+      "nativeNormanExamples": [
+        {
+          "culture": "norman",
+          "faction": "Franks",
+          "type": "conrois",
+          "key": "mk_fre_t2_chevaliers_mounted",
+          "status": "repaired",
+          "reason": "Reviewed same-region/era Earl cavalry role; original assets and numeric stats retained in a private single-rider adapter; engine confirmation pending.",
+          "rawMen": 70,
+          "rawMounts": 55,
+          "plannedMounts": 70,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "heavy",
+            "SourceMen": 70,
+            "SourceMounts": 55,
+            "PlannedMen": 70,
+            "PlannedMounts": 70,
+            "GraphFingerprint": "7F7D5A13A05ECDAAE3F8B235470FA0DE1E2A507D7A96E333459A90C7F9A6DF61",
+            "VariantFingerprint": "F86D26BE023A6390F5A9F977002C38244FC353916A1955A2FD9916F15F7CDB3D",
+            "RiderAnimationFingerprint": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+            "MountAnimationFingerprint": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 255,
+          "engineHpValidated": false
+        },
+        {
+          "culture": "norman",
+          "faction": "Franks",
+          "type": "armored_horsemen",
+          "key": "mk_fre_t2_cliens",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 70,
+          "rawMounts": 55,
+          "plannedMounts": 70,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "heavy",
+            "SourceMen": 70,
+            "SourceMounts": 55,
+            "PlannedMen": 70,
+            "PlannedMounts": 70,
+            "GraphFingerprint": "071343A423D56F4E58EAE65FC9EE4E678A680BF9CA51760F60C672081E8CE67B",
+            "VariantFingerprint": "4057C1FD6ADAF1AA9DAE4DF793E507E667E430CE9C42C2E8A9A77A759022F06D",
+            "RiderAnimationFingerprint": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+            "MountAnimationFingerprint": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 183,
+          "engineHpValidated": false
+        },
+        {
+          "culture": "norman",
+          "faction": "Franks",
+          "type": "light_horsemen",
+          "key": "",
+          "status": "unsupported",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph.",
+          "rawMen": null,
+          "rawMounts": null,
+          "plannedMounts": null,
+          "rawEntityType": null,
+          "adapter": null,
+          "expectedHP": null,
+          "engineHpValidated": null
+        },
+        {
+          "culture": "norman",
+          "faction": "Franks",
+          "type": "horse_archers",
+          "key": "bel_rom_foederati_horse_archers",
+          "status": "repaired",
+          "reason": "horse-archers-without-mounted-missile-template; same native family archer_cavalry, authored accolade_maa_horse_archers in Submod_DahanChina_AsiaExpansionProject_Factions.xml",
+          "rawMen": 80,
+          "rawMounts": 80,
+          "plannedMounts": 80,
+          "rawEntityType": "horse",
+          "adapter": null,
+          "expectedHP": 192,
+          "engineHpValidated": null
+        },
+        {
+          "culture": "norman",
+          "faction": "Franks",
+          "type": "cataphract_archers",
+          "key": "mk_cuman_t2_heavy_HA",
+          "status": "repaired",
+          "reason": "heavy-cavalry-with-incompatible-horse-template; same native family heavy_cavalry, authored cataphract_archers in OfficialCC_DefaultCK3_LateMedieval_Factions.xml",
+          "rawMen": 80,
+          "rawMounts": 55,
+          "plannedMounts": 80,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "heavy,archer",
+            "SourceMen": 80,
+            "SourceMounts": 55,
+            "PlannedMen": 80,
+            "PlannedMounts": 80,
+            "GraphFingerprint": "D8C48C9330D8D006EA67431705D0933834450D6ED8FDDF0AD89392DA33286C63",
+            "VariantFingerprint": "DA697D5C1D96FA7540BB21F3EB819DEB2110EBB02414E7F32D146E3E6B1E85CD",
+            "RiderAnimationFingerprint": "ECEDFA8708A255209E25F3002668B259663ACAE426D860E3F308A83930051060",
+            "MountAnimationFingerprint": "0751A7EC02BA8031871116CDCEE4D61009033DAEE45119B888393FD077EF4C21",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 206,
+          "engineHpValidated": false
+        },
+        {
+          "culture": "norman",
+          "faction": "Franks",
+          "type": "order_knights",
+          "key": "mk_fre_t2_cliens",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 70,
+          "rawMounts": 55,
+          "plannedMounts": 70,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "heavy",
+            "SourceMen": 70,
+            "SourceMounts": 55,
+            "PlannedMen": 70,
+            "PlannedMounts": 70,
+            "GraphFingerprint": "071343A423D56F4E58EAE65FC9EE4E678A680BF9CA51760F60C672081E8CE67B",
+            "VariantFingerprint": "4057C1FD6ADAF1AA9DAE4DF793E507E667E430CE9C42C2E8A9A77A759022F06D",
+            "RiderAnimationFingerprint": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+            "MountAnimationFingerprint": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 183,
+          "engineHpValidated": false
+        },
+        {
+          "culture": "norman",
+          "faction": "Franks",
+          "type": "teulu",
+          "key": "arm_armoured_horse_archers",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 80,
+          "rawMounts": 80,
+          "plannedMounts": 80,
+          "rawEntityType": "horse",
+          "adapter": null,
+          "expectedHP": 232,
+          "engineHpValidated": null
+        }
+      ],
+      "reviewRequiredExamples": [
+        {
+          "faction": "Abarshahr",
+          "type": "accolade_maa_horse_archers",
+          "previousKey": "bel_rom_foederati_horse_archers",
+          "originalKey": "mk_khw_t2_nukaran",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Abarshahr",
+          "type": "light_horsemen",
+          "previousKey": "bel_ost_gothic_horsemen",
+          "originalKey": "mk_khw_t2_mounted_qullughchi",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Abarshahr",
+          "type": "maa_marauders",
+          "previousKey": "bel_ost_gothic_horsemen",
+          "originalKey": "mk_khw_t2_khwarazmian_lancers",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Africa",
+          "type": "accolade_maa_horse_archers",
+          "previousKey": "bel_rom_foederati_horse_archers",
+          "originalKey": "mk_alm_t2_ghuzz_horse_archers",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Africa",
+          "type": "accolade_maa_outriders",
+          "previousKey": "bel_ost_gothic_horsemen",
+          "originalKey": "mk_alm_t2_jund_cavalry",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Africa",
+          "type": "horse_archers",
+          "previousKey": "bel_rom_foederati_horse_archers",
+          "originalKey": "mk_alm_t1_ghuzz_horse_archers",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        }
+      ]
+    },
+    {
+      "era": "OfficialCC_DefaultCK3_Renaissance_MK1212Mod",
+      "nativeTypes": 111,
+      "cultures": 305,
+      "reachableFactions": 101,
+      "resolutions": 11211,
+      "unexpectedResolverExceptions": 0,
+      "resolutionErrors": 0,
+      "allPolicyCounts": {
+        "unsupported": 1593,
+        "retained": 4857,
+        "repaired": 3852,
+        "noncombatant": 909
+      },
+      "previousUnsupported": 2370,
+      "unsupportedReasons": {
+        "combat-artillery-population-contract": 279,
+        "uncontracted-native-family": 909,
+        "no-compatible-authored-role": 114,
+        "missing-active-visual": 100,
+        "unreviewed-or-changed-cavalry-graph": 190,
+        "unsupported-body-or-hp": 1
+      },
+      "cavalry": {
+        "heavy_cavalry": {
+          "queries": 1212,
+          "supported": 1055,
+          "unsupported": 157,
+          "supportedWithAdapter": 859,
+          "engineConfirmedAdapters": 0,
+          "previousSupported": 275,
+          "unblocked": 805,
+          "previouslySupportedNowRejected": 25
+        },
+        "light_cavalry": {
+          "queries": 1313,
+          "supported": 1191,
+          "unsupported": 122,
+          "supportedWithAdapter": 409,
+          "engineConfirmedAdapters": 0,
+          "previousSupported": 1307,
+          "unblocked": 6,
+          "previouslySupportedNowRejected": 122
+        },
+        "archer_cavalry": {
+          "queries": 808,
+          "supported": 782,
+          "unsupported": 26,
+          "supportedWithAdapter": 293,
+          "engineConfirmedAdapters": 0,
+          "previousSupported": 669,
+          "unblocked": 116,
+          "previouslySupportedNowRejected": 3
+        }
+      },
+      "typeCoverage": {
+        "conrois": {
+          "queries": 101,
+          "supported": 98,
+          "unsupported": 3
+        },
+        "armored_horsemen": {
+          "queries": 101,
+          "supported": 92,
+          "unsupported": 9
+        },
+        "light_horsemen": {
+          "queries": 101,
+          "supported": 91,
+          "unsupported": 10
+        },
+        "horse_archers": {
+          "queries": 101,
+          "supported": 92,
+          "unsupported": 9
+        },
+        "order_knights": {
+          "queries": 101,
+          "supported": 98,
+          "unsupported": 3
+        },
+        "teulu": {
+          "queries": 101,
+          "supported": 101,
+          "unsupported": 0
+        },
+        "cataphract_archers": {
+          "queries": 101,
+          "supported": 10,
+          "unsupported": 91
+        }
+      },
+      "inputHashes": {
+        "resolutions": "eb148b8ab1e4c48c1b0bff2eb27345d57ecd279b97f8f015038887ca4f85fe6a",
+        "metadata": "cb1c93f40eac85142d6733e646548be498fd0826b19d44e810b0dc128c327cf7"
+      },
+      "acceptedCombatantMappings": 8709,
+      "previouslySupportedNowRejectedCount": 150,
+      "nativeNormanExamples": [
+        {
+          "culture": "norman",
+          "faction": "Kingdom of Sicily",
+          "type": "conrois",
+          "key": "mk_sic_t3_condo_maa",
+          "status": "repaired",
+          "reason": "Reviewed same-region/era Earl cavalry role; original assets and numeric stats retained in a private single-rider adapter; engine confirmation pending.",
+          "rawMen": 70,
+          "rawMounts": 55,
+          "plannedMounts": 70,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "heavy",
+            "SourceMen": 70,
+            "SourceMounts": 55,
+            "PlannedMen": 70,
+            "PlannedMounts": 70,
+            "GraphFingerprint": "17D7B0A90645892FF9C2FCE1814FF2F63D8FFA71E0A975EC190EC93715F847FE",
+            "VariantFingerprint": "B5E3284DFC441E85AEF252D46C60CE1FE8C4CCCB27729EB0FDCD3F5093649E66",
+            "RiderAnimationFingerprint": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+            "MountAnimationFingerprint": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 275,
+          "engineHpValidated": false
+        },
+        {
+          "culture": "norman",
+          "faction": "Kingdom of Sicily",
+          "type": "armored_horsemen",
+          "key": "mk_sic_t1_guelph_mounted_maa",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 70,
+          "rawMounts": 55,
+          "plannedMounts": 70,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "heavy",
+            "SourceMen": 70,
+            "SourceMounts": 55,
+            "PlannedMen": 70,
+            "PlannedMounts": 70,
+            "GraphFingerprint": "DAF154F96F342DCF327641558F329FDE30B147F0A15CD0B7C4C4A41A7CA04542",
+            "VariantFingerprint": "092FEFE994B3DFD8E5B24AE8DF542AB73D2076A1CE3F3CA671107F44F002083F",
+            "RiderAnimationFingerprint": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+            "MountAnimationFingerprint": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 183,
+          "engineHpValidated": false
+        },
+        {
+          "culture": "norman",
+          "faction": "Kingdom of Sicily",
+          "type": "light_horsemen",
+          "key": "mk_flo_t3_mounted_serjeants",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 70,
+          "rawMounts": 55,
+          "plannedMounts": 70,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "light",
+            "SourceMen": 70,
+            "SourceMounts": 55,
+            "PlannedMen": 70,
+            "PlannedMounts": 70,
+            "GraphFingerprint": "3292DAA792797FE726854765FE2AE35E4C295EBE242D7171447A2D11E28A8D21",
+            "VariantFingerprint": "D0C0748C88F9A3D067BEE26E0A8C399FDD6BC553AC47BCED5ADA5CB92361C4A0",
+            "RiderAnimationFingerprint": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+            "MountAnimationFingerprint": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 139,
+          "engineHpValidated": false
+        },
+        {
+          "culture": "norman",
+          "faction": "Kingdom of Sicily",
+          "type": "horse_archers",
+          "key": "mk_nap_t3_mounted_crossbowmen",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 90,
+          "rawMounts": 55,
+          "plannedMounts": 90,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "archer",
+            "SourceMen": 90,
+            "SourceMounts": 55,
+            "PlannedMen": 90,
+            "PlannedMounts": 90,
+            "GraphFingerprint": "672CF0F67B98F618FD08D8600067F2DEF79B41D1FAEAC0BC974F6E481E42B55B",
+            "VariantFingerprint": "D0C0748C88F9A3D067BEE26E0A8C399FDD6BC553AC47BCED5ADA5CB92361C4A0",
+            "RiderAnimationFingerprint": "BC0B82F296713EBC198D821BCF12D155A5ED4973AF80A4BD9CF378716FC3C658",
+            "MountAnimationFingerprint": "DB4EAB5B221799E3248D26F2221055F7DBDFCF25D55ABDD516A59A1BE8ADCECF",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 172,
+          "engineHpValidated": false
+        },
+        {
+          "culture": "norman",
+          "faction": "Kingdom of Sicily",
+          "type": "cataphract_archers",
+          "key": "",
+          "status": "unsupported",
+          "reason": "heavy-cavalry-with-incompatible-horse-template; no compatible authored same-family candidate.",
+          "rawMen": null,
+          "rawMounts": null,
+          "plannedMounts": null,
+          "rawEntityType": null,
+          "adapter": null,
+          "expectedHP": null,
+          "engineHpValidated": null
+        },
+        {
+          "culture": "norman",
+          "faction": "Kingdom of Sicily",
+          "type": "order_knights",
+          "key": "mk_sic_t1_guelph_mounted_maa",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 70,
+          "rawMounts": 55,
+          "plannedMounts": 70,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "heavy",
+            "SourceMen": 70,
+            "SourceMounts": 55,
+            "PlannedMen": 70,
+            "PlannedMounts": 70,
+            "GraphFingerprint": "DAF154F96F342DCF327641558F329FDE30B147F0A15CD0B7C4C4A41A7CA04542",
+            "VariantFingerprint": "092FEFE994B3DFD8E5B24AE8DF542AB73D2076A1CE3F3CA671107F44F002083F",
+            "RiderAnimationFingerprint": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+            "MountAnimationFingerprint": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 183,
+          "engineHpValidated": false
+        },
+        {
+          "culture": "norman",
+          "faction": "Kingdom of Sicily",
+          "type": "teulu",
+          "key": "mk_flo_t3_mounted_serjeants",
+          "status": "retained",
+          "reason": "Coarse population/foot-or-mount checks passed; full weapon-role and absolute balance unverified.",
+          "rawMen": 70,
+          "rawMounts": 55,
+          "plannedMounts": 70,
+          "rawEntityType": "horse",
+          "adapter": {
+            "Id": "earl-single-rider-v1",
+            "Role": "light",
+            "SourceMen": 70,
+            "SourceMounts": 55,
+            "PlannedMen": 70,
+            "PlannedMounts": 70,
+            "GraphFingerprint": "3292DAA792797FE726854765FE2AE35E4C295EBE242D7171447A2D11E28A8D21",
+            "VariantFingerprint": "D0C0748C88F9A3D067BEE26E0A8C399FDD6BC553AC47BCED5ADA5CB92361C4A0",
+            "RiderAnimationFingerprint": "E8F5AA44F59558382BEB359EEDC953A680E18D41CCD12FF9D5D5B3AEF0AE4EF8",
+            "MountAnimationFingerprint": "8D1F5B025D154C0B4EFFD6A69B2C7265E20B8814407F860AB6656CAB3DE78886",
+            "EngineValidated": false,
+            "AssetGraphVerified": true,
+            "ChangesCounts": true,
+            "Evidence": "Earl 1212 active graph: rider/mount animations, horse variant, linked entities; private one-rider count normalization. Engine confirmation pending."
+          },
+          "expectedHP": 139,
+          "engineHpValidated": false
+        }
+      ],
+      "reviewRequiredExamples": [
+        {
+          "faction": "Abarshahr",
+          "type": "light_horsemen",
+          "previousKey": "bel_ost_gothic_horsemen",
+          "originalKey": "mk_khw_t3_mounted_qullughchi",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Abarshahr",
+          "type": "maa_marauders",
+          "previousKey": "bel_ost_gothic_horsemen",
+          "originalKey": "mk_khw_t3_khwarazmian_lancers",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Abarshahr",
+          "type": "sahel_horsemen",
+          "previousKey": "bel_ost_gothic_horsemen",
+          "originalKey": "earl_mar_t1_tuareg_camel_jinetes",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Abbasid Caliphate",
+          "type": "sahel_horsemen",
+          "previousKey": "bel_ost_gothic_horsemen",
+          "originalKey": "earl_mar_t1_tuareg_camel_jinetes",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Africa",
+          "type": "tiefutu",
+          "previousKey": "arm_nakharar_cavalry",
+          "originalKey": "earl_haf_t3_armored_camel_cavalry",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        },
+        {
+          "faction": "Aksum",
+          "type": "sahel_horsemen",
+          "previousKey": "bel_ost_gothic_horsemen",
+          "originalKey": "earl_mar_t1_tuareg_camel_jinetes",
+          "reason": "unsupported-body-or-hitpoint-representation: no reviewed single-rider adapter matches the effective counts, entity, animation and visual asset graph."
+        }
+      ]
+    }
+  ],
+  "laterEraRequiredEarlPacks": [
+    "realistic_infantry_overhaul_1212.pack",
+    "realistic_missile_overhaul_1212.pack",
+    "realistic_cavalry_1212.pack"
+  ],
+  "regionalCatalog": {
+    "uniqueEligibleKeys": 16,
+    "scope": "Explicit catalog candidates verified against the installed later stack; actual culture reachability is reported separately.",
+    "byEra": {
+      "HighMedieval": [
+        "mk_eng_t1_hobilars",
+        "mk_eng_t1_knights",
+        "mk_fre_t1_chevaliers_mounted",
+        "mk_fre_t1_mounted_sergeants",
+        "mk_sic_t1_knights",
+        "mk_sic_t1_mounted_serjeants"
+      ],
+      "LateMedieval": [
+        "mk_eng_t2_hobilars",
+        "mk_eng_t2_knights",
+        "mk_fre_t2_chevaliers_mounted",
+        "mk_sic_t2_knights",
+        "mk_sic_t2_mounted_serjeants"
+      ],
+      "Renaissance": [
+        "mk_eng_t3_hobilars",
+        "mk_eng_t3_knights",
+        "mk_fre_t3_gendarmes",
+        "mk_sic_t3_condo_maa",
+        "mk_sic_t3_mounted_serjeants"
+      ]
+    }
+  },
+  "verification": {
+    "backendTests": {
+      "passed": 50,
+      "optionalSkipped": 2
+    },
+    "nativeCatalogPythonTests": {
+      "passed": 7
+    },
+    "cavalryCatalogBuilderAstParse": "PASS",
+    "binaryRoundtrip": {
+      "profiles": 14,
+      "tables": 10,
+      "rows": 158,
+      "allCellsEqual": true,
+      "packSha256": "56a21b3537529ca0fff7024b3c49d79c5dcbc91d1e437abd7589b2565e96d77a",
+      "engineValidated": false
+    }
+  }
+}

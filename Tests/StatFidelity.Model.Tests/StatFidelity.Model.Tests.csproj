@@ -17,5 +17,6 @@
     <Compile Include="../../CrusaderWars/stat_fidelity/CharacterFateLedger.cs" Link="CharacterFateLedger.cs" />
     <Compile Include="../../CrusaderWars/stat_fidelity/BattleReportEvidence.cs" Link="BattleReportEvidence.cs" />
     <Compile Include="../../CrusaderWars/stat_fidelity/SurvivorApportionment.cs" Link="SurvivorApportionment.cs" />
+    <Compile Include="../../CrusaderWars/stat_fidelity/PopulationFraction.cs" Link="PopulationFraction.cs" />
   </ItemGroup>
 </Project>

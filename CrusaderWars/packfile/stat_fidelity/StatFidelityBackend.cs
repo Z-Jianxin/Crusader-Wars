@@ -59,6 +59,7 @@ public static partial class StatFidelityBackend
     {
         string schemaHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(schema)));
         var extractedPacks = new List<string>();
+        var extractedAssets = new List<string>();
         EnsurePlainDirectory(Path.GetFullPath(cacheRoot));
         foreach (string pack in packsLowToHigh)
         {
@@ -132,8 +133,11 @@ public static partial class StatFidelityBackend
             }
             RejectLinksBelow(cache);
             extractedPacks.Add(cache);
+            extractedAssets.Add(LoadCavalryAssets(rpfm, pack, Path.GetFullPath(cacheRoot), Path.GetFileName(bucket)));
         }
-        return AttilaDatabase.FromPackDirectories(extractedPacks);
+        var merged = AttilaDatabase.FromPackDirectories(extractedPacks);
+        merged.CavalryAssets = CavalryAssetEvidence.Read(extractedAssets);
+        return merged;
     }
 
     private static string? CompletedAttempt(string bucket)

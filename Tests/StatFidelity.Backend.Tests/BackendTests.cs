@@ -319,7 +319,8 @@ public sealed class BackendTests
         try
         {
             var db = StatFidelityBackend.LoadPacks(rpfm, schema, new[] { pack }, Path.Combine(directory, "cache"));
-            string marker = Directory.GetFiles(Path.Combine(directory, "cache"), "complete", SearchOption.AllDirectories).Single();
+            string marker = Directory.GetDirectories(Path.Combine(directory, "cache"))
+                .Where(p => Path.GetFileName(p) != "cavalry-assets-v1").Select(p => Path.Combine(p, "complete")).Single(File.Exists);
             string previousAttempt = File.ReadAllText(marker);
             string preserved = Path.Combine(Path.GetDirectoryName(marker)!, previousAttempt, "incomplete-sentinel");
             File.WriteAllText(preserved, "preserve me"); File.Delete(marker);

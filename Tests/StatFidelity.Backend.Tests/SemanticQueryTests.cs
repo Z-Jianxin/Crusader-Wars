@@ -92,6 +92,9 @@ public sealed class SemanticQueryTests
             foreach (var table in Fixture().Tables.Values)
                 table.Write(Path.Combine(attempt, table.Name == "Loc" ? "text/db" : "db/" + table.Name, table.Name == "Loc" ? "fixture.loc.tsv" : "fixture.tsv"));
             File.WriteAllText(Path.Combine(bucket, "complete"), Path.GetFileName(attempt));
+            string assets = Path.Combine(cache, "cavalry-assets-v1", Path.GetFileName(bucket));
+            Directory.CreateDirectory(Path.Combine(assets, Path.GetFileName(attempt)));
+            File.WriteAllText(Path.Combine(assets, "complete"), Path.GetFileName(attempt));
             var prepared = StatFidelityBackend.PrepareFromPacks(runtime, [pack], cache);
             Assert.Equal("inf_melee", prepared.QuerySemanticUnit("foot").Category);
             Assert.Equal(new[] { pack }, prepared.SourcePacks); prepared.AssertFresh();

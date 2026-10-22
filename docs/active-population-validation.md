@@ -1,0 +1,35 @@
+# Active strength and retained wounded population
+
+This update separates the selected CK3 combat's fighting population from troops already knocked out before interception. It also adds [reviewed Earl cavalry adapters](./cavalry-adapters-validation.md). All new validation is offline. No game, UI test, personal campaign recovery or actual battle outcome was performed.
+
+## Population contract
+
+The immutable input ledger records each exact army, army-regiment, source regiment and chunk. For ordinary MAA and levies, native integer source/cache stock must equal `ceil(active + soft_casualties)`, using the selected combat's explicit decimal values. Historical combat starting values and source capacities remain separate. Missing, contradictory or more precise native counts fail with a diagnostic rather than supplying a guessed wounded amount.
+
+The captured Native4 battle contains 31 ordinary groups and 88 exact source chunks, including four reserved equipment sources. Ordinary stocks total 9,427; active strength is 8,822.32173 and existing soft casualties are 590.98852. Their aggregate integer residual, 13.68975, is rounding evidence. It is not another wounded population. The four equipment sources retain 70 machines with zero field participation and use a separate reserve contract. Four native knights retain individual character identities with positive fractional participation.
+
+Active and wounded values are jointly allocated to exact ordinary chunks using original stock weights. This is an explicit representation assumption: the native record does not reveal which individual chunks contain wounded troops. Only scaled active bodies enter Attila. Entirely wounded sources remain available for native completion but do not spawn. A positive active cohort that rounds to zero at the requested scale fails instead of receiving a free fighting body. Guards borrow active bodies from an actual same-army cohort and return losses to that donor.
+
+For return, each source's active population is multiplied by its raw surviving/deployed body ratio, including weighted guard participation. Stock weights and survival ratios use exact fractions through aggregation and remainder ranking, avoiding decimal drift at rounding boundaries. Active strength is then normalized down to five decimal places once per native army-regiment. Five decimals is the accepted serialization precision; downward normalization is a conservative converter rule, not a claim about CK3's internal rounding algorithm. Decimal approximations in diagnostics are not inputs to population rounding.
+
+The group returns `ceil(normalized active remaining + original soft casualties)` stock. Integer source allocations are jointly bounded by original stock; final-phase stock is additionally bounded by main-phase allocations. Splitting a formation does not create an independent rounding opportunity. Ordinary wounded values, historical starting counters, and native side bootstrap counters retain their original values. No native recovery percentage, second pursuit simulation or new fatality formula is invented.
+
+Knight retinues are combat proxies, not literal fractional character health. A surviving, available character keeps its original native active/wounded/stock state. Only an explicitly resolved slain/captured fate removes that exact character's availability. A commander independently represented by a general can receive its own explicit commander fate; inactive ordinary knights acquire no new fate from absent actors.
+
+## Validation and practical limit
+
+The original save and matching handoff are read-only authorities. New casualty controls deliberately supply synthetic survivors, separately from native gameplay evidence. Checks include original source identity and stock reconciliation, zero/entirely wounded populations, fractional character identities, no-loss controls for either winner, partial losses, scale and split conservation, stale-record rejection, exact combat selection and bounded atomic serialization.
+
+Final automated checks: 340 application integration tests, 100 model tests, 50 backend tests and seven Python catalog tests passed (497 total); two pre-existing optional installed-pack backend cases were skipped. The new exact-fraction properties include 500 different chunk splits. Application builds completed with zero errors; inherited warnings remain.
+
+All six full-save replays passed: partial-loss controls at 25%, 50%, 75% and 100% battle scale, plus no-loss controls for either winner at 100%. A separate Python fraction-based oracle derived expected results from the original save and raw synthetic body reports, rather than production outcome counts. Every run checked all 39 combat records, 31 ordinary populations, 88 selected source chunks, 18,044 unrelated source records, 454 unrelated army-regiments and 14 pending report groups. Both no-loss winner cases retained the original active strength, wounded values and stocks. The result reports' pending `final_count` values stayed zero for native completion.
+
+The full writer can normalize LF/CRLF when composing extracted sections. Unrelated sections, war/living state and source metadata are compared structurally or with explicit newline normalization; their full serialized bytes are not claimed identical. Original wounded scalar tokens remain exact. The bounded editor's separate no-loss control did preserve complete selected side-block bytes.
+
+The full fixture controls contain one synthetic survivor phase. Distinct main/pursuit losses and phase-monotone chunk allocations are checked separately by focused kernel and writer tests; this does not establish native pursuit or recovery behavior. The frozen replay assembly is identified in the [portable validation receipt](./active-population-validation.json). Subsequent reserve-only, inactive-character and alternative knight-mode branches received focused regression checks; those branches are absent from this anchored fixture.
+
+The generated complete 100% battle passed an RPFM binary roundtrip: 178 rows across 10 tables, with every data cell preserved. Separate [cavalry checks](./cavalry-adapters-validation.md) cover neutral/scaled Earl adapters and the refreshed 45,288-query four-era resolver matrix. No installed game pack or personal save was written by these checks.
+
+**Native completion remains unverified for this new path.** The writer retains the existing pursuit-phase/day completion convention and leaves native completion to consume the preserved state. Offline serialization cannot establish wounded recovery, retreat exposure, final character aftermath or a war-score award in the engine. Earlier successful native return receipts are historical and do not certify this changed population path. Returned saves still require a separate manual load.
+
+The [model](./stat-fidelity-model.md), [replay harness](../Tests/StatFidelity.BattleHarness/README.md) and [cavalry validation](./cavalry-adapters-validation.md) describe the supported scope. Counters, terrain, pursuit/screen translation, automatic return and named retinues retain their existing draft plans.

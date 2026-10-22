@@ -40,6 +40,7 @@ public static class CombatResultStatistics
         foreach (var army in attackers ?? throw new InvalidDataException("Attacking armies are missing.")) Visit(army, "attacker");
         foreach (var army in defenders ?? throw new InvalidDataException("Defending armies are missing.")) Visit(army, "defender");
 
+        StatFidelitySession.FinalizeNativePopulationOutcomes(armies.Values);
         var groups = new Dictionary<Key, Totals>();
         var native = new Dictionary<(string Side, string Id), ArmyRegiment>();
         var units = new Dictionary<int, Unit>();
@@ -67,6 +68,15 @@ public static class CombatResultStatistics
                 if (key.Knight != null && groups.ContainsKey(key))
                     throw new InvalidDataException("Knight is present in more than one native army regiment: " + key.Knight);
                 Group(key).Final = checked(Group(key).Final + regiment.CurrentNum);
+                if (StatFidelitySession.TryGetNativePopulationBudget(army.CombatSide, regiment.ID, out _))
+                {
+                    if (!StatFidelitySession.TryGetNativePopulationOutcome(army.CombatSide, regiment.ID, out var population) ||
+                        population.ReturnedStock != regiment.CurrentNum || population.MainReturnedStock < population.ReturnedStock)
+                        throw new InvalidDataException("Native statistics lack a consistent finalized population return: " + regiment.ID);
+                    // Integer pursuit losses follow joint active+wounded stock in
+                    // each phase, never separately rounded active casualty counts.
+                    Group(key).NormalPursuit = checked(Group(key).NormalPursuit + population.MainReturnedStock - population.ReturnedStock);
+                }
             }
             foreach (var unit in army.Units)
             {
@@ -93,23 +103,31 @@ public static class CombatResultStatistics
         int excludedMain = 0, excludedPursuit = 0;
         var guardCohortIds = new HashSet<int>();
         foreach (var army in armies.Values)
-        foreach (var outcome in StatFidelitySession.GetCommanderGuardCasualties(army))
+        foreach (var binding in StatFidelitySession.HasNativePopulationForArmy(army.ID)
+            ? army.Units.Where(unit => unit.CommanderGuardRepresentation != null).Select(unit => unit.CommanderGuardRepresentation!)
+            : StatFidelitySession.GetCommanderGuardCasualties(army).Select(outcome => outcome.Representation))
         {
-            var binding = outcome.Representation;
             Key donorKey = GuardDonorKey(army.CombatSide, binding);
             if (!groups.TryGetValue(donorKey, out var totals)) throw new InvalidDataException("Guard donor has no native result-statistics group.");
             foreach (int id in binding.CohortUnitIds) guardCohortIds.Add(id);
         }
         foreach (var army in armies.Values)
-        foreach (var outcome in StatFidelitySession.GetLevyCohortCasualties(army))
+        foreach (var outcome in HasPopulationCoverage(army, RegimentType.Levy)
+            ? Array.Empty<LevyCohortCasualties>() : StatFidelitySession.GetLevyCohortCasualties(army))
         {
+            bool[] populationSources = outcome.Budget.Sources.Select(source =>
+                StatFidelitySession.TryGetNativePopulationBudget(army.CombatSide, source.ArmyRegimentId, out _)).Distinct().ToArray();
+            if (populationSources.Length > 1) throw new InvalidDataException("Levy cohort mixes active-population and legacy source evidence.");
+            if (populationSources.Length == 1 && populationSources[0]) continue;
             Key levyKey = new(army.CombatSide, null, null);
             if (!groups.TryGetValue(levyKey, out var totals)) throw new InvalidDataException("Levy cohort has no native statistics group.");
             totals.NormalPursuit = checked(totals.NormalPursuit + outcome.PursuitLosses);
         }
         foreach (var army in armies.Values)
-        foreach (var outcome in StatFidelitySession.GetMaaSourceCasualties(army))
+        foreach (var outcome in HasPopulationCoverage(army, RegimentType.MenAtArms)
+            ? Array.Empty<MaaSourceCasualties>() : StatFidelitySession.GetMaaSourceCasualties(army))
         {
+            if (StatFidelitySession.TryGetNativePopulationBudget(army.CombatSide, outcome.Budget.ArmyRegimentId, out _)) continue;
             if (!native.TryGetValue((army.CombatSide, outcome.Budget.ArmyRegimentId), out var regiment))
                 throw new InvalidDataException("MAA casualty cohort has no exact native result group.");
             var totals = groups[NativeKey(army.CombatSide, regiment)];
@@ -252,6 +270,8 @@ public static class CombatResultStatistics
             }
             diagnostics.Add($"Knight credits for {pool.Key.Side} army {pool.Key.Army} are deterministic modeled shares of pooled Attila credits ({pool.Value.Main} main/{pool.Value.Pursuit} pursuit), weighted by established retinue bodies with ordinal character-ID ties; not observed personal kills.");
         }
+        if (native.Any(row => StatFidelitySession.TryGetNativePopulationBudget(row.Key.Side, row.Key.Id, out _)))
+            diagnostics.Add("Native survivor targets include the original soft-casualty pool; main/pursuit integer losses use joint active-plus-soft stock per phase. Wounded recovery and exposure during CK3 aftermath remain native and experimentally unverified; pending final_count stays zero.");
         diagnostics.Add($"Excluded abstract commander/guard credits with no native regiment_stats counterpart: {excludedMain} main/{excludedPursuit} pursuit Attila kills.");
         var updates = groups.OrderBy(g => g.Key.Side, StringComparer.Ordinal).ThenBy(g => g.Key.Type ?? "", StringComparer.Ordinal)
             .ThenBy(g => g.Key.Knight ?? "", StringComparer.Ordinal).Select(g => {
@@ -259,6 +279,15 @@ public static class CombatResultStatistics
                     g.Value.MainKills, g.Value.PursuitKills, g.Value.Final, checked((int)(g.Value.NormalPursuit + g.Value.SiegePursuit)));
             }).ToArray();
         return new(Array.AsReadOnly(updates), diagnostics.AsReadOnly());
+
+        bool HasPopulationCoverage(Army army, RegimentType type)
+        {
+            var covered = army.ArmyRegiments.Where(r => r.Type == type &&
+                !StatFidelitySession.TryGetNativeEquipmentInput(army.CombatSide, r.ID, out _))
+                .Select(r => StatFidelitySession.TryGetNativePopulationBudget(army.CombatSide, r.ID, out _)).Distinct().ToArray();
+            if (covered.Length > 1) throw new InvalidDataException("Native statistics mix active-population and legacy ordinary source evidence.");
+            return covered.Length == 1 && covered[0];
+        }
 
         void AddCredits(Key key, int main, int pursuit)
         {

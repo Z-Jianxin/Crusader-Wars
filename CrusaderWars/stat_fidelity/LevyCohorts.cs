@@ -18,7 +18,8 @@ public sealed record LevyCohortCasualties(LevyCohortBudget Budget, int MainSurvi
 public static partial class StatFidelitySession
 {
     private static readonly Dictionary<string, LevyCohortBudget> levyCohorts = new(StringComparer.Ordinal);
-    private sealed record LevyStrengthProof(string SourceSignature, int PlannedBodies, int BattleScale);
+    private sealed record LevyStrengthProof(string SourceSignature, int PlannedBodies, int BattleScale,
+        decimal? Active, decimal? Soft);
     private static readonly Dictionary<string, LevyStrengthProof> levyStrengthProofs = new(StringComparer.Ordinal);
     public static IReadOnlyList<LevyCohortBudget> LevyCohorts => levyCohorts.Values.ToArray();
 
@@ -40,7 +41,7 @@ public static partial class StatFidelitySession
     {
         if (!HasBoundExport || army.IsGarrisonArmy) return;
         var sources = army.ArmyRegiments.Where(r => r.Type == RegimentType.Levy).SelectMany(r => r.Regiments.Select(s => (Regiment: r, Source: s)))
-            .Select(s => new { s.Regiment, s.Source, Culture = s.Source.Culture?.ID ?? army.Owner?.GetCulture()?.ID }).ToArray();
+            .Select(s => new { s.Regiment, s.Source, Culture = string.IsNullOrEmpty(s.Source.Culture?.ID) ? army.Owner?.GetCulture()?.ID : s.Source.Culture.ID }).ToArray();
         foreach (var group in sources.GroupBy(s => s.Culture))
         {
             if (string.IsNullOrEmpty(group.Key)) throw Failure("Native levy source lacks both source and owner culture; no troop cohort can be inferred.");
@@ -58,27 +59,40 @@ public static partial class StatFidelitySession
             int bodies = checked(army.Units.Where(u => u.GetRegimentType() == RegimentType.Levy && u.GetObjCulture()?.ID == group.Key).Sum(u => u.GetSoldiers()) +
                 army.Units.Where(u => u.CommanderGuardRepresentation is { DonorType: RegimentType.Levy } guard && guard.DonorCultureId == group.Key)
                     .Sum(u => u.CommanderGuardRepresentation!.BorrowedBodies));
+            bool hasPopulation = TryGetNativeLevyDeployment(army.ID, group.Key, out var population);
+            if (HasNativePopulationForArmy(army.ID) && !hasPopulation)
+                throw Failure("Native levy cohort lacks its active/reserve deployment plan: " + identity);
+            if (hasPopulation && (population.Stock != native || population.DeployedBodies != bodies ||
+                population.BattleScale != ArmyProportions.BattleScale))
+                throw Failure("Native levy stock or active representation differs from its immutable population plan: " + identity);
+            decimal active = hasPopulation ? population.Active : native;
+            decimal? proofActive = hasPopulation ? population.Active : null, proofSoft = hasPopulation ? population.Soft : null;
             if (verifyOriginalStrength)
             {
                 string signature = string.Join("|", rows.Select(r => r.ArmyRegimentId + ":" + r.RegimentId + ":" + r.ChunkIndex + ":" + r.Soldiers));
                 if (levyStrengthProofs.TryGetValue(identity, out var prior))
                 {
-                    if (prior.SourceSignature != signature || prior.PlannedBodies != bodies || prior.BattleScale != ArmyProportions.BattleScale)
+                    if (prior.SourceSignature != signature || prior.PlannedBodies != bodies || prior.BattleScale != ArmyProportions.BattleScale ||
+                        prior.Active != proofActive || prior.Soft != proofSoft)
                         throw Failure("Levy regeneration changed its native sources, represented body total, or battle scale. Rebuild from the native handoff before generating another roster: " + identity);
                 }
                 else
                 {
-                    int original = checked(army.Units.Where(u => u.GetRegimentType() == RegimentType.Levy && u.GetObjCulture()?.ID == group.Key)
-                        .Sum(u => u.GetOriginalSoldiers()));
-                    if (original != native)
-                        throw Failure("Initial levy representation omits or adds native source strength in cohort " + identity + ": native " + native + ", represented original " + original + ".");
-                    levyStrengthProofs.Add(identity, new(signature, bodies, ArmyProportions.BattleScale));
+                    if (!hasPopulation)
+                    {
+                        int original = checked(army.Units.Where(u => u.GetRegimentType() == RegimentType.Levy && u.GetObjCulture()?.ID == group.Key)
+                            .Sum(u => u.GetOriginalSoldiers()));
+                        if (original != native)
+                            throw Failure("Initial levy representation omits or adds native source strength in cohort " + identity + ": native " + native + ", represented original " + original + ".");
+                    }
+                    levyStrengthProofs.Add(identity, new(signature, bodies, ArmyProportions.BattleScale,
+                        proofActive, proofSoft));
                 }
             }
             if (levyCohorts.ContainsKey(identity)) continue;
-            if (native > 0 && bodies <= 0)
+            if (active > 0 && bodies <= 0)
                 throw Failure("Positive native levy cohort " + identity + " has no represented troops. Repair its mapping or increase battle scale; no source was silently omitted.");
-            if (native == 0 && bodies != 0) throw Failure("Zero native levy cohort has positive generated strength: " + identity);
+            if (active == 0 && bodies != 0) throw Failure("Inactive native levy cohort has positive generated strength: " + identity);
             levyCohorts.Add(identity, new(army.ID, army.CombatSide, group.Key, native, bodies, Array.AsReadOnly(rows)));
         }
         var nativeCultures = sources.Select(s => s.Culture).ToHashSet(StringComparer.Ordinal);
@@ -97,7 +111,10 @@ public static partial class StatFidelitySession
             int represented = checked(units.Sum(u => u.GetSoldiers()) + army.Units.Where(u =>
                 u.CommanderGuardRepresentation is { DonorType: RegimentType.Levy } guard && guard.DonorCultureId == budget.CultureId)
                 .Sum(u => u.CommanderGuardRepresentation!.BorrowedBodies));
-            if (represented != budget.DeployedBodies || budget.NativeSoldiers > 0 && represented <= 0)
+            bool hasPopulation = TryGetNativeLevyDeployment(army.ID, budget.CultureId, out var population);
+            decimal active = hasPopulation ? population.Active : budget.NativeSoldiers;
+            if (represented != budget.DeployedBodies || active > 0 && represented <= 0 ||
+                hasPopulation && (population.Stock != budget.NativeSoldiers || population.DeployedBodies != represented))
                 throw Failure("Generated levy cohort does not preserve its planned native representation: army " + army.ID + ", culture " + budget.CultureId);
         }
     }

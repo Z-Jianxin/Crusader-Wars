@@ -51,6 +51,8 @@ namespace CrusaderWars.StatFidelity
         public double Effectiveness { get; set; }
         public double DamagePerProwess { get; set; }
         public double ToughnessPerProwess { get; set; }
+        // Derived from native combat participation; not a CCSTAT protocol field.
+        public double ActiveFraction { get; set; } = 1;
     }
 
     public sealed class StatExport

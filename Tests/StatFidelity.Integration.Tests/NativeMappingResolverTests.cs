@@ -39,6 +39,9 @@ public sealed class NativeMappingResolverTests
         Assert.Equal("cha_gen_noble_cav", fixture.Map(newNative));
         Assert.True((int)fixture.Invoke("GetMax", newNative)! > 0);
         fixture.SetUnsafeCavalryDatabase();
+        // A wrong cavalry mapping for native FOOT can still be replaced with a verified
+        // foot template; the original horse body's unsupported HP is irrelevant to that repair.
+        Assert.Equal("cha_gen_armoured_sword", fixture.Map(fixture.Unit("druzhina")));
         var unsafeUnit = fixture.Unit("armored_horsemen");
         var error = Assert.Throws<TargetInvocationException>(() => fixture.Map(unsafeUnit));
         Assert.IsType<InvalidOperationException>(error.InnerException);
@@ -121,7 +124,7 @@ public sealed class NativeMappingResolverTests
             Add("main_units_tables", ["unit", "land_unit", "num_men", "is_naval", "weight"], keys.Select(k => new[] {k,k,"80","false","heavy"}).ToArray());
             Add("land_units_tables", ["key","category","class","man_entity","bonus_hit_points","primary_melee_weapon","mount","num_mounts"],
                 keys.Select(k => { bool foot = k is "cha_gen_armoured_sword" or "VISI_bellatores";
-                    return new[] {k,foot?"inf_melee":"cavalry",foot?"inf_mel":"cav_mel","man","0","sword",foot?"":"mount",foot?"0":unsafeCavalry && k=="cha_gen_noble_cav"?"55":"80"}; }).ToArray());
+                    return new[] {k,foot?"inf_melee":"cavalry",foot?"inf_mel":"cav_mel","man","0","sword",foot?"":"mount",foot?"0":unsafeCavalry && (k=="cha_gen_noble_cav" || k=="HEP_steppe_lancers")?"55":"80"}; }).ToArray());
             Add("battle_entities_tables", ["key","type","hit_points"], ["man","man","100"],["horse","horse","50"]);
             Add("mounts_tables", ["key","entity"], ["mount","horse"]);
             Add("melee_weapons_tables", ["key","damage","ap_damage"], ["sword","10","4"]);

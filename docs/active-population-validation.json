@@ -1,0 +1,328 @@
+{
+  "schemaVersion": 1,
+  "validationDate": "2026-10-22",
+  "status": "offline-validation-passed-native-aftermath-experimental",
+  "scope": "Active-only deployment and paused native return from one authentic CK3 snapshot using deliberately synthetic Attila casualty reports. These are not six played battles or six native game reloads.",
+  "fixture": {
+    "snapshotId": "snapshot-4",
+    "nativeCombatId": "0",
+    "ordinaryArmyRegiments": 31,
+    "allCombatRecords": 39,
+    "sourceChunks": 88,
+    "ordinarySourceStock": 9427,
+    "ordinaryActive": "8822.32173",
+    "ordinaryPreexistingSoft": "590.98852",
+    "knightIdentities": 4,
+    "fieldEquipmentSources": 4,
+    "fieldEquipmentStock": 70,
+    "fieldEquipmentActive": 0,
+    "nativeGamestateSha256": "74d5e34c3799c8a973f5183f12ceb6f997e6abc00da65d9fc253e7f6cb978603",
+    "nativeReferenceSha256": "33d9b3b80d31076e6d5257c8af9ef5402e683bfa4ce6d3a67cce7c6fcade410c",
+    "nativeSaveSha256": "665af1ffe93015173c174e09b346928fc9483d190318360b3207ffc042ea4d27",
+    "framedNativeHandoffSha256": "d08868e54c024311b8b3dd82db099db48eea99c81bcdbb503e66eb3168f8d8ce"
+  },
+  "method": {
+    "numericalOracle": "Original native A/S/N and exact raw deployed XML/AAR survivor counts; production outcome values are checked, not used as expected values.",
+    "bindingEvidence": "Generated source/army/culture and donor-guard metadata binds raw formations to original source identities. This is not an independent audit of source culture assignment.",
+    "arithmetic": "Independent Python Fraction arithmetic; aggregate active normalized down to five decimals once per native army-regiment; stock is ceil(normalized active + original soft). Source seats use bounded stable largest remainders and final source capacity is bounded by its main-phase allocation.",
+    "bodyRounding": "MAA bodies are rounded jointly per native army-regiment, then apportioned by original source stock. Levy bodies are rounded jointly per army/culture active cohort. Funded commander bodies remain in their donor cohort.",
+    "characterPolicy": "Available characters retain original identity/A/S. Inactive personal knight records receive no new personal battle fate. An explicit independently deployed tracked commander removal may clear its own inactive personal identity.",
+    "comparisonNormalization": "The full writer introduces CRLF in replaced sections. Whole-section equivalence checks normalize CRLF to LF explicitly; original soft scalar tokens and counts are compared exactly. Compact source size-to-chunks expansion is normalized while preserving maxima, identities, metadata and unselected chunks.",
+    "validatorSha256": "17219bb16d8bba34e1c3f4011128df4f759213f570de08dc66ce9a84c6539365",
+    "mainAndPursuitEvidence": "The six raw smoke reports each have one survivor phase. Separate main/pursuit allocation and reporting, including rounding-resurrection prevention, are covered by focused kernel/writer tests; native pursuit recovery is not validated."
+  },
+  "invariants": {
+    "allSixReplaysPassed": true,
+    "allOriginalSoftTokensPreserved": true,
+    "sideBootstrapAndHistoricalCountsPreserved": true,
+    "sourceAndCachedCountsMatchJointPopulation": true,
+    "noSourceExceedsOriginalStock": true,
+    "sourceMainFinalAllocationsMonotone": true,
+    "allSelectedSourceMaximaMetadataAndUnselectedChunksPreserved": true,
+    "unrelatedGlobalSourceRecordsCheckedPerReplay": 18044,
+    "unrelatedArmyRegimentRecordsCheckedPerReplay": 454,
+    "livingAndWarSectionsEquivalentIgnoringLineEndings": true,
+    "noWarAwardPreApplied": true,
+    "pendingPerGroupFinalCountRemainsZero": true,
+    "bothNoLossWinnersPreserveOriginalStrength": true
+  },
+  "replays": [
+    {
+      "label": "replay-partial25",
+      "mode": "partial",
+      "pendingWinner": "attacker",
+      "battleScalePercent": 25,
+      "passedInternalReplay": true,
+      "passedIndependentAudit": true,
+      "rawAarPhaseCount": 1,
+      "deployedAttilaFormations": 21,
+      "deployedAttilaBodies": 2211,
+      "ordinaryRemainingActive": "4663.49678",
+      "ordinaryReturnedStock": 5271,
+      "preservedOrdinarySoft": "590.98852",
+      "nativeRecordsChecked": 39,
+      "sourceChunksChecked": 88,
+      "unrelatedGlobalSourcesChecked": 18044,
+      "unrelatedArmyRegimentsChecked": 454,
+      "pendingResultGroupsChecked": 14,
+      "finalCountAccumulatorsRemainZero": true,
+      "noLossOriginalActiveSoftStockAndEverySourceChunkPreserved": false,
+      "rawAarSha256": "4768d2eebdefa9bab7856842e0173eb7651caf1d28bc76db65c5dfe140907570",
+      "outputGamestateSha256": "d4ed72a6dd30a658679324aeca46355ac55d82b892d709dfee880b56fc61b35c",
+      "independentReceiptSha256": "036e8b16a5bfb123beff6b5622dfaed340af33655e25fdbecc9b5707ed38ec69",
+      "sourceNativeSaveSha256": "665af1ffe93015173c174e09b346928fc9483d190318360b3207ffc042ea4d27",
+      "sourceHandoffLogSha256": "d08868e54c024311b8b3dd82db099db48eea99c81bcdbb503e66eb3168f8d8ce"
+    },
+    {
+      "label": "replay-partial50",
+      "mode": "partial",
+      "pendingWinner": "attacker",
+      "battleScalePercent": 50,
+      "passedInternalReplay": true,
+      "passedIndependentAudit": true,
+      "rawAarPhaseCount": 1,
+      "deployedAttilaFormations": 25,
+      "deployedAttilaBodies": 4420,
+      "ordinaryRemainingActive": "4658.00466",
+      "ordinaryReturnedStock": 5265,
+      "preservedOrdinarySoft": "590.98852",
+      "nativeRecordsChecked": 39,
+      "sourceChunksChecked": 88,
+      "unrelatedGlobalSourcesChecked": 18044,
+      "unrelatedArmyRegimentsChecked": 454,
+      "pendingResultGroupsChecked": 14,
+      "finalCountAccumulatorsRemainZero": true,
+      "noLossOriginalActiveSoftStockAndEverySourceChunkPreserved": false,
+      "rawAarSha256": "0d13f85c405538635a584c0a4f0171f6cbab11924f2f77600cbd1efec44cbf0a",
+      "outputGamestateSha256": "b1c6b893a40c78557c8e3827deee515e5794c22359109e0459ed18f5291e37e7",
+      "independentReceiptSha256": "f9119758b8e2828a4e1e48cdf2831d04a845429cf5058de9ec9c3fd7267975ca",
+      "sourceNativeSaveSha256": "665af1ffe93015173c174e09b346928fc9483d190318360b3207ffc042ea4d27",
+      "sourceHandoffLogSha256": "d08868e54c024311b8b3dd82db099db48eea99c81bcdbb503e66eb3168f8d8ce"
+    },
+    {
+      "label": "replay-partial75",
+      "mode": "partial",
+      "pendingWinner": "attacker",
+      "battleScalePercent": 75,
+      "passedInternalReplay": true,
+      "passedIndependentAudit": true,
+      "rawAarPhaseCount": 1,
+      "deployedAttilaFormations": 30,
+      "deployedAttilaBodies": 6631,
+      "ordinaryRemainingActive": "4381.08984",
+      "ordinaryReturnedStock": 4990,
+      "preservedOrdinarySoft": "590.98852",
+      "nativeRecordsChecked": 39,
+      "sourceChunksChecked": 88,
+      "unrelatedGlobalSourcesChecked": 18044,
+      "unrelatedArmyRegimentsChecked": 454,
+      "pendingResultGroupsChecked": 14,
+      "finalCountAccumulatorsRemainZero": true,
+      "noLossOriginalActiveSoftStockAndEverySourceChunkPreserved": false,
+      "rawAarSha256": "7d25bffce89f09ed7c424133a3ffbbb9fd6f1dce3b469b5bd79da1f1637a48c0",
+      "outputGamestateSha256": "057ce9bb8bdc3ddd039025a8cec939ffe4b14479114591c23991fe04189ecb7b",
+      "independentReceiptSha256": "9e04cdd82a8eb1d30473c4dfdc0cd335598393b34864eacbeaf534a967ae6023",
+      "sourceNativeSaveSha256": "665af1ffe93015173c174e09b346928fc9483d190318360b3207ffc042ea4d27",
+      "sourceHandoffLogSha256": "d08868e54c024311b8b3dd82db099db48eea99c81bcdbb503e66eb3168f8d8ce"
+    },
+    {
+      "label": "replay-partial100",
+      "mode": "partial",
+      "pendingWinner": "attacker",
+      "battleScalePercent": 100,
+      "passedInternalReplay": true,
+      "passedIndependentAudit": true,
+      "rawAarPhaseCount": 1,
+      "deployedAttilaFormations": 30,
+      "deployedAttilaBodies": 8841,
+      "ordinaryRemainingActive": "4380.67015",
+      "ordinaryReturnedStock": 4988,
+      "preservedOrdinarySoft": "590.98852",
+      "nativeRecordsChecked": 39,
+      "sourceChunksChecked": 88,
+      "unrelatedGlobalSourcesChecked": 18044,
+      "unrelatedArmyRegimentsChecked": 454,
+      "pendingResultGroupsChecked": 14,
+      "finalCountAccumulatorsRemainZero": true,
+      "noLossOriginalActiveSoftStockAndEverySourceChunkPreserved": false,
+      "rawAarSha256": "95c1db9a831c466de88a0de4676738abf35c8479113c47bb2a96d6636ba5a094",
+      "outputGamestateSha256": "ed4ff671b53884e53e5733fcf1478e3dfefb50b76e4e70d1e65c2cadd049a74b",
+      "independentReceiptSha256": "5dedd5a888f59472dd6db118dadc3346af18356e24506d2a9216f328d9d7bf54",
+      "sourceNativeSaveSha256": "665af1ffe93015173c174e09b346928fc9483d190318360b3207ffc042ea4d27",
+      "sourceHandoffLogSha256": "d08868e54c024311b8b3dd82db099db48eea99c81bcdbb503e66eb3168f8d8ce"
+    },
+    {
+      "label": "replay-none-attacker",
+      "mode": "none",
+      "pendingWinner": "attacker",
+      "battleScalePercent": 100,
+      "passedInternalReplay": true,
+      "passedIndependentAudit": true,
+      "rawAarPhaseCount": 1,
+      "deployedAttilaFormations": 30,
+      "deployedAttilaBodies": 8841,
+      "ordinaryRemainingActive": "8822.32173",
+      "ordinaryReturnedStock": 9427,
+      "preservedOrdinarySoft": "590.98852",
+      "nativeRecordsChecked": 39,
+      "sourceChunksChecked": 88,
+      "unrelatedGlobalSourcesChecked": 18044,
+      "unrelatedArmyRegimentsChecked": 454,
+      "pendingResultGroupsChecked": 14,
+      "finalCountAccumulatorsRemainZero": true,
+      "noLossOriginalActiveSoftStockAndEverySourceChunkPreserved": true,
+      "rawAarSha256": "89e3f7091c7b9047258eb70fd1646e263b91450ba7366d5a2f3e5046971ead68",
+      "outputGamestateSha256": "2c930358cb03de197dc13158d3dfdce254cea570c7eb35807a160d100821ddbb",
+      "independentReceiptSha256": "b6316936dc1963060d69897ae76df5351ad7217f6b85ea22a1c5a3a62a8b924e",
+      "sourceNativeSaveSha256": "665af1ffe93015173c174e09b346928fc9483d190318360b3207ffc042ea4d27",
+      "sourceHandoffLogSha256": "d08868e54c024311b8b3dd82db099db48eea99c81bcdbb503e66eb3168f8d8ce"
+    },
+    {
+      "label": "replay-none-defender",
+      "mode": "none",
+      "pendingWinner": "defender",
+      "battleScalePercent": 100,
+      "passedInternalReplay": true,
+      "passedIndependentAudit": true,
+      "rawAarPhaseCount": 1,
+      "deployedAttilaFormations": 30,
+      "deployedAttilaBodies": 8841,
+      "ordinaryRemainingActive": "8822.32173",
+      "ordinaryReturnedStock": 9427,
+      "preservedOrdinarySoft": "590.98852",
+      "nativeRecordsChecked": 39,
+      "sourceChunksChecked": 88,
+      "unrelatedGlobalSourcesChecked": 18044,
+      "unrelatedArmyRegimentsChecked": 454,
+      "pendingResultGroupsChecked": 14,
+      "finalCountAccumulatorsRemainZero": true,
+      "noLossOriginalActiveSoftStockAndEverySourceChunkPreserved": true,
+      "rawAarSha256": "89e3f7091c7b9047258eb70fd1646e263b91450ba7366d5a2f3e5046971ead68",
+      "outputGamestateSha256": "65e386938d0e044098aaa2815e40d88b2e467d089f51bcfecb89e9d19ab86cfc",
+      "independentReceiptSha256": "0fe5f36d2e825925a0594a6ca9568f3fc088e72a05e6fb932e06eba54ed8d5e6",
+      "sourceNativeSaveSha256": "665af1ffe93015173c174e09b346928fc9483d190318360b3207ffc042ea4d27",
+      "sourceHandoffLogSha256": "d08868e54c024311b8b3dd82db099db48eea99c81bcdbb503e66eb3168f8d8ce"
+    }
+  ],
+  "tests": {
+    "totalPassed": 497,
+    "integration": {
+      "passed": 340,
+      "failed": 0
+    },
+    "model": {
+      "passed": 100,
+      "failed": 0
+    },
+    "backend": {
+      "passed": 50,
+      "failed": 0,
+      "optionalSkipped": 2
+    },
+    "pythonNativeCatalog": {
+      "passed": 7,
+      "failed": 0
+    },
+    "focusedPopulationKernelCases": 15,
+    "seededPopulationTrialsWithinKernelTest": 250,
+    "focusedPopulationReturnCases": 25
+  },
+  "assemblies": {
+    "applicationUsedBySixReplaysSha256": "4e75f336a6e5274d875ec434a23a32181c2798f68ea56b899261ce059fde3239",
+    "finalDebugApplicationSha256": "3ad9be03ffec60e8559470901556c0c72e7ae5f47496b34b1ec41fd654df0ade",
+    "distinction": "The final source also contains narrow edge guards absent from this fixture; final integration tests and the frozen six-replay application are recorded separately."
+  },
+  "binaryPackRoundtrip": {
+    "status": "PASS",
+    "sourceReplay": "replay-partial100",
+    "tables": 10,
+    "rows": 178,
+    "allCellsEqual": true,
+    "packSha256": "aa1faf130ba8e22a592c2a41702882122e5f57a3fa5784a016bf46dced91d3c3",
+    "receiptSha256": "90603c8d6220b6799247074822ee60d5395b20b99b98f2cf4f0ddda2cd1d173e",
+    "tablesCompared": [
+      {
+        "table": "db/battle_entities_tables/cc_stat_fidelity.tsv",
+        "rows": 30,
+        "inputSha256": "8c9d94ef21ddd2c62dbd8ae0d552ae3713108249c14ea50e7fbea368b4b96bd3",
+        "decodedSha256": "8c9d94ef21ddd2c62dbd8ae0d552ae3713108249c14ea50e7fbea368b4b96bd3"
+      },
+      {
+        "table": "db/land_units_tables/cc_stat_fidelity.tsv",
+        "rows": 22,
+        "inputSha256": "4e2ea8fe8436124bbae07c518a6019cb18d16401167de5139cd0d7b031ee899b",
+        "decodedSha256": "4e2ea8fe8436124bbae07c518a6019cb18d16401167de5139cd0d7b031ee899b"
+      },
+      {
+        "table": "db/land_units_to_unit_abilites_junctions_tables/cc_stat_fidelity.tsv",
+        "rows": 14,
+        "inputSha256": "bb35eaa9187d092325cd8f8d0fd2854dcf2b27c3f91ef56a006d704f9005d797",
+        "decodedSha256": "bb35eaa9187d092325cd8f8d0fd2854dcf2b27c3f91ef56a006d704f9005d797"
+      },
+      {
+        "table": "db/main_units_tables/cc_stat_fidelity.tsv",
+        "rows": 22,
+        "inputSha256": "ff644580b46b2f3235b4b0792ed73e71afc4101beb276d9133db390c9f1020e3",
+        "decodedSha256": "ff644580b46b2f3235b4b0792ed73e71afc4101beb276d9133db390c9f1020e3"
+      },
+      {
+        "table": "db/melee_weapons_tables/cc_stat_fidelity.tsv",
+        "rows": 22,
+        "inputSha256": "623889cc25685bab3f2578a7eb45f35f3c83fb0ff3a4a848c2660b73d996fcc3",
+        "decodedSha256": "623889cc25685bab3f2578a7eb45f35f3c83fb0ff3a4a848c2660b73d996fcc3"
+      },
+      {
+        "table": "db/missile_weapons_tables/cc_stat_fidelity.tsv",
+        "rows": 8,
+        "inputSha256": "1297caef69b21f267f2d7305d41233328826c837c7f3fb233dec61624bb4a98e",
+        "decodedSha256": "1297caef69b21f267f2d7305d41233328826c837c7f3fb233dec61624bb4a98e"
+      },
+      {
+        "table": "db/mounts_tables/cc_stat_fidelity.tsv",
+        "rows": 8,
+        "inputSha256": "c76e15ce1f6e12c2e50d2ae34743f778b620c5aa8a8c176b32ea5aba4a0d3fba",
+        "decodedSha256": "c76e15ce1f6e12c2e50d2ae34743f778b620c5aa8a8c176b32ea5aba4a0d3fba"
+      },
+      {
+        "table": "db/projectiles_tables/cc_stat_fidelity.tsv",
+        "rows": 8,
+        "inputSha256": "45fc08ff530d0eda2bbb868699fb2b9eb9c72588be2c85527bf3ddcbbbf98b72",
+        "decodedSha256": "45fc08ff530d0eda2bbb868699fb2b9eb9c72588be2c85527bf3ddcbbbf98b72"
+      },
+      {
+        "table": "db/unit_variants_tables/cc_stat_fidelity.tsv",
+        "rows": 22,
+        "inputSha256": "f9b8b3d99a2a62cf25384a7e54ae17892fc14431b8d237e80847b23f808c83c4",
+        "decodedSha256": "f9b8b3d99a2a62cf25384a7e54ae17892fc14431b8d237e80847b23f808c83c4"
+      },
+      {
+        "table": "text/db/cc_stat_fidelity.loc.tsv",
+        "rows": 22,
+        "inputSha256": "0c85ac21c0a6fb27bd7b4483438409a01ba757598a7e526c37e4c75269d8754a",
+        "decodedSha256": "0c85ac21c0a6fb27bd7b4483438409a01ba757598a7e526c37e4c75269d8754a"
+      }
+    ]
+  },
+  "runtimeActions": {
+    "gameLaunched": false,
+    "uiTestPerformedForThisPatch": false,
+    "personalCampaignWritten": false,
+    "actualBattleRecovered": false
+  },
+  "remainingLimits": {
+    "nativeWoundedAftermathValidated": false,
+    "nativeWinLossRecoveryValidated": false,
+    "nativePursuitExposureValidated": false,
+    "absoluteBattleBalanceCalibrated": false,
+    "explanation": "Retained native wounded state is passed to the existing single-completion contract. Native winner/loser recovery and pursuit behavior remain experimental until controlled game completion tests; this receipt proves offline paused-state consistency only."
+  },
+  "relatedSources": [
+    "active-population-validation.md",
+    "../CrusaderWars/stat_fidelity/NativePopulationLedger.cs",
+    "../CrusaderWars/stat_fidelity/NativePopulationSession.cs",
+    "../CrusaderWars/data/battle_results/editors/NativeCombatReturnEditor.cs",
+    "../Tests/StatFidelity.Integration.Tests/NativePopulationLedgerTests.cs",
+    "../Tests/StatFidelity.Integration.Tests/NativePopulationReturnTests.cs",
+    "../Tests/StatFidelity.Integration.Tests/NativeCombatReturnEditorTests.cs"
+  ]
+}

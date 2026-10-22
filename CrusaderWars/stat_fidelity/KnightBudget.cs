@@ -62,10 +62,12 @@ namespace CrusaderWars.StatFidelity
             foreach (var knight in knights)
             {
                 Nonnegative(knight.Prowess, nameof(knight.Prowess)); Nonnegative(knight.Effectiveness, nameof(knight.Effectiveness));
+                Nonnegative(knight.ActiveFraction, nameof(knight.ActiveFraction));
+                if (knight.ActiveFraction > 1) throw new InvalidOperationException("A native knight participation fraction cannot exceed one identity.");
                 Positive(knight.DamagePerProwess, nameof(knight.DamagePerProwess)); Positive(knight.ToughnessPerProwess, nameof(knight.ToughnessPerProwess));
             }
-            double damage = knights.Sum(k => k.Prowess * k.Effectiveness * k.DamagePerProwess);
-            double toughness = knights.Sum(k => k.Prowess * k.Effectiveness * k.ToughnessPerProwess);
+            double damage = knights.Sum(k => k.Prowess * k.Effectiveness * k.DamagePerProwess * k.ActiveFraction);
+            double toughness = knights.Sum(k => k.Prowess * k.Effectiveness * k.ToughnessPerProwess * k.ActiveFraction);
             Nonnegative(damage, nameof(damage)); Nonnegative(toughness, nameof(toughness));
             if (damage == 0 && toughness == 0)
                 return new KnightBudgetPlan(anchor, template.UnitKey, 0, 0, 0, 0, 0, 1, 1, 0, 0, commanderMultiplier, representationScale,
@@ -105,14 +107,14 @@ namespace CrusaderWars.StatFidelity
             var allocations = knights.Select(k => new
             {
                 knight = k,
-                share = remainderBodies * (k.Prowess * k.Effectiveness * k.ToughnessPerProwess) / toughness
+                share = remainderBodies * (k.Prowess * k.Effectiveness * k.ToughnessPerProwess * k.ActiveFraction) / toughness
             }).ToArray();
             var counts = allocations.ToDictionary(a => a.knight.CharacterId, a => 1 + (int)Math.Floor(a.share), StringComparer.Ordinal);
             int remaining = bodies - counts.Values.Sum();
             foreach (var item in allocations.OrderByDescending(a => a.share - Math.Floor(a.share)).ThenBy(a => a.knight.CharacterId, StringComparer.Ordinal).Take(remaining))
                 counts[item.knight.CharacterId]++;
             return knights.Select(k => new KnightBodyAllocation(k.CharacterId, counts[k.CharacterId],
-                k.Prowess * k.Effectiveness * k.DamagePerProwess, k.Prowess * k.Effectiveness * k.ToughnessPerProwess)).ToArray();
+                k.Prowess * k.Effectiveness * k.DamagePerProwess * k.ActiveFraction, k.Prowess * k.Effectiveness * k.ToughnessPerProwess * k.ActiveFraction)).ToArray();
         }
 
         private static void Positive(double value, string name)

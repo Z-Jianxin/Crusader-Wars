@@ -1,0 +1,6 @@
+key	armour_penetrating	armour_piercing	bonus_v_cavalry	bonus_v_elephants	bonus_v_infantry	damage	ap_damage	first_strike	shield_piercing	weapon_length	melee_weapon_type	audio_material	building_damage
+#melee_weapons_tables;7;db/melee_weapons_tables/melee_weapons_tables													
+earl_t1_cav_sidearm_mix_train	false	false	0	0	4	27	3	0	false	10.0000	sword	sword_long	0.1000
+earl_t1_cav_lance_western_sidearm_mix_train	false	false	0	0	2	31	3	0	false	1.0000	sword	sword_long	0.1000
+earl_t3_cav_lance_fine_sidearm_mace_elite	false	true	0	0	4	25	36	0	false	1.0000	sword	club	0.1000
+earl_t1_cav_contus_elite	false	false	0	0	0	45	20	0	false	3.0000	spear	spear	0.0330

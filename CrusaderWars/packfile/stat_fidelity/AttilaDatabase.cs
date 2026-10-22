@@ -25,6 +25,7 @@ public sealed class AttilaDatabase
         ["Loc"] = new[] { "key" }
     };
     internal readonly Dictionary<string, TsvTable> Tables = new(StringComparer.Ordinal);
+    internal CavalryAssetEvidence? CavalryAssets { get; set; }
     private readonly Dictionary<string, Dictionary<string, int>> rowIndices = new(StringComparer.Ordinal);
 
     public void Merge(TsvTable incoming)

@@ -384,12 +384,15 @@ public sealed class SourceIdentityTests : IDisposable
             army.SetArmyRegiments(new List<ArmyRegiment> { commanderRegiment, knightRegiment });
             var nativeCombatField = typeof(ArmiesReader).GetField("nativeCombatParticipation", BindingFlags.NonPublic | BindingFlags.Static)!;
             var oldCombat = nativeCombatField.GetValue(null);
-            nativeCombatField.SetValue(null, NativeCombatParticipation.Parse("attacker={armies={5} men_at_arms={ {regiment=900 current=1} }} defender={armies={6}}"));
-            try { StatFidelitySession.CaptureCommanderKnightBudget(army); }
+            nativeCombatField.SetValue(null, NativeCombatParticipation.Parse("attacker={armies={5} men_at_arms={ {regiment=900 current=1} {regiment=901 current=1} }} defender={armies={6}}"));
+            try
+            {
+                StatFidelitySession.CaptureCommanderKnightBudget(army);
+                // Keep native records, but exclude the commander from pooled knights.
+                Assert.True(StatFidelitySession.TryCreateNativeKnights(army, new(), out var nativeKnights));
+                army.SetKnights(nativeKnights);
+            }
             finally { nativeCombatField.SetValue(null, oldCombat); }
-            // Keep the native record, but exclude this character from pooled knights.
-            Assert.True(StatFidelitySession.TryCreateNativeKnights(army, new(), out var nativeKnights));
-            army.SetKnights(nativeKnights);
             Assert.Equal("11", Assert.Single(army.Knights.GetKnightsList()).GetID());
             Assert.Equal(10, army.Knights.GetKnightsList()[0].GetProwess());
             Assert.Equal(0, army.Knights.Effectiveness); // native total1 means no additive legacy bonus

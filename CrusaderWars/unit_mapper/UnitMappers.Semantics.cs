@@ -93,6 +93,15 @@ internal static partial class UnitMappers_BETA
                 NativeMappingPolicy.RoleMismatch(native.Category ?? "", asset, native.Key) == null && NativeMappingPolicy.RepresentationIssue(asset) == null);
     }
 
+    private static AuthoredCandidate? ReviewedCavalryCandidate(Unit unit, NativeMaaDefinition native)
+    {
+        foreach (string key in CavalryRoleCatalog.Candidates(LoadedUnitMapper_FolderPath, unit.GetAttilaFaction(), native.Category ?? "", native.Key))
+            if (SemanticAsset(key) is { CavalryAdapter: not null } asset &&
+                NativeMappingPolicy.RoleMismatch(native.Category ?? "", asset, native.Key) == null && NativeMappingPolicy.RepresentationIssue(asset) == null)
+                return new(native.Key, key, "CAVALRY", "reviewed-earl-cavalry-role-catalog-v1");
+        return null;
+    }
+
     private static (string unit_key, bool isSiege) ResolveNativeSemanticMapping(Unit unit, (string unit_key, bool isSiege) mapped, bool title, bool genericFallback)
     {
         if (!NativeSemanticPolicyEnabled || unit.GetRegimentType() != RegimentType.MenAtArms || !ArmiesReader.TryGetNativeMaaDefinition(unit.GetName(), out var native)) return mapped;
@@ -115,6 +124,19 @@ internal static partial class UnitMappers_BETA
         if (NativeMappingPolicy.CohortCategory(native.Category) == null)
             return Unsupported("No audited population/weapon contract for native family " + native.Category);
         var original = mapped.unit_key == NOT_FOUND_KEY ? null : SemanticAsset(mapped.unit_key);
+        if (original?.CavalryAdapterIssue != null && native.Category is "heavy_cavalry" or "light_cavalry" or "archer_cavalry")
+            return Unsupported(original.CavalryAdapterIssue);
+        // A narrow regional catalog takes priority over ancient fallback templates, but never
+        // over title/manual/autofix/custom mappings (protected above), or a valid Earl mapping.
+        var catalog = ReviewedCavalryCandidate(unit, native);
+        if (catalog != null && catalog.Key != mapped.unit_key && original?.CavalryAdapter == null &&
+            (original == null || !original.HasSpecialEntity && (!original.IsMounted || original.MountEntityType == "horse")))
+        {
+            string catalogReason = "Reviewed same-region/era Earl cavalry role; original assets and numeric stats retained in a private single-rider adapter; engine confirmation pending.";
+            Record("repaired", catalog.Key, catalogReason, catalog);
+            StatFidelitySession.Note("Cavalry catalog " + unit.GetAttilaFaction() + "/" + native.Key + ": " + mapped.unit_key + " -> " + catalog.Key + ". " + catalogReason);
+            return (catalog.Key, false);
+        }
         string? mismatch = original == null ? "missing-active-unit" : NativeMappingPolicy.RoleMismatch(native.Category!, original, native.Key);
         if (original != null && (original.EngineKey.Length > 0 || mismatch == null && NativeMappingPolicy.RepresentationIssue(original) != null))
         {

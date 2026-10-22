@@ -614,9 +614,14 @@ namespace CrusaderWars.data.save_file
                 allUnits.AddRange(characterUnits);
                 allUnits.AddRange(regularUnits);
 
-                allUnits = GetAllUnits_AttilaFaction(allUnits);
-                allUnits = GetAllUnits_Max(allUnits);
-                allUnits = GetAllUnits_UnitKeys(allUnits);
+                // Keep stock-sized reserve placeholders for exact native strength proof,
+                // but do not require an appearance mapping for actors that will not deploy.
+                var mappingUnits = StatFidelity.StatFidelitySession.HasBoundExport
+                    ? allUnits.Where(u => !StatFidelity.StatFidelitySession.IsInactiveNativePopulationPlaceholder(army, u)).ToList()
+                    : allUnits;
+                GetAllUnits_AttilaFaction(mappingUnits);
+                GetAllUnits_Max(mappingUnits);
+                GetAllUnits_UnitKeys(mappingUnits);
                 army.SetUnits(allUnits);
                 Program.Logger.Debug($"Finished creating {units.Count} units for army {army.ID}.");
                 //army.PrintUnits();

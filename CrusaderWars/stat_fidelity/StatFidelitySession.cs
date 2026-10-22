@@ -104,6 +104,7 @@ namespace CrusaderWars.StatFidelity
             ClearCommanderGuards();
             levyStrengthProofs.Clear();
             maaStrengthProofs.Clear();
+            nativePopulationBudgets.Clear(); nativePopulationOutcomes.Clear(); nativeEquipmentInputs.Clear(); nativePopulationDeployments.Clear(); nativePopulationReadArmies.Clear(); syntheticUnharmedPopulationControl = false;
             SaveEvidenceValidated = false;
             Enabled = ModOptions.optionsValuesCollection.TryGetValue("StatFidelityMode", out string? mode) && (mode == "Validated" || mode == "Enabled");
             Export = Enabled ? StatExportParser.Parse(log) : new StatExport();
@@ -144,6 +145,7 @@ namespace CrusaderWars.StatFidelity
             ClearCommanderGuards();
             levyStrengthProofs.Clear();
             maaStrengthProofs.Clear();
+            nativePopulationBudgets.Clear(); nativePopulationOutcomes.Clear(); nativeEquipmentInputs.Clear(); nativePopulationDeployments.Clear(); nativePopulationReadArmies.Clear(); syntheticUnharmedPopulationControl = false;
             PreparedDatabase = null; SaveEvidenceValidated = false; Export = new StatExport(); Settings = new StatFidelitySettings();
             Enabled = ModOptions.optionsValuesCollection.TryGetValue("StatFidelityMode", out string? mode) && (mode == "Enabled" || mode == "Validated");
             return Failure(reason);
@@ -182,7 +184,9 @@ namespace CrusaderWars.StatFidelity
                 acceptedRegiments = Export.Regiments.Count, acceptedLevies = Export.Levies.Count, acceptedCommanders = Export.Commanders.Count, acceptedKnights = Export.Knights.Count,
                 generatedProfiles = profiles.Count, deployedFormations = deployedSourceBindings, siegeSourceBudgets = siegeSources.Values,
                 fieldSiegeParticipation = ArmiesReader.FieldSiegeParticipation, levySourceCohorts = LevyCohorts,
-                maaSourceCohorts = MaaSourceCohorts, settings = Settings,
+                maaSourceCohorts = MaaSourceCohorts, nativePopulationBudgets = NativePopulationBudgets,
+                nativePopulationOutcomes = NativePopulationOutcomes, nativeEquipmentInputs = NativeEquipmentInputs,
+                nativePopulationDeployments = NativePopulationDeployments, settings = Settings,
                 scope = new {
                     regimentScaling = "effective/base ratios on mapped Attila templates",
                     commanderScaling = "difference of exported character commander advantage; not complete combat advantage",
@@ -383,11 +387,12 @@ namespace CrusaderWars.StatFidelity
                 }
                 else
                 {
+                    fightingCommander = ParticipatingKnightStats(army, fightingCommander);
                     // Explicit legacy calibration-test mode keeps the character once.
                     double representation = (double)Settings.KnightBodiesPerCharacter / Settings.CommanderBodyguardSoldiers;
-                    damage *= fightingCommander.Prowess * fightingCommander.Effectiveness * fightingCommander.DamagePerProwess /
+                    damage *= fightingCommander.Prowess * fightingCommander.Effectiveness * fightingCommander.ActiveFraction * fightingCommander.DamagePerProwess /
                         (Settings.KnightReferenceProwess * Settings.KnightReferenceDamagePerProwess) * representation;
-                    hp = fightingCommander.Prowess * fightingCommander.Effectiveness * fightingCommander.ToughnessPerProwess /
+                    hp = fightingCommander.Prowess * fightingCommander.Effectiveness * fightingCommander.ActiveFraction * fightingCommander.ToughnessPerProwess /
                         (Settings.KnightReferenceProwess * Settings.KnightReferenceToughnessPerProwess) * representation;
                     result.KnightApplied = true;
                     Note("Verified fighting commander " + fightingCommander.CharacterId + " contributes one template-relative test budget through its general formation; no duplicate knight/fate roll.");
@@ -435,6 +440,10 @@ namespace CrusaderWars.StatFidelity
                 if (regiment.CurrentNum is < 0 or > 1)
                     throw Failure("Native knight regiment has an invalid available character count: " + regiment.ID);
                 if (regiment.CurrentNum == 0) continue;
+                var participation = ArmiesReader.RequireNativeCombatParticipation(army, regiment.ID);
+                if (!participation.Current.HasValue || participation.Current > 1)
+                    throw Failure("Native knight lacks explicit valid current participation: " + regiment.ID);
+                if (participation.Current == 0) continue;
                 if (!Export.Knights.TryGetValue(army.CombatSide + ":" + regiment.MAA_Name, out var row))
                 {
                     if (Settings.RequireCompleteExport) throw Failure("Native knight roster lacks stat evidence for " + army.CombatSide + ":" + regiment.MAA_Name + ". No character was silently omitted.");
@@ -476,7 +485,13 @@ namespace CrusaderWars.StatFidelity
             if (!participation.Current.HasValue || participation.Current > 1)
                 throw Failure("Fighting commander lacks valid explicit current participation in the selected native combat.");
             if (participation.Current == 0) return;
-            if (!roster.Where(r => r.CurrentNum > 0).All(r => Export.Knights.ContainsKey(army.CombatSide + ":" + r.MAA_Name)))
+            var activeRoster = roster.Where(r => r.CurrentNum > 0).Where(r => {
+                var row = ArmiesReader.RequireNativeCombatParticipation(army, r.ID);
+                if (!row.Current.HasValue || row.Current < 0 || row.Current > 1)
+                    throw Failure("Knight has invalid or absent active participation in the selected native combat.");
+                return row.Current > 0;
+            });
+            if (!activeRoster.All(r => Export.Knights.ContainsKey(army.CombatSide + ":" + r.MAA_Name)))
             {
                 if (Settings.RequireCompleteExport) throw Failure("Fighting-commander knight calibration requires complete original roster evidence for army " + army.ID + ".");
                 return;
@@ -499,7 +514,7 @@ namespace CrusaderWars.StatFidelity
                 return false;
             }
             var knights = army.Knights!.GetKnightsList();
-            var rows = knights.Select(k => Export.Knights[army.CombatSide + ":" + k.GetID()]).ToArray();
+            var rows = knights.Select(k => ParticipatingKnightStats(army, Export.Knights[army.CombatSide + ":" + k.GetID()])).ToArray();
             if (Settings.KnightBudgetMode == "Anchored")
             {
                 var plan = PlanKnightBudget(army, baseKey, rows);
@@ -521,8 +536,8 @@ namespace CrusaderWars.StatFidelity
                 coverage.Add("Army " + army.ID + ": " + rows.Length + " native knights represented by " + soldiers + " retinue bodies; independent nominal D/T budgets anchored to " + plan.Anchor.SourceIdentity + ". " + plan.CalibrationEvidence);
                 return true;
             }
-            double damageTotal = rows.Sum(k => k.Prowess * k.Effectiveness * k.DamagePerProwess);
-            double hpTotal = rows.Sum(k => k.Prowess * k.Effectiveness * k.ToughnessPerProwess);
+            double damageTotal = rows.Sum(k => k.Prowess * k.Effectiveness * k.DamagePerProwess * k.ActiveFraction);
+            double hpTotal = rows.Sum(k => k.Prowess * k.Effectiveness * k.ToughnessPerProwess * k.ActiveFraction);
             if (damageTotal == 0 && hpTotal == 0)
             {
                 foreach (var knight in knights) knight.FidelitySoldierCount = 0;
@@ -596,6 +611,7 @@ namespace CrusaderWars.StatFidelity
             siegeSources.Clear(); siegeFormations.Clear();
             levyCohorts.Clear();
             maaSources.Clear(); maaRawFormations.Clear();
+            nativePopulationOutcomes.Clear();
         }
 
         public static void PrepareKnightBudgetDatabase(string runtimeRoot, string attilaExecutable, string? cacheRoot = null)
@@ -637,6 +653,7 @@ namespace CrusaderWars.StatFidelity
 
         private static KnightBudgetPlan PlanKnightBudget(Army army, string mappedKey, IReadOnlyList<KnightStats> rows)
         {
+            rows = rows.Select(row => ParticipatingKnightStats(army, row)).ToArray();
             if (PreparedDatabase == null)
                 throw Failure("Anchored knight budgets require the active Attila database before generating battle units.");
             var candidates = new List<(Unit unit, RegimentStats stats, AttilaUnitCombatStats template, double weight, string? referenceIdentity)>();

@@ -2,6 +2,8 @@
 
 The old four-body reference preserves relative prowess/efficiency changes, but does **not** preserve knight strength against the mapped army. It is retained only as the explicit `KnightBudgetMode: "TemplateRelative"` test mode. The default `Anchored` mode budgets damage and toughness independently against a verified melee MAA source in the same army, with a native owner-levy fallback for armies without a suitable MAA source.
 
+The subsequent [active-population update](./active-population-validation.md) weights nominal damage and toughness by each knight's explicit selected-combat participation. Fractional participation retains one character identity; zero participation contributes no personal fighting budget. Retinue survival is not literal character health, and only an explicitly resolved removal fate clears native availability. The historical examples below retain their captured inputs and do not represent a new engine calibration.
+
 ## What the active database showed
 
 The actual snapshot-6 army has five knights with total prowess 64 and efficiency 2.35. The exported active coefficients are 50 damage and 10 toughness per prowess. Their CK3 totals are therefore **7,520 damage and 1,504 toughness**, before side commander advantage.
